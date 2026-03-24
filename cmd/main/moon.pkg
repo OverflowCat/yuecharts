@@ -1,0 +1,7 @@
+// import {
+//   "OverflowCat/yuecharts" @lib,
+// }
+
+options(
+  "is-main": true,
+)
