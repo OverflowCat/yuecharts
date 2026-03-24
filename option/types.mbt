@@ -100,6 +100,7 @@ pub enum SeriesType {
   Radar
   Candlestick
   Heatmap
+  Boxplot
 }
 
 ///|
@@ -205,12 +206,14 @@ pub struct LegendOption {
   show : Bool
   left : String
   top : String
+  bottom : String
   orient : String // "horizontal" | "vertical"
 }
 
 ///|
 pub fn LegendOption::default() -> LegendOption {
-  { show: true, left: "center", top: "top", orient: "horizontal" }
+  // ECharts default: left:"center", bottom:15 (tokens.size.m), orient:"horizontal"
+  { show: true, left: "center", top: "", bottom: "15", orient: "horizontal" }
 }
 
 ///|

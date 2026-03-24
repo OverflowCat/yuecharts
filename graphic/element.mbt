@@ -333,6 +333,38 @@ pub fn Element::line(
 }
 
 ///|
+/// Line stroked with a CSS/hex color string and specified width.
+pub fn Element::line_colored(
+  x1 : Double,
+  y1 : Double,
+  x2 : Double,
+  y2 : Double,
+  color_str : String,
+  width : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  let stroke = { color, width, dash: [], line_cap: "butt", line_join: "miter" }
+  Line({ x1, y1, x2, y2, stroke, opacity: 1.0 })
+}
+
+///|
+/// Text element with anchor, baseline, and explicit fill color.
+pub fn Element::text_colored(
+  x : Double,
+  y : Double,
+  content : String,
+  anchor : TextAnchor,
+  baseline : TextBaseline,
+  color_str : String,
+) -> Element {
+  let fill = Color::from_string(color_str).unwrap_or(black)
+  let data = TextData::new(x, y, content)
+    .with_anchor(anchor)
+    .with_baseline(baseline)
+  Text({ ..data, style: { ..data.style, fill, } })
+}
+
+///|
 pub fn Element::polyline(points : Array[Point]) -> Element {
   Polyline(PolylineData::new(points))
 }
@@ -414,6 +446,34 @@ pub fn Element::circle_colored(
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
   Circle({ cx, cy, r, fill: Some({ color, }), stroke: None, opacity: 1.0 })
+}
+
+///|
+/// Rect with stroke only (fill = transparent), stroked with the given color.
+pub fn Element::rect_outlined(
+  x : Double,
+  y : Double,
+  w : Double,
+  h : Double,
+  color_str : String,
+  stroke_width : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  let stroke = {
+    color,
+    width: stroke_width,
+    dash: [],
+    line_cap: "butt",
+    line_join: "miter",
+  }
+  Rect({
+    bbox: BBox::new(x, y, w, h),
+    rx: 0.0,
+    ry: 0.0,
+    fill: None,
+    stroke: Some(stroke),
+    opacity: 1.0,
+  })
 }
 
 ///|

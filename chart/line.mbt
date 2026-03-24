@@ -23,11 +23,7 @@ pub fn render_line_series(
     di = di + 1
     let px = if x_idx < coord.x_scales.length() {
       match coord.x_scales[x_idx] {
-        Ordinal(s) =>
-          match s.data_to_pixel(di.to_string()) {
-            Some(v) => v
-            None => coord.bbox.x + (di - 1).to_double() * 10.0
-          }
+        Ordinal(s) => s.band_center(di - 1)
         Linear(s) => {
           let v = match item.value {
             Num(n) => n

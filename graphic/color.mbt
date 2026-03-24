@@ -34,6 +34,16 @@ pub fn Color::rgba(r : Int, g : Int, b : Int, a : Int) -> Color {
 }
 
 ///|
+/// Linearly interpolate between two colors with t ∈ [0, 1].
+/// Ref: zrender/src/tool/color.ts — lerp / mix
+pub fn Color::lerp(a : Color, b : Color, t : Double) -> Color {
+  let ch = fn(x : Int, y : Int) -> Int {
+    (x.to_double() + (y - x).to_double() * t).to_int()
+  }
+  { r: ch(a.r, b.r), g: ch(a.g, b.g), b: ch(a.b, b.b), a: ch(a.a, b.a) }
+}
+
+///|
 /// Parse a hex color string like "#rgb", "#rrggbb", or "#rrggbbaa".
 /// Returns None if the string is not a valid hex color.
 pub fn Color::from_hex(s : String) -> Color? {

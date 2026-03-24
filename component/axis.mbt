@@ -1,6 +1,12 @@
 // Corresponds to: echarts/src/component/axis/AxisView.ts
 // and echarts/src/component/axis/AxisBuilder.ts
 
+// Default axis colors from ECharts tokens (visual/tokens.ts):
+//   axisLine / axisTick / axisLabel: tokens.color.neutral70 = #54555a
+
+///|
+let axis_line_color : String = "#54555a"
+
 ///|
 /// Render all x-axes and y-axes to the scene graph.
 pub fn render_axes(
@@ -34,7 +40,16 @@ fn render_x_axis(
     _ => bbox.y + bbox.height
   }
   // Axis baseline
-  elems.push(@graphic.Element::line(bbox.x, pos, bbox.x + bbox.width, pos))
+  elems.push(
+    @graphic.Element::line_colored(
+      bbox.x,
+      pos,
+      bbox.x + bbox.width,
+      pos,
+      axis_line_color,
+      1.0,
+    ),
+  )
   // Ticks and labels
   if axis_index >= coord.x_scales.length() {
     return
@@ -49,7 +64,11 @@ fn render_x_axis(
         let px = tick.value
         let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
         let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
-        elems.push(@graphic.Element::line(px, tick_y1, px, tick_y2))
+        elems.push(
+          @graphic.Element::line_colored(
+            px, tick_y1, px, tick_y2, axis_line_color, 1.0,
+          ),
+        )
         let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
         let baseline = if pos == bbox.y {
           @graphic.TextBaseline::bottom()
@@ -57,12 +76,13 @@ fn render_x_axis(
           @graphic.TextBaseline::hanging()
         }
         elems.push(
-          @graphic.Element::text_styled(
+          @graphic.Element::text_colored(
             px,
             label_y,
             tick.label,
             @graphic.TextAnchor::middle(),
             baseline,
+            axis_line_color,
           ),
         )
       }
@@ -76,7 +96,11 @@ fn render_x_axis(
         let px = s.data_to_pixel(tick.value)
         let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
         let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
-        elems.push(@graphic.Element::line(px, tick_y1, px, tick_y2))
+        elems.push(
+          @graphic.Element::line_colored(
+            px, tick_y1, px, tick_y2, axis_line_color, 1.0,
+          ),
+        )
         let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
         let baseline = if pos == bbox.y {
           @graphic.TextBaseline::bottom()
@@ -84,12 +108,13 @@ fn render_x_axis(
           @graphic.TextBaseline::hanging()
         }
         elems.push(
-          @graphic.Element::text_styled(
+          @graphic.Element::text_colored(
             px,
             label_y,
             tick.label,
             @graphic.TextAnchor::middle(),
             baseline,
+            axis_line_color,
           ),
         )
       }
@@ -110,7 +135,16 @@ fn render_y_axis(
     _ => bbox.x
   }
   // Axis baseline
-  elems.push(@graphic.Element::line(pos, bbox.y, pos, bbox.y + bbox.height))
+  elems.push(
+    @graphic.Element::line_colored(
+      pos,
+      bbox.y,
+      pos,
+      bbox.y + bbox.height,
+      axis_line_color,
+      1.0,
+    ),
+  )
   // Ticks and labels
   if axis_index >= coord.y_scales.length() {
     return
@@ -125,7 +159,11 @@ fn render_y_axis(
         let py = tick.value
         let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
         let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
-        elems.push(@graphic.Element::line(tick_x1, py, tick_x2, py))
+        elems.push(
+          @graphic.Element::line_colored(
+            tick_x1, py, tick_x2, py, axis_line_color, 1.0,
+          ),
+        )
         let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
         let anchor = if pos == bbox.x {
           @graphic.TextAnchor::end()
@@ -133,12 +171,13 @@ fn render_y_axis(
           @graphic.TextAnchor::start()
         }
         elems.push(
-          @graphic.Element::text_styled(
+          @graphic.Element::text_colored(
             label_x,
             py,
             tick.label,
             anchor,
             @graphic.TextBaseline::middle(),
+            axis_line_color,
           ),
         )
       }
@@ -152,7 +191,11 @@ fn render_y_axis(
         let py = s.data_to_pixel(tick.value)
         let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
         let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
-        elems.push(@graphic.Element::line(tick_x1, py, tick_x2, py))
+        elems.push(
+          @graphic.Element::line_colored(
+            tick_x1, py, tick_x2, py, axis_line_color, 1.0,
+          ),
+        )
         let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
         let anchor = if pos == bbox.x {
           @graphic.TextAnchor::end()
@@ -160,12 +203,13 @@ fn render_y_axis(
           @graphic.TextAnchor::start()
         }
         elems.push(
-          @graphic.Element::text_styled(
+          @graphic.Element::text_colored(
             label_x,
             py,
             tick.label,
             anchor,
             @graphic.TextBaseline::middle(),
+            axis_line_color,
           ),
         )
       }

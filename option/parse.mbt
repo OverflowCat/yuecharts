@@ -74,6 +74,7 @@ fn parse_legend(j : Json) -> LegendOption {
     show: j_bool(j, "show", base.show),
     left: j_string(j, "left", base.left),
     top: j_string(j, "top", base.top),
+    bottom: j_string(j, "bottom", base.bottom),
     orient: j_string(j, "orient", base.orient),
   }
 }
@@ -167,6 +168,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "radar" => SeriesType::Radar
     "candlestick" => SeriesType::Candlestick
     "heatmap" => SeriesType::Heatmap
+    "boxplot" => SeriesType::Boxplot
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -176,6 +178,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Pie => SeriesOption::default_pie()
     _ => SeriesOption::default_line()
   }
+  // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
   let data = match j_field(j, "data") {
     Some(Array(arr)) => arr.map(parse_data_item)
     _ => base.data
