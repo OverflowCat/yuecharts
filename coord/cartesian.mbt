@@ -1,3 +1,6 @@
+// Corresponds to: echarts/src/coord/cartesian/Cartesian2D.ts
+// and echarts/src/coord/cartesian/Axis2D.ts
+
 ///|
 /// A resolved Cartesian 2D coordinate system: holds the grid bounding box
 /// and the scales for the X and Y axes.

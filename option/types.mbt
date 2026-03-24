@@ -1,3 +1,7 @@
+// Corresponds to: echarts/src/coord/axisCommonTypes.ts
+// echarts/src/component/axis/AxisModel.ts
+// and various echarts/src/option/*.ts files
+
 ///|
 /// Axis type.
 pub enum AxisType {

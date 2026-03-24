@@ -1,3 +1,5 @@
+// Corresponds to: echarts/src/scale/Ordinal.ts
+
 ///|
 /// Ordinal scale: maps discrete categories to pixel bands.
 pub struct OrdinalScale {

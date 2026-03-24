@@ -1,3 +1,6 @@
+// Corresponds to: echarts/src/scale/Interval.ts
+// (Linear scale is a type of interval scale)
+
 ///|
 /// A tick mark on a scale axis.
 pub struct Tick {

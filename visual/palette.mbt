@@ -1,3 +1,6 @@
+// Corresponds to: echarts/src/visual/style.ts
+// and echarts/src/theme/default.ts (color palette definitions)
+
 ///|
 /// Default ECharts 5 color palette.
 pub let echarts_palette : Array[String] = [

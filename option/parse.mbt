@@ -1,3 +1,6 @@
+// Corresponds to: echarts/src/core/echarts.ts (setOption processing)
+// and echarts/src/util/model.ts (option normalization)
+
 ///|
 /// Parse a JSON string into a ChartOption.
 pub fn parse(json_str : String) -> ChartOption raise @json.ParseError {

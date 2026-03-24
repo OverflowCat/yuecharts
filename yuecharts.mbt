@@ -1,3 +1,7 @@
+// Top-level module
+// Corresponds to: echarts/src/echarts.ts (core rendering pipeline)
+// and echarts/src/core/echarts.ts (init and render logic)
+
 ///|
 /// Render an ECharts JSON option string to an SVG string.
 /// Returns an error string with "ERROR: ..." prefix on failure.

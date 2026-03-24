@@ -1,3 +1,5 @@
+// Corresponds to: echarts/src/component/axis/axisSplitHelper.ts
+
 ///|
 /// Render background grid lines for all y-axes.
 pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] {

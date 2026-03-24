@@ -1,3 +1,6 @@
+// Corresponds to: echarts/src/coord/cartesian/Grid.ts
+// and echarts/src/layout/barGrid.ts
+
 ///|
 /// Resolve a SizeSpec into pixels given a total dimension.
 pub fn resolve_size(spec : @option.SizeSpec, total : Double) -> Double {

@@ -1,3 +1,6 @@
+// Corresponds to: echarts/src/component/axis/AxisView.ts
+// and echarts/src/component/axis/AxisBuilder.ts
+
 ///|
 /// Render all x-axes and y-axes to the scene graph.
 pub fn render_axes(
@@ -48,7 +51,20 @@ fn render_x_axis(
         let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
         elems.push(@graphic.Element::line(px, tick_y1, px, tick_y2))
         let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
-        elems.push(@graphic.Element::text(px, label_y, tick.label))
+        let baseline = if pos == bbox.y {
+          @graphic.TextBaseline::bottom()
+        } else {
+          @graphic.TextBaseline::hanging()
+        }
+        elems.push(
+          @graphic.Element::text_styled(
+            px,
+            label_y,
+            tick.label,
+            @graphic.TextAnchor::middle(),
+            baseline,
+          ),
+        )
       }
     }
     Linear(s) => {
@@ -62,7 +78,20 @@ fn render_x_axis(
         let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
         elems.push(@graphic.Element::line(px, tick_y1, px, tick_y2))
         let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
-        elems.push(@graphic.Element::text(px, label_y, tick.label))
+        let baseline = if pos == bbox.y {
+          @graphic.TextBaseline::bottom()
+        } else {
+          @graphic.TextBaseline::hanging()
+        }
+        elems.push(
+          @graphic.Element::text_styled(
+            px,
+            label_y,
+            tick.label,
+            @graphic.TextAnchor::middle(),
+            baseline,
+          ),
+        )
       }
     }
   }
@@ -98,7 +127,20 @@ fn render_y_axis(
         let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
         elems.push(@graphic.Element::line(tick_x1, py, tick_x2, py))
         let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
-        elems.push(@graphic.Element::text(label_x, py + 4.0, tick.label))
+        let anchor = if pos == bbox.x {
+          @graphic.TextAnchor::end()
+        } else {
+          @graphic.TextAnchor::start()
+        }
+        elems.push(
+          @graphic.Element::text_styled(
+            label_x,
+            py,
+            tick.label,
+            anchor,
+            @graphic.TextBaseline::middle(),
+          ),
+        )
       }
     }
     Linear(s) => {
@@ -112,7 +154,20 @@ fn render_y_axis(
         let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
         elems.push(@graphic.Element::line(tick_x1, py, tick_x2, py))
         let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
-        elems.push(@graphic.Element::text(label_x, py + 4.0, tick.label))
+        let anchor = if pos == bbox.x {
+          @graphic.TextAnchor::end()
+        } else {
+          @graphic.TextAnchor::start()
+        }
+        elems.push(
+          @graphic.Element::text_styled(
+            label_x,
+            py,
+            tick.label,
+            anchor,
+            @graphic.TextBaseline::middle(),
+          ),
+        )
       }
     }
   }

@@ -1,3 +1,5 @@
+// Corresponds to: echarts/src/chart/bar/BarView.ts
+
 ///|
 /// Render a BarSeries to Rect scene graph elements.
 pub fn render_bar_series(

@@ -1,3 +1,5 @@
+// Corresponds to: zrender/src/tool/color.ts
+
 ///|
 /// RGBA color representation (each channel 0-255, alpha 0-255).
 pub struct Color {

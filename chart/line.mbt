@@ -1,3 +1,5 @@
+// Corresponds to: echarts/src/chart/line/LineView.ts
+
 ///|
 /// Render a LineSeries to polyline/path scene graph elements.
 pub fn render_line_series(

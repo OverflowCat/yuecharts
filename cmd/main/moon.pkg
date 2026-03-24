@@ -1,6 +1,5 @@
 import {
   "OverflowCat/yuecharts" @lib,
-  "moonbitlang/core/env" @env,
 }
 
 options(

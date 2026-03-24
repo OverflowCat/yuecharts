@@ -1,3 +1,6 @@
+// Corresponds to: zrender/src/graphic/Shape.ts, zrender/src/graphic/Path.ts
+// and various zrender/src/graphic/shape/* primitives (Rect, Circle, Line, Text, etc.)
+
 ///|
 /// Style applied to strokes (lines, borders).
 pub struct StrokeStyle {
@@ -33,6 +36,21 @@ pub enum TextAnchor {
 }
 
 ///|
+pub fn TextAnchor::start() -> TextAnchor {
+  Start
+}
+
+///|
+pub fn TextAnchor::middle() -> TextAnchor {
+  Middle
+}
+
+///|
+pub fn TextAnchor::end() -> TextAnchor {
+  End
+}
+
+///|
 pub fn TextAnchor::to_svg(self : TextAnchor) -> String {
   match self {
     Start => "start"
@@ -50,6 +68,41 @@ pub enum TextBaseline {
   Middle
   Alphabetic
   Ideographic
+  Bottom
+}
+
+///|
+pub fn TextBaseline::auto() -> TextBaseline {
+  Auto
+}
+
+///|
+pub fn TextBaseline::top() -> TextBaseline {
+  Top
+}
+
+///|
+pub fn TextBaseline::hanging() -> TextBaseline {
+  Hanging
+}
+
+///|
+pub fn TextBaseline::middle() -> TextBaseline {
+  Middle
+}
+
+///|
+pub fn TextBaseline::alphabetic() -> TextBaseline {
+  Alphabetic
+}
+
+///|
+pub fn TextBaseline::ideographic() -> TextBaseline {
+  Ideographic
+}
+
+///|
+pub fn TextBaseline::bottom() -> TextBaseline {
   Bottom
 }
 
@@ -239,6 +292,19 @@ pub fn TextData::new(x : Double, y : Double, content : String) -> TextData {
   { x, y, content, style: TextStyle::default(), opacity: 1.0 }
 }
 
+///|
+pub fn TextData::with_anchor(self : TextData, anchor : TextAnchor) -> TextData {
+  { ..self, style: { ..self.style, anchor, } }
+}
+
+///|
+pub fn TextData::with_baseline(
+  self : TextData,
+  baseline : TextBaseline,
+) -> TextData {
+  { ..self, style: { ..self.style, baseline, } }
+}
+
 // ---- builder helpers ----
 
 ///|
@@ -284,6 +350,21 @@ pub fn Element::path(d : String) -> Element {
 ///|
 pub fn Element::text(x : Double, y : Double, content : String) -> Element {
   Text(TextData::new(x, y, content))
+}
+
+///|
+/// Text element with custom anchor and baseline.
+pub fn Element::text_styled(
+  x : Double,
+  y : Double,
+  content : String,
+  anchor : TextAnchor,
+  baseline : TextBaseline,
+) -> Element {
+  let data = TextData::new(x, y, content)
+    .with_anchor(anchor)
+    .with_baseline(baseline)
+  Text(data)
 }
 
 ///|

@@ -1,3 +1,6 @@
+// Corresponds to: zrender/src/svg/Painter.ts
+// Renders graphic elements to SVG output
+
 ///|
 /// SVG painter: walks the scene graph and produces an SVG string.
 fn points_to_svg(points : Array[@graphic.Point]) -> String {

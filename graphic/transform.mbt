@@ -1,3 +1,6 @@
+// Corresponds to: zrender/src/core/Point.ts, zrender/src/core/BoundingRect.ts
+// and zrender/src/core/matrix.ts (for transformations)
+
 ///|
 /// 2D point.
 pub struct Point {
