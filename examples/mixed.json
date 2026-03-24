@@ -1,0 +1,27 @@
+{
+  "width": 700,
+  "height": 450,
+  "title": { "text": "Mixed Bar & Line" },
+  "xAxis": {
+    "type": "category",
+    "data": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
+  },
+  "yAxis": [
+    { "type": "value", "name": "Volume" },
+    { "type": "value", "name": "Rate" }
+  ],
+  "grid": { "left": "80", "right": "60", "top": "60", "bottom": "60" },
+  "series": [
+    {
+      "type": "bar",
+      "name": "Rainfall",
+      "data": [2.6, 5.9, 9.0, 26.4, 28.7, 70.7]
+    },
+    {
+      "type": "line",
+      "name": "Avg Temp",
+      "yAxisIndex": 1,
+      "data": [2.0, 2.2, 3.3, 4.5, 6.3, 10.2]
+    }
+  ]
+}

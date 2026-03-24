@@ -1,0 +1,3 @@
+import {
+  "OverflowCat/yuecharts/graphic" @graphic,
+}

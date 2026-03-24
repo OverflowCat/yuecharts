@@ -1,0 +1,17 @@
+{
+  "width": 600,
+  "height": 400,
+  "title": { "text": "Weekly Sales" },
+  "xAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "type": "bar",
+      "name": "Sales",
+      "data": [120, 200, 150, 80, 70, 110, 130]
+    }
+  ]
+}

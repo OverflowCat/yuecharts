@@ -1,6 +1,7 @@
-// import {
-//   "OverflowCat/yuecharts" @lib,
-// }
+import {
+  "OverflowCat/yuecharts" @lib,
+  "moonbitlang/core/env" @env,
+}
 
 options(
   "is-main": true,

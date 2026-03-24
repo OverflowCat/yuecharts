@@ -1,4 +1,43 @@
-.DS_Store
+# =========================
+# Build artifacts
+# =========================
 _build/
+*.wasm
+*.mbti
+*.mbc
+moon.mod.lock
 .mooncakes/
 .moonagent/
+*.mi
+examples/*.svg
+
+# =========================
+# OS generated files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+*.local
+
+# =========================
+# IDE / Editor
+# =========================
+
+.vscode/
+
+# =========================
+# Node
+# =========================
+node_modules/
+
+# =========================
+# Temporary files
+# =========================
+tmp/
+temp/
+*.tmp
