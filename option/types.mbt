@@ -251,6 +251,71 @@ pub fn SeriesOption::default_gauge() -> SeriesOption {
 }
 
 ///|
+pub fn series_type_line() -> SeriesType {
+  Line
+}
+
+///|
+pub fn series_type_bar() -> SeriesType {
+  Bar
+}
+
+///|
+pub fn series_type_scatter() -> SeriesType {
+  Scatter
+}
+
+///|
+pub fn series_type_effect_scatter() -> SeriesType {
+  EffectScatter
+}
+
+///|
+pub fn series_type_pie() -> SeriesType {
+  Pie
+}
+
+///|
+pub fn series_type_sunburst() -> SeriesType {
+  Sunburst
+}
+
+///|
+pub fn series_type_treemap() -> SeriesType {
+  Treemap
+}
+
+///|
+pub fn series_type_radar() -> SeriesType {
+  Radar
+}
+
+///|
+pub fn series_type_candlestick() -> SeriesType {
+  Candlestick
+}
+
+///|
+pub fn series_type_heatmap() -> SeriesType {
+  Heatmap
+}
+
+///|
+pub fn series_type_boxplot() -> SeriesType {
+  Boxplot
+}
+
+///|
+pub fn series_type_funnel() -> SeriesType {
+  Funnel
+}
+
+///|
+pub fn series_type_gauge() -> SeriesType {
+  Gauge
+}
+
+///|
 /// Title component.
 pub struct TitleOption {
   text : String

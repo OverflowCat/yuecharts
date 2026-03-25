@@ -1,0 +1,6 @@
+import {
+  "OverflowCat/yuecharts/graphic" @graphic,
+  "OverflowCat/yuecharts/option" @option,
+  "OverflowCat/yuecharts/coord" @coord,
+  "OverflowCat/yuecharts/scale" @scale,
+}
