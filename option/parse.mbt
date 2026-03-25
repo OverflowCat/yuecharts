@@ -48,6 +48,10 @@ fn parse_chart_option(j : Json) -> ChartOption {
     Some(obj) if obj is Object(_) => [parse_series_option(obj)]
     _ => []
   }
+  let visual_map = match j_field(j, "visualMap") {
+    Some(vm) => Some(parse_visual_map(vm))
+    None => None
+  }
   {
     width,
     height,
@@ -59,6 +63,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     radar,
     series,
     background_color,
+    visual_map,
   }
 }
 
@@ -357,6 +362,14 @@ fn parse_radar_indicator(j : Json) -> RadarIndicator {
   let max = j_number_opt(j, "max")
   let min = j_number_opt(j, "min")
   { name, max, min }
+}
+
+///|
+/// Parse a visualMap option. Supports continuous visualMap.
+/// Corresponds to echarts/src/component/visualMap/VisualMapModel.ts
+fn parse_visual_map(j : Json) -> VisualMapOption {
+  let base = VisualMapOption::default()
+  { min: j_number(j, "min", base.min), max: j_number(j, "max", base.max) }
 }
 
 ///|

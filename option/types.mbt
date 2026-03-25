@@ -79,11 +79,13 @@ pub enum SizeSpec {
 
 ///|
 pub fn GridOption::default() -> GridOption {
+  // ECharts default: left='15%', right='10%', top=65, bottom=80
+  // See echarts/src/coord/cartesian/GridModel.ts
   {
-    left: SizeSpec::Px(80.0),
-    right: SizeSpec::Px(30.0),
-    top: SizeSpec::Px(60.0),
-    bottom: SizeSpec::Px(60.0),
+    left: SizeSpec::Pct(15.0),
+    right: SizeSpec::Pct(10.0),
+    top: SizeSpec::Px(65.0),
+    bottom: SizeSpec::Px(80.0),
     width: None,
     height: None,
     contain_label: false,
@@ -302,6 +304,21 @@ pub fn RadarOption::default() -> RadarOption {
 }
 
 ///|
+/// Visual map configuration: maps a numeric value range to visual properties.
+/// Corresponds to echarts/src/component/visualMap/VisualMapModel.ts
+pub struct VisualMapOption {
+  /// Minimum value of the mapped range.
+  min : Double
+  /// Maximum value of the mapped range.
+  max : Double
+}
+
+///|
+pub fn VisualMapOption::default() -> VisualMapOption {
+  { min: 0.0, max: 100.0 }
+}
+
+///|
 /// Root chart option.
 pub struct ChartOption {
   width : Double
@@ -314,6 +331,7 @@ pub struct ChartOption {
   radar : Array[RadarOption]
   series : Array[SeriesOption]
   background_color : String?
+  visual_map : VisualMapOption?
 }
 
 ///|
@@ -329,5 +347,6 @@ pub fn ChartOption::default() -> ChartOption {
     radar: [],
     series: [],
     background_color: None,
+    visual_map: None,
   }
 }
