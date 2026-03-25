@@ -186,22 +186,35 @@ pub fn render_funnel_series(
         pts, color, @graphic.white, 1.0, 1.0,
       ),
     )
-    // Label: name inside the trapezoid
+    // Label: outside right with leader polyline (ECharts default labelPosition='right')
     let label_name = match series.data[orig_idx].name {
       Some(n) => n
       None => ""
     }
     if label_name != "" {
-      let lx = cx
-      let ly = (y_top + y_bot) / 2.0
+      let mid_y = (y_top + y_bot) / 2.0
+      // Right-edge midpoint = average of top-right and bottom-right x
+      let right_mid_x = (cx + top_w / 2.0 + cx + bot_w / 2.0) / 2.0
+      let leader_end_x = right_mid_x + 20.0
+      // Leader polyline from right-edge midpoint → 20px to the right
+      elems.push(
+        @graphic.Element::polyline_leader(
+          [
+            @graphic.Point::new(right_mid_x, mid_y),
+            @graphic.Point::new(leader_end_x, mid_y),
+          ],
+          color_str,
+        ),
+      )
+      // Label text 5px after leader end, vertically centered
       elems.push(
         @graphic.Element::text_colored(
-          lx,
-          ly,
+          leader_end_x + 5.0,
+          mid_y,
           label_name,
-          @graphic.TextAnchor::middle(),
+          @graphic.TextAnchor::start(),
           @graphic.TextBaseline::middle(),
-          "#ffffff",
+          "#333333",
         ),
       )
     }

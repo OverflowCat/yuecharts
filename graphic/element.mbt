@@ -437,6 +437,23 @@ pub fn Element::polyline_stroked(
 }
 
 ///|
+/// Thin polyline for connector/leader lines (stroke-width=1, butt cap).
+pub fn Element::polyline_leader(
+  points : Array[Point],
+  color_str : String,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  let stroke = {
+    color,
+    width: 1.0,
+    dash: [],
+    line_cap: "butt",
+    line_join: "miter",
+  }
+  Polyline({ points, stroke, fill: transparent, opacity: 1.0 })
+}
+
+///|
 /// Circle filled with a CSS/hex color string.
 pub fn Element::circle_colored(
   cx : Double,

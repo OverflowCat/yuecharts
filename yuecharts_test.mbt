@@ -103,17 +103,18 @@ test "bar example snapshot" {
       #|  <text x="488.33333333333337" y="354" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Wed</text>
       #|  <line x1="80" y1="60" x2="80" y2="340" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <line x1="76" y1="340" x2="80" y2="340" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="340" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">120</text>
+      #|  <text x="72" y="340" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
       #|  <line x1="76" y1="270" x2="80" y2="270" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="270" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">140</text>
+      #|  <text x="72" y="270" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">50</text>
       #|  <line x1="76" y1="200" x2="80" y2="200" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="200" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">160</text>
+      #|  <text x="72" y="200" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">100</text>
       #|  <line x1="76" y1="130" x2="80" y2="130" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="130" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">180</text>
+      #|  <text x="72" y="130" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">150</text>
       #|  <line x1="76" y1="60" x2="80" y2="60" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <text x="72" y="60" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">200</text>
+      #|  <rect x="88.16666666666669" y="172" width="117.60000000000001" height="168" fill="#5070dd" stroke="none"/>
       #|  <rect x="251.5" y="60" width="117.60000000000001" height="280" fill="#5070dd" stroke="none"/>
-      #|  <rect x="414.83333333333337" y="235" width="117.60000000000001" height="105" fill="#5070dd" stroke="none"/>
+      #|  <rect x="414.83333333333337" y="130" width="117.60000000000001" height="210" fill="#5070dd" stroke="none"/>
       #|</svg>
     ),
   )
@@ -143,10 +144,12 @@ test "mixed example snapshot" {
       #|  <line x1="80" y1="142.5" x2="670" y2="142.5" stroke="#dbdee4" stroke-width="1" fill="none"/>
       #|  <line x1="80" y1="60" x2="670" y2="60" stroke="#dbdee4" stroke-width="1" fill="none"/>
       #|  <line x1="80" y1="390" x2="670" y2="390" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="316.6666666666667" x2="670" y2="316.6666666666667" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="243.33333333333334" x2="670" y2="243.33333333333334" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="80" y1="335" x2="670" y2="335" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="80" y1="280" x2="670" y2="280" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="80" y1="225" x2="670" y2="225" stroke="#dbdee4" stroke-width="1" fill="none"/>
       #|  <line x1="80" y1="170" x2="670" y2="170" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="96.66666666666669" x2="670" y2="96.66666666666669" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="80" y1="115" x2="670" y2="115" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="80" y1="60" x2="670" y2="60" stroke="#dbdee4" stroke-width="1" fill="none"/>
       #|  <line x1="80" y1="390" x2="670" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <line x1="129.16666666666666" y1="390" x2="129.16666666666666" y2="394" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <text x="129.16666666666666" y="404" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Jan</text>
@@ -173,28 +176,32 @@ test "mixed example snapshot" {
       #|  <text x="72" y="60" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">80</text>
       #|  <line x1="80" y1="60" x2="80" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <line x1="76" y1="390" x2="80" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="390" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">2</text>
-      #|  <line x1="76" y1="316.6666666666667" x2="80" y2="316.6666666666667" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="316.6666666666667" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">4</text>
-      #|  <line x1="76" y1="243.33333333333334" x2="80" y2="243.33333333333334" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="243.33333333333334" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">6</text>
+      #|  <text x="72" y="390" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
+      #|  <line x1="76" y1="335" x2="80" y2="335" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="72" y="335" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">2</text>
+      #|  <line x1="76" y1="280" x2="80" y2="280" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="72" y="280" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">4</text>
+      #|  <line x1="76" y1="225" x2="80" y2="225" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="72" y="225" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">6</text>
       #|  <line x1="76" y1="170" x2="80" y2="170" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <text x="72" y="170" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">8</text>
-      #|  <line x1="76" y1="96.66666666666669" x2="80" y2="96.66666666666669" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="96.66666666666669" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">10</text>
+      #|  <line x1="76" y1="115" x2="80" y2="115" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="72" y="115" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">10</text>
+      #|  <line x1="76" y1="60" x2="80" y2="60" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="72" y="60" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">12</text>
       #|  <rect x="84.91666666666666" y="379.275" width="70.8" height="10.725000000000023" fill="#5070dd" stroke="none"/>
       #|  <rect x="183.25" y="365.6625" width="70.8" height="24.337499999999977" fill="#5070dd" stroke="none"/>
       #|  <rect x="281.5833333333333" y="352.875" width="70.8" height="37.125" fill="#5070dd" stroke="none"/>
       #|  <rect x="379.91666666666663" y="281.1" width="70.8" height="108.89999999999998" fill="#5070dd" stroke="none"/>
       #|  <rect x="478.25" y="271.6125" width="70.8" height="118.38749999999999" fill="#5070dd" stroke="none"/>
       #|  <rect x="576.5833333333333" y="98.36250000000001" width="70.8" height="291.6375" fill="#5070dd" stroke="none"/>
-      #|  <polyline points="129.16666666666666,390 227.5,382.6666666666667 325.8333333333333,342.3333333333333 424.16666666666663,298.3333333333333 522.5,232.33333333333334 620.8333333333333,89.33333333333337" fill="none" stroke="#b6d634" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      #|  <circle cx="129.16666666666666" cy="390" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="227.5" cy="382.6666666666667" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="325.8333333333333" cy="342.3333333333333" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="424.16666666666663" cy="298.3333333333333" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="522.5" cy="232.33333333333334" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="620.8333333333333" cy="89.33333333333337" r="2" fill="#b6d634" stroke="none"/>
+      #|  <polyline points="129.16666666666666,335 227.5,329.5 325.8333333333333,299.25 424.16666666666663,266.25 522.5,216.75 620.8333333333333,109.5" fill="none" stroke="#b6d634" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      #|  <circle cx="129.16666666666666" cy="335" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="227.5" cy="329.5" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="325.8333333333333" cy="299.25" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="424.16666666666663" cy="266.25" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="522.5" cy="216.75" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="620.8333333333333" cy="109.5" r="2" fill="#b6d634" stroke="none"/>
       #|</svg>
     ),
   )

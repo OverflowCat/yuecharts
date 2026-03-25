@@ -95,9 +95,11 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
     let ys : @coord.YScale = match ax.axis_type {
       Value | Log | Time => {
         let (dmin, dmax) = series_y_range(opt, yi)
+        // ECharts default: scale=false means include 0 in the extent.
+        // If data min is positive, start axis from 0 (matches ECharts behavior).
         let lo = match ax.min {
           Some(v) => v
-          None => dmin
+          None => if dmin > 0.0 { 0.0 } else { dmin }
         }
         let hi = match ax.max {
           Some(v) => v
@@ -136,26 +138,40 @@ fn series_y_range(opt : @option.ChartOption, y_idx : Int) -> (Double, Double) {
     while di < nd {
       let item = s.data[di]
       di = di + 1
-      let v_opt : Double? = match item.value {
-        Num(n) => Some(n)
-        Vec(arr) => if arr.length() > 1 { Some(arr[1]) } else { None }
-        Null => None
-      }
-      match v_opt {
-        None => ()
-        Some(v) =>
+      match item.value {
+        Num(n) =>
           if first {
-            lo = v
-            hi = v
+            lo = n
+            hi = n
             first = false
           } else {
-            if v < lo {
-              lo = v
+            if n < lo {
+              lo = n
             }
-            if v > hi {
-              hi = v
+            if n > hi {
+              hi = n
             }
           }
+        Vec(arr) => {
+          let mut ai = 0
+          while ai < arr.length() {
+            let v = arr[ai]
+            ai = ai + 1
+            if first {
+              lo = v
+              hi = v
+              first = false
+            } else {
+              if v < lo {
+                lo = v
+              }
+              if v > hi {
+                hi = v
+              }
+            }
+          }
+        }
+        Null => ()
       }
     }
   }
