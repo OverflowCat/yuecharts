@@ -1,0 +1,23 @@
+{
+  "width": 700,
+  "height": 450,
+  "title": { "text": "Boxplot" },
+  "xAxis": {
+    "type": "category",
+    "data": ["expr 1", "expr 2", "expr 3", "expr 4", "expr 5"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "type": "boxplot",
+      "name": "boxplot",
+      "data": [
+        [655, 850, 940, 980, 1175],
+        [760, 800, 845, 885, 960],
+        [620, 760, 840, 880, 970],
+        [740, 770, 815, 865, 920],
+        [760, 790, 810, 870, 950]
+      ]
+    }
+  ]
+}

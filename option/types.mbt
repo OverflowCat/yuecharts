@@ -101,6 +101,7 @@ pub enum SeriesType {
   Candlestick
   Heatmap
   Boxplot
+  Funnel
 }
 
 ///|
@@ -126,6 +127,8 @@ pub struct SeriesOption {
   data : Array[DataItem]
   x_axis_index : Int
   y_axis_index : Int
+  // For radar: index into ChartOption.radar[]
+  radar_index : Int
   stack : String?
   smooth : Bool
   symbol_size : Double
@@ -148,6 +151,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     data: [],
     x_axis_index: 0,
     y_axis_index: 0,
+    radar_index: 0,
     stack: None,
     smooth: false,
     symbol_size: 4.0,
@@ -217,6 +221,39 @@ pub fn LegendOption::default() -> LegendOption {
 }
 
 ///|
+/// One indicator axis in a radar component.
+/// Corresponds to: echarts/src/coord/radar/RadarModel.ts (indicator type)
+pub struct RadarIndicator {
+  name : String
+  max : Double? // axis max; None = auto
+  min : Double? // axis min; None = 0
+}
+
+///|
+/// Radar coordinate component option.
+/// Corresponds to: echarts/src/coord/radar/RadarModel.ts
+pub struct RadarOption {
+  indicator : Array[RadarIndicator]
+  center : Array[String] // ["50%","50%"]
+  radius : String // "75%" or pixel value
+  start_angle : Double // default 90
+  clockwise : Bool // default false (counterclockwise in ECharts)
+  split_number : Int // number of concentric rings; default 5
+}
+
+///|
+pub fn RadarOption::default() -> RadarOption {
+  {
+    indicator: [],
+    center: ["50%", "50%"],
+    radius: "75%",
+    start_angle: 90.0,
+    clockwise: false,
+    split_number: 5,
+  }
+}
+
+///|
 /// Root chart option.
 pub struct ChartOption {
   width : Double
@@ -226,6 +263,7 @@ pub struct ChartOption {
   x_axis : Array[AxisOption]
   y_axis : Array[AxisOption]
   grid : Array[GridOption]
+  radar : Array[RadarOption]
   series : Array[SeriesOption]
   background_color : String?
 }
@@ -240,6 +278,7 @@ pub fn ChartOption::default() -> ChartOption {
     x_axis: [],
     y_axis: [],
     grid: [GridOption::default()],
+    radar: [],
     series: [],
     background_color: None,
   }

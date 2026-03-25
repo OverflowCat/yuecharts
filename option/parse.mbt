@@ -38,6 +38,11 @@ fn parse_chart_option(j : Json) -> ChartOption {
     Some(obj) if obj is Object(_) => [parse_grid_option(obj)]
     _ => [GridOption::default()]
   }
+  let radar = match j_field(j, "radar") {
+    Some(Array(arr)) => arr.map(parse_radar_option)
+    Some(obj) if obj is Object(_) => [parse_radar_option(obj)]
+    _ => []
+  }
   let series = match j_field(j, "series") {
     Some(Array(arr)) => arr.map(parse_series_option)
     Some(obj) if obj is Object(_) => [parse_series_option(obj)]
@@ -51,6 +56,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     x_axis,
     y_axis,
     grid,
+    radar,
     series,
     background_color,
   }
@@ -169,6 +175,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "candlestick" => SeriesType::Candlestick
     "heatmap" => SeriesType::Heatmap
     "boxplot" => SeriesType::Boxplot
+    "funnel" => SeriesType::Funnel
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -186,6 +193,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let name = j_string_opt(j, "name")
   let x_axis_index = j_int(j, "xAxisIndex", base.x_axis_index)
   let y_axis_index = j_int(j, "yAxisIndex", base.y_axis_index)
+  let radar_index = j_int(j, "radarIndex", base.radar_index)
   let smooth = j_bool(j, "smooth", base.smooth)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
   let color = match j_string_opt(j, "color") {
@@ -228,6 +236,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     data,
     x_axis_index,
     y_axis_index,
+    radar_index,
     stack,
     smooth,
     symbol_size,
@@ -285,6 +294,47 @@ fn parse_data_item(j : Json) -> DataItem {
 // ---- JSON access helpers ----
 
 ///|
+/// Parse a single RadarOption from JSON.
+/// Corresponds to echarts/src/coord/radar/RadarModel.ts option parsing.
+fn parse_radar_option(j : Json) -> RadarOption {
+  let base = RadarOption::default()
+  let indicator = match j_field(j, "indicator") {
+    Some(Array(arr)) => arr.map(parse_radar_indicator)
+    _ => []
+  }
+  let center = match j_field(j, "center") {
+    Some(Array(arr)) =>
+      arr.map(fn(v) {
+        match v {
+          String(s) => s
+          Number(n, ..) => "\{n}"
+          _ => "50%"
+        }
+      })
+    _ => base.center
+  }
+  let radius = match j_field(j, "radius") {
+    Some(String(s)) => s
+    Some(Number(n, ..)) => "\{n}"
+    _ => base.radius
+  }
+  let start_angle = j_number(j, "startAngle", base.start_angle)
+  let clockwise = j_bool(j, "clockwise", base.clockwise)
+  let split_number = j_int(j, "splitNumber", base.split_number)
+  { indicator, center, radius, start_angle, clockwise, split_number }
+}
+
+///|
+fn parse_radar_indicator(j : Json) -> RadarIndicator {
+  let name = match j_field(j, "name") {
+    Some(String(s)) => s
+    _ => ""
+  }
+  let max = j_number_opt(j, "max")
+  let min = j_number_opt(j, "min")
+  { name, max, min }
+}
+
 /// Get a field from a JSON object.
 fn j_field(j : Json, key : String) -> Json? {
   match j {

@@ -3,6 +3,22 @@
 // and echarts/src/core/echarts.ts (init and render logic)
 
 ///|
+/// Returns true if any series uses the Cartesian coordinate system.
+fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
+  let mut i = 0
+  while i < opt.series.length() {
+    let s = opt.series[i]
+    i = i + 1
+    match s.series_type {
+      @option.Bar | @option.Line | @option.Scatter | @option.Heatmap |
+      @option.Candlestick | @option.Boxplot => return true
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
 /// Render an ECharts JSON option string to an SVG string.
 /// Returns an error string with "ERROR: ..." prefix on failure.
 pub fn render(json_str : String) -> String {
@@ -13,19 +29,23 @@ pub fn render(json_str : String) -> String {
   }
   let coord = @layout.build_cartesian(opt)
   let elems : Array[@graphic.Element] = []
-  // Background grid lines
-  let grid_elems = @component.render_grid_lines(coord)
-  let mut i = 0
-  while i < grid_elems.length() {
-    elems.push(grid_elems[i])
-    i = i + 1
-  }
-  // Axes
-  let axis_elems = @component.render_axes(opt, coord)
-  let mut j = 0
-  while j < axis_elems.length() {
-    elems.push(axis_elems[j])
-    j = j + 1
+  // Only render Cartesian elements (grid, axes) when there are Cartesian series
+  let has_cartesian = has_cartesian_series(opt)
+  if has_cartesian {
+    // Background grid lines
+    let grid_elems = @component.render_grid_lines(coord)
+    let mut i = 0
+    while i < grid_elems.length() {
+      elems.push(grid_elems[i])
+      i = i + 1
+    }
+    // Axes
+    let axis_elems = @component.render_axes(opt, coord)
+    let mut j = 0
+    while j < axis_elems.length() {
+      elems.push(axis_elems[j])
+      j = j + 1
+    }
   }
   // Series: bars
   let bar_elems = @chart.render_bars(opt, coord)
@@ -68,6 +88,27 @@ pub fn render(json_str : String) -> String {
   while sci < scatter_elems.length() {
     elems.push(scatter_elems[sci])
     sci = sci + 1
+  }
+  // Series: pie / donut
+  let pie_elems = @chart.render_pies(opt, coord)
+  let mut pii = 0
+  while pii < pie_elems.length() {
+    elems.push(pie_elems[pii])
+    pii = pii + 1
+  }
+  // Series: funnel
+  let funnel_elems = @chart.render_funnels(opt, coord)
+  let mut fni = 0
+  while fni < funnel_elems.length() {
+    elems.push(funnel_elems[fni])
+    fni = fni + 1
+  }
+  // Radar coordinate background + series
+  let radar_elems = @chart.render_radars(opt)
+  let mut rdi = 0
+  while rdi < radar_elems.length() {
+    elems.push(radar_elems[rdi])
+    rdi = rdi + 1
   }
   // Title component
   let title_elems = @component.render_title(opt)

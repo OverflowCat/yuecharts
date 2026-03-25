@@ -500,3 +500,72 @@ pub fn Element::path_filled(
   let color = Color::from_string(color_str).unwrap_or(black)
   Path({ d, fill: Some({ color, }), stroke: None, opacity })
 }
+
+///|
+/// Path with both fill and stroke colors.
+pub fn Element::path_fill_stroke(
+  d : String,
+  fill_color_str : String,
+  stroke_color_str : String,
+  stroke_width : Double,
+  opacity : Double,
+) -> Element {
+  let fill = Color::from_string(fill_color_str).unwrap_or(black)
+  let stroke_c = Color::from_string(stroke_color_str).unwrap_or(black)
+  Path({
+    d,
+    fill: Some({ color: fill }),
+    stroke: Some({
+      color: stroke_c,
+      width: stroke_width,
+      dash: [],
+      line_cap: "butt",
+      line_join: "miter",
+    }),
+    opacity,
+  })
+}
+
+///|
+/// Polygon with stroke only (no fill).
+pub fn Element::polygon_stroked(
+  pts : Array[Point],
+  stroke_color : Color,
+  stroke_width : Double,
+) -> Element {
+  Polygon({
+    points: pts,
+    fill: None,
+    stroke: Some({
+      color: stroke_color,
+      width: stroke_width,
+      dash: [],
+      line_cap: "butt",
+      line_join: "miter",
+    }),
+    opacity: 1.0,
+  })
+}
+
+///|
+/// Polygon with both fill and stroke colors.
+pub fn Element::polygon_fill_stroke(
+  pts : Array[Point],
+  fill_color : Color,
+  stroke_color : Color,
+  stroke_width : Double,
+  opacity : Double,
+) -> Element {
+  Polygon({
+    points: pts,
+    fill: Some({ color: fill_color }),
+    stroke: Some({
+      color: stroke_color,
+      width: stroke_width,
+      dash: [],
+      line_cap: "round",
+      line_join: "round",
+    }),
+    opacity,
+  })
+}

@@ -2,10 +2,10 @@
 // and echarts/src/theme/default.ts (color palette definitions)
 
 ///|
-/// Default ECharts 5 color palette.
+/// Default ECharts 6 color palette (from echarts/src/visual/tokens.ts).
 pub let echarts_palette : Array[String] = [
-  "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", "#3ba272", "#fc8452", "#9a60b4",
-  "#ea7ccc",
+  "#5070dd", "#b6d634", "#505372", "#ff994d", "#0ca8df",
+  "#ffd10a", "#fb628b", "#785db0", "#3fbe95",
 ]
 
 ///|

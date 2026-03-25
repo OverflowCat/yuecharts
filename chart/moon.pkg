@@ -3,4 +3,6 @@ import {
   "OverflowCat/yuecharts/coord" @coord,
   "OverflowCat/yuecharts/option" @option,
   "OverflowCat/yuecharts/visual" @visual,
+  "moonbitlang/core/math" @math,
+  "moonbitlang/core/strconv" @strconv,
 }
