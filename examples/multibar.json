@@ -1,0 +1,29 @@
+{
+  "width": 700,
+  "height": 450,
+  "title": { "text": "Multi-Series Bar Chart" },
+  "legend": { "show": true },
+  "xAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "yAxis": { "type": "value" },
+  "grid": { "left": "80", "right": "40", "top": "60", "bottom": "60" },
+  "series": [
+    {
+      "type": "bar",
+      "name": "Direct",
+      "data": [320, 332, 301, 334, 390, 330, 320]
+    },
+    {
+      "type": "bar",
+      "name": "Email",
+      "data": [120, 132, 101, 134, 90, 230, 210]
+    },
+    {
+      "type": "bar",
+      "name": "Ad Networks",
+      "data": [220, 182, 191, 234, 290, 330, 310]
+    }
+  ]
+}

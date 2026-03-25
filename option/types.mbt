@@ -102,6 +102,7 @@ pub enum SeriesType {
   Heatmap
   Boxplot
   Funnel
+  Gauge
 }
 
 ///|
@@ -141,6 +142,12 @@ pub struct SeriesOption {
   // For pie charts
   radius : Array[String]
   center : Array[String]
+  // For gauge charts
+  start_angle : Double // option degrees, default 225 (ECharts GaugeSeries.ts default)
+  end_angle : Double // option degrees, default -45
+  min_val : Double // data min, default 0
+  max_val : Double // data max, default 100
+  split_number : Int // tick divisions, default 10
 }
 
 ///|
@@ -163,6 +170,11 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     encode_y: None,
     radius: [],
     center: [],
+    start_angle: 225.0,
+    end_angle: -45.0,
+    min_val: 0.0,
+    max_val: 100.0,
+    split_number: 10,
   }
 }
 
@@ -186,6 +198,16 @@ pub fn SeriesOption::default_pie() -> SeriesOption {
     ..SeriesOption::default_line(),
     series_type: SeriesType::Pie,
     radius: ["0%", "75%"],
+    center: ["50%", "50%"],
+  }
+}
+
+///|
+pub fn SeriesOption::default_gauge() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Gauge,
+    radius: ["75%"],
     center: ["50%", "50%"],
   }
 }

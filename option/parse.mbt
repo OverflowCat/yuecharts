@@ -176,6 +176,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "heatmap" => SeriesType::Heatmap
     "boxplot" => SeriesType::Boxplot
     "funnel" => SeriesType::Funnel
+    "gauge" => SeriesType::Gauge
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -183,6 +184,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Bar => SeriesOption::default_bar()
     Scatter => SeriesOption::default_scatter()
     Pie => SeriesOption::default_pie()
+    Gauge => SeriesOption::default_gauge()
     _ => SeriesOption::default_line()
   }
   // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
@@ -230,6 +232,11 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(String(s)) => [s]
     _ => base.center
   }
+  let start_angle = j_number(j, "startAngle", base.start_angle)
+  let end_angle = j_number(j, "endAngle", base.end_angle)
+  let min_val = j_number(j, "min", base.min_val)
+  let max_val = j_number(j, "max", base.max_val)
+  let split_number = j_int(j, "splitNumber", base.split_number)
   {
     series_type,
     name,
@@ -248,6 +255,11 @@ fn parse_series_option(j : Json) -> SeriesOption {
     encode_y: None,
     radius,
     center,
+    start_angle,
+    end_angle,
+    min_val,
+    max_val,
+    split_number,
   }
 }
 

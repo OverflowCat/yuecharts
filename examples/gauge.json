@@ -1,0 +1,15 @@
+{
+  "width": 500,
+  "height": 400,
+  "title": { "text": "Speed Gauge" },
+  "series": [
+    {
+      "type": "gauge",
+      "name": "Speed",
+      "min": 0,
+      "max": 120,
+      "splitNumber": 12,
+      "data": [{ "value": 78, "name": "Speed" }]
+    }
+  ]
+}

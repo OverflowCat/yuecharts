@@ -508,6 +508,18 @@ pub fn Element::path_stroked(d : String, color_str : String) -> Element {
 }
 
 ///|
+/// Path stroked with round line caps and configurable width (for thick arcs).
+pub fn Element::path_stroked_round(
+  d : String,
+  color_str : String,
+  width : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  let stroke = { color, width, dash: [], line_cap: "round", line_join: "round" }
+  Path({ d, fill: None, stroke: Some(stroke), opacity: 1.0 })
+}
+
+///|
 /// Path filled with a CSS/hex color string (semi-transparent area).
 pub fn Element::path_filled(
   d : String,
