@@ -9,7 +9,7 @@ moon.mod.lock
 .mooncakes/
 .moonagent/
 *.mi
-examples/*.svg
+*.svg
 
 # =========================
 # OS generated files

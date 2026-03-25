@@ -19,7 +19,7 @@ pub fn StrokeStyle::default() -> StrokeStyle {
 ///|
 /// Style applied to filled shapes.
 pub struct FillStyle {
-  pub color : Color
+  color : Color
 }
 
 ///|
@@ -542,6 +542,27 @@ pub fn Element::polygon_stroked(
       dash: [],
       line_cap: "butt",
       line_join: "miter",
+    }),
+    opacity: 1.0,
+  })
+}
+
+///|
+/// Polygon with stroke only (no fill), round line joins (for series lines).
+pub fn Element::polygon_stroked_round(
+  pts : Array[Point],
+  stroke_color : Color,
+  stroke_width : Double,
+) -> Element {
+  Polygon({
+    points: pts,
+    fill: None,
+    stroke: Some({
+      color: stroke_color,
+      width: stroke_width,
+      dash: [],
+      line_cap: "round",
+      line_join: "round",
     }),
     opacity: 1.0,
   })

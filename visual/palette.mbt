@@ -4,8 +4,8 @@
 ///|
 /// Default ECharts 6 color palette (from echarts/src/visual/tokens.ts).
 pub let echarts_palette : Array[String] = [
-  "#5070dd", "#b6d634", "#505372", "#ff994d", "#0ca8df",
-  "#ffd10a", "#fb628b", "#785db0", "#3fbe95",
+  "#5070dd", "#b6d634", "#505372", "#ff994d", "#0ca8df", "#ffd10a", "#fb628b", "#785db0",
+  "#3fbe95",
 ]
 
 ///|

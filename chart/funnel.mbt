@@ -25,25 +25,6 @@
 //       For the last item, top == bottom (rectangle).
 
 ///|
-/// Parse a size spec (percent or pixel) relative to a reference value.
-fn funnel_parse_size(s : String, ref_val : Double) -> Double {
-  if s.has_suffix("%") {
-    let inner = s[:s.length() - 1]
-    let r = try? @strconv.parse_double(inner.to_string())
-    match r {
-      Ok(v) => v / 100.0 * ref_val
-      Err(_) => 0.0
-    }
-  } else {
-    let r = try? @strconv.parse_double(s)
-    match r {
-      Ok(v) => v
-      Err(_) => 0.0
-    }
-  }
-}
-
-///|
 /// Linear mapping: value in [src_lo, src_hi] → [dst_lo, dst_hi], clamped.
 fn linear_map(
   value : Double,
@@ -188,7 +169,7 @@ pub fn render_funnel_series(
     let orig_idx = indices[ki]
     // Top width = widths[ki], bottom width = widths[ki+1] (or same if last)
     let top_w = widths[ki]
-    let bot_w = if ki + 1 < nd { widths[ki + 1] } else { widths[ki] }
+    let bot_w = if ki + 1 < nd { widths[ki + 1] } else { 0.0 }
     let y_top = view_y + ki.to_double() * (item_h + gap)
     let y_bot = y_top + item_h
 
@@ -201,7 +182,9 @@ pub fn render_funnel_series(
     let color_str = @visual.palette_color(series_index + orig_idx)
     let color = @graphic.Color::from_string(color_str).unwrap_or(@graphic.black)
     elems.push(
-      @graphic.Element::polygon_fill_stroke(pts, color, @graphic.white, 1.0, 1.0),
+      @graphic.Element::polygon_fill_stroke(
+        pts, color, @graphic.white, 1.0, 1.0,
+      ),
     )
     // Label: name inside the trapezoid
     let label_name = match series.data[orig_idx].name {

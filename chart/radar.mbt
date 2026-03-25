@@ -24,13 +24,23 @@
 
 ///|
 /// Compute angle for indicator index i in screen coords.
-fn radar_angle(i : Int, n : Int, start_angle_rad : Double, sign : Double) -> Double {
+fn radar_angle(
+  i : Int,
+  n : Int,
+  start_angle_rad : Double,
+  sign : Double,
+) -> Double {
   start_angle_rad + sign * i.to_double() * @math.PI * 2.0 / n.to_double()
 }
 
 ///|
 /// Convert (coord, angle) to screen (x, y).
-fn radar_point(cx : Double, cy : Double, coord : Double, angle : Double) -> (Double, Double) {
+fn radar_point(
+  cx : Double,
+  cy : Double,
+  coord : Double,
+  angle : Double,
+) -> (Double, Double) {
   let x = cx + coord * @math.cos(angle)
   let y = cy - coord * @math.sin(angle) // note: minus sign for screen y
   (x, y)
@@ -75,9 +85,7 @@ fn radar_parse_center(s : String, ref_val : Double) -> Double {
 
 ///|
 /// Render all radar series plus the radar coordinate background.
-pub fn render_radars(
-  opt : @option.ChartOption,
-) -> Array[@graphic.Element] {
+pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   // Render each radar component background, then each series
   let mut ri = 0
@@ -140,7 +148,12 @@ fn render_radar_background(
   if n == 0 {
     return elems
   }
-  let ref_r = (if chart_width < chart_height { chart_width } else { chart_height }) / 2.0
+  let ref_r = (if chart_width < chart_height {
+      chart_width
+    } else {
+      chart_height
+    }) /
+    2.0
   let cx = if radar_opt.center.length() >= 1 {
     radar_parse_center(radar_opt.center[0], chart_width)
   } else {
@@ -157,9 +170,12 @@ fn render_radar_background(
   let split_n = radar_opt.split_number
 
   // Colors from ECharts tokens
-  let ring_color = "#dbdee4" // neutral15, same as grid split lines
-  let spoke_color = "#dbdee4"
+  // neutral15 = #dbdee4 for ring stroke, neutral20 = #cfd2d7 for spokes
+  let ring_stroke_color = "#dbdee4" // neutral15
+  let spoke_color = "#cfd2d7" // neutral20
   let label_color = "#54555a" // neutral70
+  // Alternating ring fill: odd rings get a light gray fill, even rings transparent
+  let ring_fill_odd = @graphic.Color::rgba(234, 237, 245, 128) // ~50% opacity light gray
 
   // Concentric polygon rings (from inner to outer)
   let mut level = 1
@@ -173,10 +189,23 @@ fn render_radar_background(
       ring_pts.push(@graphic.Point::new(px, py))
       i = i + 1
     }
-    let ring_color_val = @graphic.Color::from_string(ring_color).unwrap_or(
+    let ring_color_val = @graphic.Color::from_string(ring_stroke_color).unwrap_or(
       @graphic.black,
     )
-    elems.push(@graphic.Element::polygon_stroked(ring_pts, ring_color_val, 1.0))
+    // Odd levels get a light gray fill; even levels are transparent
+    if level % 2 == 1 {
+      elems.push(
+        @graphic.Element::polygon_fill_stroke(
+          ring_pts, ring_fill_odd, ring_color_val, 1.0, 1.0,
+        ),
+      )
+    } else {
+      elems.push(
+        @graphic.Element::polygon_fill_stroke(
+          ring_pts, @graphic.transparent, ring_color_val, 1.0, 1.0,
+        ),
+      )
+    }
     level = level + 1
   }
 
@@ -219,7 +248,7 @@ fn render_radar_background(
 }
 
 ///|
-/// Render a single radar series as a filled polygon.
+/// Render a single radar series as a stroked polygon (no fill by default).
 pub fn render_radar_series(
   series : @option.SeriesOption,
   series_index : Int,
@@ -232,7 +261,12 @@ pub fn render_radar_series(
   if n == 0 {
     return elems
   }
-  let ref_r = (if chart_width < chart_height { chart_width } else { chart_height }) / 2.0
+  let ref_r = (if chart_width < chart_height {
+      chart_width
+    } else {
+      chart_height
+    }) /
+    2.0
   let cx = if radar_opt.center.length() >= 1 {
     radar_parse_center(radar_opt.center[0], chart_width)
   } else {
@@ -247,16 +281,17 @@ pub fn render_radar_series(
   let start_angle_rad = radar_opt.start_angle * @math.PI / 180.0
   let sign = if radar_opt.clockwise { -1.0 } else { 1.0 }
 
-  let color_str = match series.color {
-    Some(c) => c
-    None => @visual.palette_color(series_index)
-  }
-  let color = @graphic.Color::from_string(color_str).unwrap_or(@graphic.black)
-
-  // For each data item (usually one per radar series unless multi-line)
+  // For each data item — each gets its own palette color (series_index + data_index)
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
+    let data_color_str = match series.color {
+      Some(c) => c
+      None => @visual.palette_color(series_index + di)
+    }
+    let color = @graphic.Color::from_string(data_color_str).unwrap_or(
+      @graphic.black,
+    )
     di = di + 1
     let values = match item.value {
       Vec(arr) => arr
@@ -270,11 +305,10 @@ pub fn render_radar_series(
       // Determine max for this indicator (auto = max of all data values if not set)
       let max_val = match radar_opt.indicator[i].max {
         Some(m) => m
-        None => {
+        None =>
           // If no max specified, use 100 as a fallback (ECharts would compute from data)
           // A better implementation would auto-compute; for now use 100.
           100.0
-        }
       }
       let min_val = match radar_opt.indicator[i].min {
         Some(m) => m
@@ -293,21 +327,8 @@ pub fn render_radar_series(
     if pts.length() < 2 {
       continue
     }
-    // Filled polygon with semi-transparent fill
-    let fill_color = @graphic.Color::rgba(
-      color.r,
-      color.g,
-      color.b,
-      (255.0 * 0.2).to_int(), // 20% opacity fill
-    )
-    elems.push(@graphic.Element::polygon_fill_stroke(pts, fill_color, color, 2.0, 1.0))
-    // Dots at each vertex
-    let mut pi = 0
-    while pi < pts.length() {
-      let p = pts[pi]
-      pi = pi + 1
-      elems.push(@graphic.Element::circle_colored(p.x, p.y, 3.0, color.to_svg()))
-    }
+    elems.push(@graphic.Element::polygon_stroked_round(pts, color, 2.0))
+    // Note: vertex dots are not rendered by default in ECharts radar
   }
   elems
 }

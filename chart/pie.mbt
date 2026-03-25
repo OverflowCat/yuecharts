@@ -65,7 +65,12 @@ pub fn render_pies(
         continue
       }
     }
-    let series_elems = render_pie_series(series, color_idx, opt.width, opt.height)
+    let series_elems = render_pie_series(
+      series,
+      color_idx,
+      opt.width,
+      opt.height,
+    )
     let mut i = 0
     while i < series_elems.length() {
       elems.push(series_elems[i])
@@ -104,7 +109,12 @@ pub fn render_pie_series(
 
   // --- Parse radius ---
   // ECharts: percentage relative to min(width, height) / 2
-  let ref_r = (if chart_width < chart_height { chart_width } else { chart_height }) / 2.0
+  let ref_r = (if chart_width < chart_height {
+      chart_width
+    } else {
+      chart_height
+    }) /
+    2.0
   let r_inner = if series.radius.length() >= 1 {
     parse_pct_or_px(series.radius[0], ref_r)
   } else {
@@ -176,7 +186,9 @@ pub fn render_pie_series(
     }
 
     elems.push(
-      @graphic.Element::path_fill_stroke(path_d, slice_color, "#ffffff", 1.0, 1.0),
+      @graphic.Element::path_fill_stroke(
+        path_d, slice_color, "#ffffff", 1.0, 1.0,
+      ),
     )
 
     // Label: midpoint angle, outside the slice

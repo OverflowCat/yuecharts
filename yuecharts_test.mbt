@@ -2,13 +2,13 @@
 // Prefer high-level behaviors over implementation details.
 // Run `moon test` to execute and `moon test --update` to refresh snapshots.
 
-// ECharts 5 default palette (first two entries used in tests).
+// ECharts 6 default palette (first two entries used in tests).
 
 ///|
-let palette_0 = "#5470c6" // series index 0
+let palette_0 = "#5070dd" // series index 0
 
 ///|
-let palette_1 = "#91cc75" // series index 1
+let palette_1 = "#b6d634" // series index 1
 
 ///|
 /// Bar series must use palette[0] fill color.
@@ -112,8 +112,8 @@ test "bar example snapshot" {
       #|  <text x="72" y="130" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">180</text>
       #|  <line x1="76" y1="60" x2="80" y2="60" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <text x="72" y="60" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">200</text>
-      #|  <rect x="251.5" y="60" width="117.60000000000001" height="280" fill="#5470c6" stroke="none"/>
-      #|  <rect x="414.83333333333337" y="235" width="117.60000000000001" height="105" fill="#5470c6" stroke="none"/>
+      #|  <rect x="251.5" y="60" width="117.60000000000001" height="280" fill="#5070dd" stroke="none"/>
+      #|  <rect x="414.83333333333337" y="235" width="117.60000000000001" height="105" fill="#5070dd" stroke="none"/>
       #|</svg>
     ),
   )
@@ -182,19 +182,19 @@ test "mixed example snapshot" {
       #|  <text x="72" y="170" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">8</text>
       #|  <line x1="76" y1="96.66666666666669" x2="80" y2="96.66666666666669" stroke="#54555a" stroke-width="1" fill="none"/>
       #|  <text x="72" y="96.66666666666669" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">10</text>
-      #|  <rect x="84.91666666666666" y="379.275" width="70.8" height="10.725000000000023" fill="#5470c6" stroke="none"/>
-      #|  <rect x="183.25" y="365.6625" width="70.8" height="24.337499999999977" fill="#5470c6" stroke="none"/>
-      #|  <rect x="281.5833333333333" y="352.875" width="70.8" height="37.125" fill="#5470c6" stroke="none"/>
-      #|  <rect x="379.91666666666663" y="281.1" width="70.8" height="108.89999999999998" fill="#5470c6" stroke="none"/>
-      #|  <rect x="478.25" y="271.6125" width="70.8" height="118.38749999999999" fill="#5470c6" stroke="none"/>
-      #|  <rect x="576.5833333333333" y="98.36250000000001" width="70.8" height="291.6375" fill="#5470c6" stroke="none"/>
-      #|  <polyline points="129.16666666666666,390 227.5,382.6666666666667 325.8333333333333,342.3333333333333 424.16666666666663,298.3333333333333 522.5,232.33333333333334 620.8333333333333,89.33333333333337" fill="none" stroke="#91cc75" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      #|  <circle cx="129.16666666666666" cy="390" r="2" fill="#91cc75" stroke="none"/>
-      #|  <circle cx="227.5" cy="382.6666666666667" r="2" fill="#91cc75" stroke="none"/>
-      #|  <circle cx="325.8333333333333" cy="342.3333333333333" r="2" fill="#91cc75" stroke="none"/>
-      #|  <circle cx="424.16666666666663" cy="298.3333333333333" r="2" fill="#91cc75" stroke="none"/>
-      #|  <circle cx="522.5" cy="232.33333333333334" r="2" fill="#91cc75" stroke="none"/>
-      #|  <circle cx="620.8333333333333" cy="89.33333333333337" r="2" fill="#91cc75" stroke="none"/>
+      #|  <rect x="84.91666666666666" y="379.275" width="70.8" height="10.725000000000023" fill="#5070dd" stroke="none"/>
+      #|  <rect x="183.25" y="365.6625" width="70.8" height="24.337499999999977" fill="#5070dd" stroke="none"/>
+      #|  <rect x="281.5833333333333" y="352.875" width="70.8" height="37.125" fill="#5070dd" stroke="none"/>
+      #|  <rect x="379.91666666666663" y="281.1" width="70.8" height="108.89999999999998" fill="#5070dd" stroke="none"/>
+      #|  <rect x="478.25" y="271.6125" width="70.8" height="118.38749999999999" fill="#5070dd" stroke="none"/>
+      #|  <rect x="576.5833333333333" y="98.36250000000001" width="70.8" height="291.6375" fill="#5070dd" stroke="none"/>
+      #|  <polyline points="129.16666666666666,390 227.5,382.6666666666667 325.8333333333333,342.3333333333333 424.16666666666663,298.3333333333333 522.5,232.33333333333334 620.8333333333333,89.33333333333337" fill="none" stroke="#b6d634" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      #|  <circle cx="129.16666666666666" cy="390" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="227.5" cy="382.6666666666667" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="325.8333333333333" cy="342.3333333333333" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="424.16666666666663" cy="298.3333333333333" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="522.5" cy="232.33333333333334" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="620.8333333333333" cy="89.33333333333337" r="2" fill="#b6d634" stroke="none"/>
       #|</svg>
     ),
   )

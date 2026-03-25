@@ -335,6 +335,7 @@ fn parse_radar_indicator(j : Json) -> RadarIndicator {
   { name, max, min }
 }
 
+///|
 /// Get a field from a JSON object.
 fn j_field(j : Json, key : String) -> Json? {
   match j {

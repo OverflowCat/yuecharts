@@ -5,5 +5,4 @@ import {
   "OverflowCat/yuecharts/layout" @layout,
   "OverflowCat/yuecharts/component" @component,
   "OverflowCat/yuecharts/chart" @chart,
-  "moonbitlang/core/json" @json,
 }

@@ -10,8 +10,12 @@ fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
     let s = opt.series[i]
     i = i + 1
     match s.series_type {
-      @option.Bar | @option.Line | @option.Scatter | @option.Heatmap |
-      @option.Candlestick | @option.Boxplot => return true
+      @option.Bar
+      | @option.Line
+      | @option.Scatter
+      | @option.Heatmap
+      | @option.Candlestick
+      | @option.Boxplot => return true
       _ => ()
     }
   }
