@@ -66,6 +66,7 @@ pub enum TextBaseline {
   Top
   Hanging
   Middle
+  Central // SVG "central" — equivalent to CSS middle, used by ECharts for title/labels
   Alphabetic
   Ideographic
   Bottom
@@ -92,6 +93,11 @@ pub fn TextBaseline::middle() -> TextBaseline {
 }
 
 ///|
+pub fn TextBaseline::central() -> TextBaseline {
+  Central
+}
+
+///|
 pub fn TextBaseline::alphabetic() -> TextBaseline {
   Alphabetic
 }
@@ -113,6 +119,7 @@ pub fn TextBaseline::to_svg(self : TextBaseline) -> String {
     Top => "text-top"
     Hanging => "hanging"
     Middle => "middle"
+    Central => "central"
     Alphabetic => "alphabetic"
     Ideographic => "ideographic"
     Bottom => "text-bottom"
@@ -362,6 +369,29 @@ pub fn Element::text_colored(
     .with_anchor(anchor)
     .with_baseline(baseline)
   Text({ ..data, style: { ..data.style, fill, } })
+}
+
+///|
+/// Title text element: bold, 18px, `dominant-baseline="central"`.
+/// Matches ECharts title style from echarts/src/component/title/install.ts:
+///   fontSize=18, fontWeight='bold', fill=tokens.color.neutral80.
+pub fn Element::text_title(
+  x : Double,
+  y : Double,
+  content : String,
+  anchor : TextAnchor,
+  color_str : String,
+) -> Element {
+  let fill = Color::from_string(color_str).unwrap_or(black)
+  let style = {
+    fill,
+    font_size: 18.0,
+    font_family: "sans-serif",
+    font_weight: "bold",
+    anchor,
+    baseline: TextBaseline::Central, // dominant-baseline="central"
+  }
+  Text({ x, y, content, style, opacity: 1.0 })
 }
 
 ///|

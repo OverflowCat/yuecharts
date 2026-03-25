@@ -251,7 +251,9 @@ pub struct TitleOption {
 
 ///|
 pub fn TitleOption::default() -> TitleOption {
-  { text: "", subtext: "", left: "auto", top: "auto" }
+  // ECharts default: left='center', top='auto'
+  // See echarts/src/component/title/install.ts
+  { text: "", subtext: "", left: "center", top: "auto" }
 }
 
 ///|
