@@ -175,6 +175,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "line" => SeriesType::Line
     "bar" => SeriesType::Bar
     "scatter" => SeriesType::Scatter
+    "effectScatter" => SeriesType::EffectScatter
     "pie" => SeriesType::Pie
     "sunburst" => SeriesType::Sunburst
     "treemap" => SeriesType::Treemap
@@ -190,6 +191,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Line => SeriesOption::default_line()
     Bar => SeriesOption::default_bar()
     Scatter => SeriesOption::default_scatter()
+    EffectScatter => SeriesOption::default_effect_scatter()
     Pie => SeriesOption::default_pie()
     Sunburst => SeriesOption::default_sunburst()
     Treemap => SeriesOption::default_treemap()

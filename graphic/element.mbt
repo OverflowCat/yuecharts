@@ -496,6 +496,19 @@ pub fn Element::circle_colored(
 }
 
 ///|
+/// Circle filled with a CSS/hex color string and explicit element opacity.
+pub fn Element::circle_colored_opacity(
+  cx : Double,
+  cy : Double,
+  r : Double,
+  color_str : String,
+  opacity : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  Circle({ cx, cy, r, fill: Some({ color, }), stroke: None, opacity })
+}
+
+///|
 /// Rect with stroke only (fill = transparent), stroked with the given color.
 pub fn Element::rect_outlined(
   x : Double,

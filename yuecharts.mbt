@@ -13,6 +13,7 @@ fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
       @option.Bar
       | @option.Line
       | @option.Scatter
+      | @option.EffectScatter
       | @option.Heatmap
       | @option.Candlestick
       | @option.Boxplot => return true
@@ -92,6 +93,13 @@ pub fn render(json_str : String) -> String {
   while sci < scatter_elems.length() {
     elems.push(scatter_elems[sci])
     sci = sci + 1
+  }
+  // Series: effectScatter
+  let effect_scatter_elems = @chart.render_effect_scatters(opt, coord)
+  let mut esi = 0
+  while esi < effect_scatter_elems.length() {
+    elems.push(effect_scatter_elems[esi])
+    esi = esi + 1
   }
   // Series: pie / donut
   let pie_elems = @chart.render_pies(opt, coord)

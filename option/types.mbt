@@ -98,6 +98,7 @@ pub enum SeriesType {
   Line
   Bar
   Scatter
+  EffectScatter
   Pie
   Sunburst
   Treemap
@@ -198,6 +199,15 @@ pub fn SeriesOption::default_scatter() -> SeriesOption {
   {
     ..SeriesOption::default_line(),
     series_type: SeriesType::Scatter,
+    symbol_size: 10.0,
+  }
+}
+
+///|
+pub fn SeriesOption::default_effect_scatter() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::EffectScatter,
     symbol_size: 10.0,
   }
 }

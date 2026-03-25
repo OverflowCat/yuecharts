@@ -39,6 +39,22 @@ test "line series uses palette color" {
 }
 
 ///|
+/// Effect scatter series must use palette[0] and emit ripple circles.
+test "effect scatter uses palette color and ripple circles" {
+  let json_str =
+    #|{
+    #|  "width": 600, "height": 400,
+    #|  "xAxis": {"type": "value"},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [{"type": "effectScatter", "symbolSize": 12, "data": [[10, 8], [12, 6]]}]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(palette_0))
+  assert_true(svg.contains("opacity=\"0.33333333333333337\""))
+  assert_true(svg.contains("opacity=\"0.6666666666666667\""))
+}
+
+///|
 /// Two line series must use palette[0] and palette[1] respectively.
 test "two line series use distinct palette colors" {
   let json_str =
@@ -89,32 +105,32 @@ test "bar example snapshot" {
     svg,
     content=(
       #|<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
-      #|  <line x1="80" y1="340" x2="570" y2="340" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="270" x2="570" y2="270" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="200" x2="570" y2="200" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="130" x2="570" y2="130" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="60" x2="570" y2="60" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="340" x2="570" y2="340" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <line x1="161.66666666666669" y1="340" x2="161.66666666666669" y2="344" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="161.66666666666669" y="354" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Mon</text>
-      #|  <line x1="325" y1="340" x2="325" y2="344" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="325" y="354" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Tue</text>
-      #|  <line x1="488.33333333333337" y1="340" x2="488.33333333333337" y2="344" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="488.33333333333337" y="354" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Wed</text>
-      #|  <line x1="80" y1="60" x2="80" y2="340" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <line x1="76" y1="340" x2="80" y2="340" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="340" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
-      #|  <line x1="76" y1="270" x2="80" y2="270" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="270" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">50</text>
-      #|  <line x1="76" y1="200" x2="80" y2="200" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="200" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">100</text>
-      #|  <line x1="76" y1="130" x2="80" y2="130" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="130" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">150</text>
-      #|  <line x1="76" y1="60" x2="80" y2="60" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="60" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">200</text>
-      #|  <rect x="88.16666666666669" y="172" width="117.60000000000001" height="168" fill="#5070dd" stroke="none"/>
-      #|  <rect x="251.5" y="60" width="117.60000000000001" height="280" fill="#5070dd" stroke="none"/>
-      #|  <rect x="414.83333333333337" y="130" width="117.60000000000001" height="210" fill="#5070dd" stroke="none"/>
+      #|  <line x1="90" y1="320" x2="540" y2="320" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="90" y1="256.25" x2="540" y2="256.25" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="90" y1="192.5" x2="540" y2="192.5" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="90" y1="128.75" x2="540" y2="128.75" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="90" y1="65" x2="540" y2="65" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="90" y1="320" x2="540" y2="320" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <line x1="165" y1="320" x2="165" y2="324" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="165" y="334" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Mon</text>
+      #|  <line x1="315" y1="320" x2="315" y2="324" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="315" y="334" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Tue</text>
+      #|  <line x1="465" y1="320" x2="465" y2="324" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="465" y="334" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Wed</text>
+      #|  <line x1="90" y1="65" x2="90" y2="320" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <line x1="86" y1="320" x2="90" y2="320" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="82" y="320" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
+      #|  <line x1="86" y1="256.25" x2="90" y2="256.25" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="82" y="256.25" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">50</text>
+      #|  <line x1="86" y1="192.5" x2="90" y2="192.5" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="82" y="192.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">100</text>
+      #|  <line x1="86" y1="128.75" x2="90" y2="128.75" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="82" y="128.75" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">150</text>
+      #|  <line x1="86" y1="65" x2="90" y2="65" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="82" y="65" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">200</text>
+      #|  <rect x="113.25" y="167" width="79.6153846153846" height="153" fill="#5070dd" stroke="none"/>
+      #|  <rect x="263.25" y="65" width="79.6153846153846" height="255" fill="#5070dd" stroke="none"/>
+      #|  <rect x="413.25" y="128.75" width="79.6153846153846" height="191.25" fill="#5070dd" stroke="none"/>
       #|</svg>
     ),
   )
@@ -138,70 +154,70 @@ test "mixed example snapshot" {
     svg,
     content=(
       #|<svg xmlns="http://www.w3.org/2000/svg" width="700" height="450" viewBox="0 0 700 450">
-      #|  <line x1="80" y1="390" x2="670" y2="390" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="307.5" x2="670" y2="307.5" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="225" x2="670" y2="225" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="142.5" x2="670" y2="142.5" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="60" x2="670" y2="60" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="390" x2="670" y2="390" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="335" x2="670" y2="335" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="280" x2="670" y2="280" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="225" x2="670" y2="225" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="170" x2="670" y2="170" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="115" x2="670" y2="115" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="60" x2="670" y2="60" stroke="#dbdee4" stroke-width="1" fill="none"/>
-      #|  <line x1="80" y1="390" x2="670" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <line x1="129.16666666666666" y1="390" x2="129.16666666666666" y2="394" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="129.16666666666666" y="404" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Jan</text>
-      #|  <line x1="227.5" y1="390" x2="227.5" y2="394" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="227.5" y="404" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Feb</text>
-      #|  <line x1="325.8333333333333" y1="390" x2="325.8333333333333" y2="394" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="325.8333333333333" y="404" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Mar</text>
-      #|  <line x1="424.16666666666663" y1="390" x2="424.16666666666663" y2="394" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="424.16666666666663" y="404" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Apr</text>
-      #|  <line x1="522.5" y1="390" x2="522.5" y2="394" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="522.5" y="404" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">May</text>
-      #|  <line x1="620.8333333333333" y1="390" x2="620.8333333333333" y2="394" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="620.8333333333333" y="404" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Jun</text>
-      #|  <line x1="80" y1="60" x2="80" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <line x1="76" y1="390" x2="80" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="390" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
-      #|  <line x1="76" y1="307.5" x2="80" y2="307.5" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="307.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">20</text>
-      #|  <line x1="76" y1="225" x2="80" y2="225" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="225" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">40</text>
-      #|  <line x1="76" y1="142.5" x2="80" y2="142.5" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="142.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">60</text>
-      #|  <line x1="76" y1="60" x2="80" y2="60" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="60" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">80</text>
-      #|  <line x1="80" y1="60" x2="80" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <line x1="76" y1="390" x2="80" y2="390" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="390" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
-      #|  <line x1="76" y1="335" x2="80" y2="335" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="335" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">2</text>
-      #|  <line x1="76" y1="280" x2="80" y2="280" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="280" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">4</text>
-      #|  <line x1="76" y1="225" x2="80" y2="225" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="225" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">6</text>
-      #|  <line x1="76" y1="170" x2="80" y2="170" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="170" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">8</text>
-      #|  <line x1="76" y1="115" x2="80" y2="115" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="115" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">10</text>
-      #|  <line x1="76" y1="60" x2="80" y2="60" stroke="#54555a" stroke-width="1" fill="none"/>
-      #|  <text x="72" y="60" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">12</text>
-      #|  <rect x="84.91666666666666" y="379.275" width="70.8" height="10.725000000000023" fill="#5070dd" stroke="none"/>
-      #|  <rect x="183.25" y="365.6625" width="70.8" height="24.337499999999977" fill="#5070dd" stroke="none"/>
-      #|  <rect x="281.5833333333333" y="352.875" width="70.8" height="37.125" fill="#5070dd" stroke="none"/>
-      #|  <rect x="379.91666666666663" y="281.1" width="70.8" height="108.89999999999998" fill="#5070dd" stroke="none"/>
-      #|  <rect x="478.25" y="271.6125" width="70.8" height="118.38749999999999" fill="#5070dd" stroke="none"/>
-      #|  <rect x="576.5833333333333" y="98.36250000000001" width="70.8" height="291.6375" fill="#5070dd" stroke="none"/>
-      #|  <polyline points="129.16666666666666,335 227.5,329.5 325.8333333333333,299.25 424.16666666666663,266.25 522.5,216.75 620.8333333333333,109.5" fill="none" stroke="#b6d634" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      #|  <circle cx="129.16666666666666" cy="335" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="227.5" cy="329.5" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="325.8333333333333" cy="299.25" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="424.16666666666663" cy="266.25" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="522.5" cy="216.75" r="2" fill="#b6d634" stroke="none"/>
-      #|  <circle cx="620.8333333333333" cy="109.5" r="2" fill="#b6d634" stroke="none"/>
+      #|  <line x1="105" y1="370" x2="630" y2="370" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="293.75" x2="630" y2="293.75" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="217.5" x2="630" y2="217.5" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="141.25" x2="630" y2="141.25" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="65" x2="630" y2="65" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="370" x2="630" y2="370" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="319.1666666666667" x2="630" y2="319.1666666666667" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="268.33333333333337" x2="630" y2="268.33333333333337" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="217.5" x2="630" y2="217.5" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="166.66666666666669" x2="630" y2="166.66666666666669" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="115.83333333333331" x2="630" y2="115.83333333333331" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="65" x2="630" y2="65" stroke="#dbdee4" stroke-width="1" fill="none"/>
+      #|  <line x1="105" y1="370" x2="630" y2="370" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <line x1="148.75" y1="370" x2="148.75" y2="374" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="148.75" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Jan</text>
+      #|  <line x1="236.25" y1="370" x2="236.25" y2="374" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="236.25" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Feb</text>
+      #|  <line x1="323.75" y1="370" x2="323.75" y2="374" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="323.75" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Mar</text>
+      #|  <line x1="411.25" y1="370" x2="411.25" y2="374" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="411.25" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Apr</text>
+      #|  <line x1="498.75" y1="370" x2="498.75" y2="374" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="498.75" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">May</text>
+      #|  <line x1="586.25" y1="370" x2="586.25" y2="374" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="586.25" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging">Jun</text>
+      #|  <line x1="105" y1="65" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <line x1="101" y1="370" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="370" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
+      #|  <line x1="101" y1="293.75" x2="105" y2="293.75" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="293.75" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">20</text>
+      #|  <line x1="101" y1="217.5" x2="105" y2="217.5" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="217.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">40</text>
+      #|  <line x1="101" y1="141.25" x2="105" y2="141.25" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="141.25" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">60</text>
+      #|  <line x1="101" y1="65" x2="105" y2="65" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="65" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">80</text>
+      #|  <line x1="105" y1="65" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <line x1="101" y1="370" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="370" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">0</text>
+      #|  <line x1="101" y1="319.1666666666667" x2="105" y2="319.1666666666667" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="319.1666666666667" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">2</text>
+      #|  <line x1="101" y1="268.33333333333337" x2="105" y2="268.33333333333337" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="268.33333333333337" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">4</text>
+      #|  <line x1="101" y1="217.5" x2="105" y2="217.5" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="217.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">6</text>
+      #|  <line x1="101" y1="166.66666666666669" x2="105" y2="166.66666666666669" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="166.66666666666669" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">8</text>
+      #|  <line x1="101" y1="115.83333333333331" x2="105" y2="115.83333333333331" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="115.83333333333331" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">10</text>
+      #|  <line x1="101" y1="65" x2="105" y2="65" stroke="#54555a" stroke-width="1" fill="none"/>
+      #|  <text x="97" y="65" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle">12</text>
+      #|  <rect x="118.5625" y="360.0875" width="46.442307692307686" height="9.912500000000023" fill="#5070dd" stroke="none"/>
+      #|  <rect x="206.0625" y="347.50625" width="46.442307692307686" height="22.493749999999977" fill="#5070dd" stroke="none"/>
+      #|  <rect x="293.5625" y="335.6875" width="46.442307692307686" height="34.3125" fill="#5070dd" stroke="none"/>
+      #|  <rect x="381.0625" y="269.35" width="46.442307692307686" height="100.64999999999998" fill="#5070dd" stroke="none"/>
+      #|  <rect x="468.5625" y="260.58125" width="46.442307692307686" height="109.41874999999999" fill="#5070dd" stroke="none"/>
+      #|  <rect x="556.0625" y="100.45625000000001" width="46.442307692307686" height="269.54375" fill="#5070dd" stroke="none"/>
+      #|  <polyline points="148.75,319.1666666666667 236.25,314.0833333333333 323.75,286.125 411.25,255.625 498.75,209.875 586.25,110.75" fill="none" stroke="#b6d634" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      #|  <circle cx="148.75" cy="319.1666666666667" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="236.25" cy="314.0833333333333" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="323.75" cy="286.125" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="411.25" cy="255.625" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="498.75" cy="209.875" r="2" fill="#b6d634" stroke="none"/>
+      #|  <circle cx="586.25" cy="110.75" r="2" fill="#b6d634" stroke="none"/>
       #|</svg>
     ),
   )
