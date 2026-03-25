@@ -1,4 +1,5 @@
 import {
+  "OverflowCat/yuecharts/core" @core,
   "OverflowCat/yuecharts/graphic" @graphic,
   "OverflowCat/yuecharts/scale" @scale,
   "OverflowCat/yuecharts/option" @option,

@@ -1,0 +1,17 @@
+{
+  "width": 640,
+  "height": 420,
+  "title": { "text": "Pictorial Bar Clip" },
+  "xAxis": { "type": "category", "data": ["A", "B", "C"] },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "type": "pictorialBar",
+      "symbol": "roundRect",
+      "symbolRepeat": "fixed",
+      "symbolBoundingData": 24,
+      "symbolClip": true,
+      "data": [12, 20, 6]
+    }
+  ]
+}

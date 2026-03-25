@@ -259,17 +259,62 @@ fn xml_escape(s : String) -> String {
 }
 
 ///|
+pub struct SvgAccessibility {
+  role : String
+  aria_label : String?
+  title : String?
+  desc : String?
+}
+
+///|
+pub fn SvgAccessibility::new(
+  role : String,
+  aria_label : String?,
+  title : String?,
+  desc : String?,
+) -> SvgAccessibility {
+  { role, aria_label, title, desc }
+}
+
+///|
 /// Render a list of elements to an SVG document string.
 pub fn paint(
   elements : Array[@graphic.Element],
   width : Double,
   height : Double,
   background : @graphic.Color?,
+  accessibility : SvgAccessibility?,
 ) -> String {
   let buf = StringBuilder::new()
+  buf.write_string("<svg xmlns=\"http://www.w3.org/2000/svg\"")
   buf.write_string(
-    "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"\{width}\" height=\"\{height}\" viewBox=\"0 0 \{width} \{height}\">\n",
+    " width=\"\{width}\" height=\"\{height}\" viewBox=\"0 0 \{width} \{height}\"",
   )
+  match accessibility {
+    Some(acc) => {
+      buf.write_string(" role=\"\{acc.role}\"")
+      match acc.aria_label {
+        Some(label) => buf.write_string(" aria-label=\"\{xml_escape(label)}\"")
+        None => ()
+      }
+    }
+    None => ()
+  }
+  buf.write_string(">\n")
+  match accessibility {
+    Some(acc) => {
+      match acc.title {
+        Some(title) =>
+          buf.write_string("  <title>\{xml_escape(title)}</title>\n")
+        None => ()
+      }
+      match acc.desc {
+        Some(desc) => buf.write_string("  <desc>\{xml_escape(desc)}</desc>\n")
+        None => ()
+      }
+    }
+    None => ()
+  }
   match background {
     Some(bg) =>
       buf.write_string(

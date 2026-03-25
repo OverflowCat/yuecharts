@@ -1,0 +1,16 @@
+{
+  "width": 640,
+  "height": 420,
+  "title": { "text": "Pictorial Bar" },
+  "xAxis": { "type": "category", "data": ["A", "B", "C", "D"] },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "type": "pictorialBar",
+      "symbol": "circle",
+      "symbolRepeat": true,
+      "symbolMargin": "20%",
+      "data": [12, 20, 15, 8]
+    }
+  ]
+}

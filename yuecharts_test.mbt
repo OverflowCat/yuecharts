@@ -222,3 +222,110 @@ test "mixed example snapshot" {
     ),
   )
 }
+
+///|
+test "pictorial bar uses palette color and circle symbols" {
+  let json_str =
+    #|{
+    #|  "width": 640, "height": 420,
+    #|  "xAxis": {"type": "category", "data": ["A", "B", "C", "D"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [
+    #|    {"type": "pictorialBar", "symbol": "circle", "symbolRepeat": true, "data": [12, 20, 15, 8]}
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(palette_0))
+  assert_true(svg.contains("<circle"))
+}
+
+///|
+test "aria label is emitted on svg root" {
+  let json_str =
+    #|{
+    #|  "width": 480, "height": 320,
+    #|  "title": {"text": "Accessibility Demo"},
+    #|  "aria": {"enabled": true, "description": "Screen reader summary"},
+    #|  "xAxis": {"type": "category", "data": ["Mon","Tue"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [{"type": "bar", "name": "Visits", "data": [12, 18]}]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("role=\"img\""))
+  assert_true(svg.contains("aria-label=\"Screen reader summary\""))
+  assert_true(svg.contains("<desc>Screen reader summary</desc>"))
+}
+
+///|
+test "pictorial bar clip and bounding data trim symbols" {
+  let json_str =
+    #|{
+    #|  "width": 640, "height": 420,
+    #|  "xAxis": {"type": "category", "data": ["A", "B", "C"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [
+    #|    {
+    #|      "type": "pictorialBar",
+    #|      "symbol": "roundRect",
+    #|      "symbolRepeat": "fixed",
+    #|      "symbolBoundingData": 24,
+    #|      "symbolClip": true,
+    #|      "data": [12, 20, 6]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("<path d="))
+  assert_true(svg.contains(palette_0))
+}
+
+///|
+test "aria template text is generated from defaults" {
+  let json_str =
+    #|{
+    #|  "width": 480, "height": 320,
+    #|  "title": {"text": "ARIA Template"},
+    #|  "aria": {"enabled": true},
+    #|  "xAxis": {"type": "category", "data": ["Mon","Tue"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [{"type": "bar", "name": "Visits", "data": [12, 18]}]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(
+    svg.contains("aria-label=\"This is a chart about &quot;ARIA Template&quot;"),
+  )
+  assert_true(svg.contains("with type Bar chart named Visits."))
+  assert_true(svg.contains("The data is as follows: 12, 18."))
+}
+
+///|
+test "pictorial bar symbol offset affects output" {
+  let base_json =
+    #|{
+    #|  "width": 420, "height": 320,
+    #|  "xAxis": {"type": "category", "data": ["A"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [{
+    #|    "type": "pictorialBar",
+    #|    "symbol": "rect",
+    #|    "data": [12]
+    #|  }]
+    #|}
+  let offset_json =
+    #|{
+    #|  "width": 420, "height": 320,
+    #|  "xAxis": {"type": "category", "data": ["A"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [{
+    #|    "type": "pictorialBar",
+    #|    "symbol": "rect",
+    #|    "symbolOffset": [10, -4],
+    #|    "data": [12]
+    #|  }]
+    #|}
+  let base_svg = @yuecharts.render(base_json)
+  let offset_svg = @yuecharts.render(offset_json)
+  assert_true(base_svg.contains("x=\"111.825\""))
+  assert_true(offset_svg.contains("x=\"121.825\""))
+  assert_true(base_svg != offset_svg)
+}

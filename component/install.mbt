@@ -114,9 +114,23 @@ pub fn install_legend(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_aria(registry : @core.Registry) -> Unit {
+  registry.register_visual(
+    @core.VisualRegistration::new(
+      "visual-aria",
+      "echarts/src/visual/aria.ts",
+      None,
+      9000,
+      Some("aria_label"),
+    ),
+  )
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_grid_lines(registry)
   install_axis(registry)
   install_title(registry)
   install_legend(registry)
+  install_aria(registry)
 }

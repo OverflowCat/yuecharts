@@ -17,6 +17,14 @@ pub impl @core.ChartViewLike for LineChartView with render(_self, ctx) {
 }
 
 ///|
+struct PictorialBarChartView {}
+
+///|
+pub impl @core.ChartViewLike for PictorialBarChartView with render(_self, ctx) {
+  render_pictorial_bars(ctx.option, ctx.coord)
+}
+
+///|
 struct ScatterChartView {}
 
 ///|
@@ -130,6 +138,8 @@ fn register_chart(
         "layout",
         layout_sources[i],
         Some(stage_series_type),
+        2000,
+        None,
       ),
     )
     i = i + 1
@@ -141,6 +151,8 @@ fn register_chart(
         "visual",
         visual_sources[j],
         Some(stage_series_type),
+        3000,
+        None,
       ),
     )
     j = j + 1
@@ -152,6 +164,8 @@ fn register_chart(
         "processor",
         processor_sources[k],
         Some(stage_series_type),
+        1000,
+        None,
       ),
     )
     k = k + 1
@@ -187,6 +201,22 @@ pub fn install_line(registry : @core.Registry) -> Unit {
     ["echarts/src/processor/dataSample.ts"],
     "line",
     LineChartView::{  },
+  )
+}
+
+///|
+pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
+  register_chart(
+    registry,
+    @option.series_type_pictorial_bar(),
+    "echarts/src/chart/bar/installPictorialBar.ts",
+    "echarts/src/chart/bar/PictorialBarSeries.ts",
+    "echarts/src/chart/bar/PictorialBarView.ts",
+    ["echarts/src/layout/barGrid.ts"],
+    [],
+    [],
+    "pictorialBar",
+    PictorialBarChartView::{  },
   )
 }
 
@@ -372,6 +402,7 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_heatmap(registry)
   install_candlestick(registry)
   install_boxplot(registry)
+  install_pictorial_bar(registry)
   install_line(registry)
   install_scatter(registry)
   install_effect_scatter(registry)

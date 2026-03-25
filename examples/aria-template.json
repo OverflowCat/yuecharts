@@ -1,0 +1,15 @@
+{
+  "width": 480,
+  "height": 320,
+  "title": { "text": "ARIA Template" },
+  "aria": { "enabled": true },
+  "xAxis": { "type": "category", "data": ["Mon", "Tue"] },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "type": "bar",
+      "name": "Visits",
+      "data": [12, 18]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-# ECharts to yuecharts Port Map
+﻿# ECharts to yuecharts Port Map
 
 ## Scope
 
@@ -48,6 +48,7 @@ E:\yuecharts
 │   ├── funnel.mbt
 │   ├── gauge.mbt
 │   ├── heatmap.mbt
+│   ├── install.mbt
 │   ├── line.mbt
 │   ├── pie.mbt
 │   ├── radar.mbt
@@ -62,8 +63,12 @@ E:\yuecharts
 │   ├── moon.pkg
 │   ├── axis.mbt
 │   ├── grid_lines.mbt
+│   ├── install.mbt
 │   ├── legend.mbt
 │   └── title.mbt
+├── core
+│   ├── moon.pkg
+│   └── registry.mbt
 ├── coord
 │   ├── moon.pkg
 │   └── cartesian.mbt
@@ -124,7 +129,7 @@ E:\recharts\echarts\src
 ├── echarts.common.ts =>  [missing] Feature: common bundle entry
 ├── echarts.simple.ts =>  [missing] Feature: simple bundle entry
 ├── echarts.blank.ts =>  [missing] Feature: blank bundle entry
-├── extension.ts =>  [missing] Feature: extension registration API
+├── extension.ts => core/registry.mbt [partial] Feature: extension registration API
 │
 ├── animation
 │   ├── basicTransition.ts =>  [missing] Feature: animation transition infra
@@ -135,6 +140,7 @@ E:\recharts\echarts\src
 │
 ├── core
 │   ├── echarts.ts => yuecharts.mbt [partial] Feature: chart lifecycle and render entry
+│   ├── extension.ts => core/registry.mbt [partial] Feature: install/register metadata surface
 │   ├── CoordinateSystem.ts =>  [missing] Feature: coordinate system registry
 │   ├── ExtensionAPI.ts =>  [missing] Feature: extension runtime API
 │   ├── ExtendedElement.ts =>  [missing] Feature: graphic extension element layer
@@ -232,7 +238,7 @@ E:\recharts\echarts\src
 │   │   ├── Cartesian2D.ts => coord/cartesian.mbt [translated] Feature: cartesian2d coordinate
 │   │   ├── cartesianAxisHelper.ts => component/axis.mbt [partial] Feature: cartesian axis helper
 │   │   ├── defaultAxisExtentFromData.ts => layout/grid.mbt [partial] Feature: axis extent from series data
-│   │   ├── Grid.ts => layout/grid.mbt [translated] Feature: grid layout
+│   │   ├── Grid.ts => layout/grid.mbt, layout/install.mbt [translated] Feature: grid layout + root layout stage registration
 │   │   ├── GridModel.ts => option/types.mbt [partial] Feature: grid option model
 │   │   ├── legacyContainLabel.ts =>  [missing] Feature: containLabel compat
 │   │   └── prepareCustom.ts =>  [missing] Feature: custom series cartesian adapter
@@ -791,7 +797,9 @@ E:\recharts\echarts\src
 │
 └── notes
     ├── Current MoonBit infra files with the widest coverage:
-    │   ├── yuecharts.mbt [top-level render sequencing only]
+    │   ├── core/registry.mbt [minimal registry + ChartViewLike/ComponentViewLike/ScaleLike/CoordLike + stage priority/execution key]
+    │   ├── layout/install.mbt [root layout stage registration + priority]
+    │   ├── yuecharts.mbt [top-level processor/layout/visual sequencing + registry-driven dispatch]
     │   ├── option/parse.mbt [JSON parsing and option normalization subset]
     │   ├── option/types.mbt [shared option structures]
     │   ├── layout/grid.mbt [grid bbox and cartesian scale building]
@@ -809,3 +817,4 @@ E:\recharts\echarts\src
         `visual.ts` / `action.ts` files are still only partially covered even
         when the final static SVG output exists.
 ```
+

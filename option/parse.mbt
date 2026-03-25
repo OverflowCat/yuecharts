@@ -22,6 +22,10 @@ fn parse_chart_option(j : Json) -> ChartOption {
     Some(l) => Some(parse_legend(l))
     None => None
   }
+  let aria = match j_field(j, "aria") {
+    Some(a) => Some(parse_aria_option(a))
+    None => None
+  }
   // x_axis can be object or array
   let x_axis = match j_field(j, "xAxis") {
     Some(Array(arr)) => arr.map(parse_axis_option_x)
@@ -63,6 +67,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     radar,
     series,
     background_color,
+    aria,
     visual_map,
   }
 }
@@ -174,6 +179,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let series_type = match j_string(j, "type", "line") {
     "line" => SeriesType::Line
     "bar" => SeriesType::Bar
+    "pictorialBar" => SeriesType::PictorialBar
     "scatter" => SeriesType::Scatter
     "effectScatter" => SeriesType::EffectScatter
     "pie" => SeriesType::Pie
@@ -190,6 +196,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let base = match series_type {
     Line => SeriesOption::default_line()
     Bar => SeriesOption::default_bar()
+    PictorialBar => SeriesOption::default_pictorial_bar()
     Scatter => SeriesOption::default_scatter()
     EffectScatter => SeriesOption::default_effect_scatter()
     Pie => SeriesOption::default_pie()
@@ -209,6 +216,30 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let radar_index = j_int(j, "radarIndex", base.radar_index)
   let smooth = j_bool(j, "smooth", base.smooth)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
+  let symbol = match j_field(j, "symbol") {
+    Some(String(s)) => Some(s)
+    _ => base.symbol
+  }
+  let (symbol_repeat, symbol_repeat_count, symbol_repeat_fixed) = parse_symbol_repeat(
+    j, base,
+  )
+  let symbol_margin = match j_field(j, "symbolMargin") {
+    Some(String(s)) => Some(s)
+    Some(Number(n, ..)) => Some("\{n}")
+    _ => base.symbol_margin
+  }
+  let symbol_clip = j_bool(j, "symbolClip", base.symbol_clip)
+  let symbol_position = match j_field(j, "symbolPosition") {
+    Some(String(s)) => Some(s)
+    _ => base.symbol_position
+  }
+  let symbol_rotate = j_number_opt(j, "symbolRotate")
+  let symbol_bounding_data = parse_symbol_bounding_data(j)
+  let symbol_offset = parse_symbol_offset(j)
+  let symbol_repeat_direction = match j_field(j, "symbolRepeatDirection") {
+    Some(String(s)) => Some(s)
+    _ => base.symbol_repeat_direction
+  }
   let color = match j_string_opt(j, "color") {
     Some(c) => Some(c)
     None => base.color
@@ -254,6 +285,17 @@ fn parse_series_option(j : Json) -> SeriesOption {
     series_type,
     name,
     data,
+    symbol,
+    symbol_repeat,
+    symbol_repeat_count,
+    symbol_repeat_fixed,
+    symbol_margin,
+    symbol_clip,
+    symbol_position,
+    symbol_rotate,
+    symbol_bounding_data,
+    symbol_offset,
+    symbol_repeat_direction,
     x_axis_index,
     y_axis_index,
     radar_index,
@@ -369,6 +411,197 @@ fn parse_radar_indicator(j : Json) -> RadarIndicator {
 ///|
 /// Parse a visualMap option. Supports continuous visualMap.
 /// Corresponds to echarts/src/component/visualMap/VisualMapModel.ts
+fn parse_aria_option(j : Json) -> AriaOption {
+  let base = AriaOption::default()
+  let show_enabled = match j_field(j, "show") {
+    Some(True) => Some(true)
+    Some(False) => Some(false)
+    _ => None
+  }
+  let enabled = match j_field(j, "enabled") {
+    Some(True) => true
+    Some(False) => false
+    _ => show_enabled.unwrap_or(base.enabled)
+  }
+  let label = match j_field(j, "label") {
+    Some(v) => v
+    None => j
+  }
+  let label_enabled = match j_field(label, "enabled") {
+    Some(True) => true
+    Some(False) => false
+    _ => base.label_enabled
+  }
+  let description = match j_field(label, "description") {
+    Some(String(s)) => Some(s)
+    _ => j_string_opt(j, "description")
+  }
+  let general = match j_field(label, "general") {
+    Some(v) => v
+    None => j
+  }
+  let series = match j_field(label, "series") {
+    Some(v) => v
+    None => j
+  }
+  let data = match j_field(label, "data") {
+    Some(v) => v
+    None => j
+  }
+  let series_single = match j_field(series, "single") {
+    Some(v) => v
+    None => series
+  }
+  let series_multiple = match j_field(series, "multiple") {
+    Some(v) => v
+    None => series
+  }
+  let series_separator = match j_field(series_multiple, "separator") {
+    Some(v) => v
+    None => series_multiple
+  }
+  let data_separator = match j_field(data, "separator") {
+    Some(v) => v
+    None => data
+  }
+  {
+    enabled,
+    label_enabled,
+    description,
+    general_with_title: j_string(general, "withTitle", base.general_with_title),
+    general_without_title: j_string(
+      general,
+      "withoutTitle",
+      base.general_without_title,
+    ),
+    series_max_count: j_int(series, "maxCount", base.series_max_count),
+    series_single_prefix: j_string(
+      series_single,
+      "prefix",
+      base.series_single_prefix,
+    ),
+    series_single_with_name: j_string(
+      series_single,
+      "withName",
+      base.series_single_with_name,
+    ),
+    series_single_without_name: j_string(
+      series_single,
+      "withoutName",
+      base.series_single_without_name,
+    ),
+    series_multiple_prefix: j_string(
+      series_multiple,
+      "prefix",
+      base.series_multiple_prefix,
+    ),
+    series_multiple_with_name: j_string(
+      series_multiple,
+      "withName",
+      base.series_multiple_with_name,
+    ),
+    series_multiple_without_name: j_string(
+      series_multiple,
+      "withoutName",
+      base.series_multiple_without_name,
+    ),
+    series_multiple_separator_middle: j_string(
+      series_separator,
+      "middle",
+      base.series_multiple_separator_middle,
+    ),
+    series_multiple_separator_end: j_string(
+      series_separator,
+      "end",
+      base.series_multiple_separator_end,
+    ),
+    data_max_count: j_int(data, "maxCount", base.data_max_count),
+    data_all_data: j_string(data, "allData", base.data_all_data),
+    data_partial_data: j_string(data, "partialData", base.data_partial_data),
+    data_with_name: j_string(data, "withName", base.data_with_name),
+    data_without_name: j_string(data, "withoutName", base.data_without_name),
+    data_separator_middle: j_string(
+      data_separator,
+      "middle",
+      base.data_separator_middle,
+    ),
+    data_separator_end: j_string(data_separator, "end", base.data_separator_end),
+  }
+}
+
+///|
+fn parse_symbol_repeat(j : Json, base : SeriesOption) -> (String?, Int?, Bool) {
+  match j_field(j, "symbolRepeat") {
+    Some(True) => (Some("true"), None, false)
+    Some(False) => (Some("false"), None, false)
+    Some(Number(n, ..)) => (Some("number"), Some(n.to_int()), false)
+    Some(String(s)) =>
+      if s == "fixed" {
+        (Some("fixed"), None, true)
+      } else {
+        (Some(s), None, false)
+      }
+    _ =>
+      (base.symbol_repeat, base.symbol_repeat_count, base.symbol_repeat_fixed)
+  }
+}
+
+///|
+fn parse_symbol_bounding_data(j : Json) -> SymbolBoundingData? {
+  match j_field(j, "symbolBoundingData") {
+    Some(Number(n, ..)) => Some(Single(n))
+    Some(Array(arr)) =>
+      if arr.length() >= 2 {
+        let a = match arr[0] {
+          Number(n, ..) => n
+          _ => 0.0
+        }
+        let b = match arr[1] {
+          Number(n, ..) => n
+          _ => 0.0
+        }
+        Some(Pair(a, b))
+      } else {
+        None
+      }
+    _ => None
+  }
+}
+
+///|
+fn parse_symbol_offset(j : Json) -> Array[String]? {
+  match j_field(j, "symbolOffset") {
+    Some(String(s)) => Some([s, s])
+    Some(Number(n, ..)) => {
+      let value = "\{n}"
+      Some([value, value])
+    }
+    Some(Array(arr)) => {
+      let values : Array[String] = []
+      let mut i = 0
+      while i < arr.length() && i < 2 {
+        match arr[i] {
+          String(s) => values.push(s)
+          Number(n, ..) => values.push("\{n}")
+          _ => values.push("0")
+        }
+        i = i + 1
+      }
+      if values.length() == 1 {
+        Some([values[0], values[0]])
+      } else if values.length() >= 2 {
+        Some([values[0], values[1]])
+      } else {
+        None
+      }
+    }
+    _ => None
+  }
+}
+
+///|
+
+///|
 fn parse_visual_map(j : Json) -> VisualMapOption {
   let base = VisualMapOption::default()
   { min: j_number(j, "min", base.min), max: j_number(j, "max", base.max) }

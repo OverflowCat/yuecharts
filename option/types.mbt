@@ -97,6 +97,7 @@ pub fn GridOption::default() -> GridOption {
 pub enum SeriesType {
   Line
   Bar
+  PictorialBar
   Scatter
   EffectScatter
   Pie
@@ -127,11 +128,30 @@ pub struct DataItem {
 }
 
 ///|
+pub enum SymbolBoundingData {
+  Single(Double)
+  Pair(Double, Double)
+}
+
+///|
+
+///|
 /// Series configuration.
 pub struct SeriesOption {
   series_type : SeriesType
   name : String?
   data : Array[DataItem]
+  symbol : String?
+  symbol_repeat : String?
+  symbol_repeat_count : Int?
+  symbol_repeat_fixed : Bool
+  symbol_margin : String?
+  symbol_clip : Bool
+  symbol_position : String?
+  symbol_rotate : Double?
+  symbol_bounding_data : SymbolBoundingData?
+  symbol_offset : Array[String]?
+  symbol_repeat_direction : String?
   x_axis_index : Int
   y_axis_index : Int
   // For radar: index into ChartOption.radar[]
@@ -165,6 +185,17 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     series_type: SeriesType::Line,
     name: None,
     data: [],
+    symbol: None,
+    symbol_repeat: None,
+    symbol_repeat_count: None,
+    symbol_repeat_fixed: false,
+    symbol_margin: None,
+    symbol_clip: false,
+    symbol_position: None,
+    symbol_rotate: None,
+    symbol_bounding_data: None,
+    symbol_offset: None,
+    symbol_repeat_direction: None,
     x_axis_index: 0,
     y_axis_index: 0,
     radar_index: 0,
@@ -192,6 +223,25 @@ pub fn SeriesOption::default_line() -> SeriesOption {
 ///|
 pub fn SeriesOption::default_bar() -> SeriesOption {
   { ..SeriesOption::default_line(), series_type: SeriesType::Bar }
+}
+
+///|
+pub fn SeriesOption::default_pictorial_bar() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::PictorialBar,
+    symbol: Some("circle"),
+    symbol_repeat: Some("false"),
+    symbol_repeat_count: None,
+    symbol_repeat_fixed: false,
+    symbol_margin: Some("15%"),
+    symbol_clip: false,
+    symbol_position: Some("start"),
+    symbol_rotate: None,
+    symbol_bounding_data: None,
+    symbol_offset: None,
+    symbol_repeat_direction: Some("end"),
+  }
 }
 
 ///|
@@ -258,6 +308,11 @@ pub fn series_type_line() -> SeriesType {
 ///|
 pub fn series_type_bar() -> SeriesType {
   Bar
+}
+
+///|
+pub fn series_type_pictorial_bar() -> SeriesType {
+  PictorialBar
 }
 
 ///|
@@ -381,8 +436,58 @@ pub fn RadarOption::default() -> RadarOption {
 }
 
 ///|
-/// Visual map configuration: maps a numeric value range to visual properties.
-/// Corresponds to echarts/src/component/visualMap/VisualMapModel.ts
+pub struct AriaOption {
+  enabled : Bool
+  label_enabled : Bool
+  description : String?
+  general_with_title : String
+  general_without_title : String
+  series_max_count : Int
+  series_single_prefix : String
+  series_single_with_name : String
+  series_single_without_name : String
+  series_multiple_prefix : String
+  series_multiple_with_name : String
+  series_multiple_without_name : String
+  series_multiple_separator_middle : String
+  series_multiple_separator_end : String
+  data_max_count : Int
+  data_all_data : String
+  data_partial_data : String
+  data_with_name : String
+  data_without_name : String
+  data_separator_middle : String
+  data_separator_end : String
+}
+
+///|
+pub fn AriaOption::default() -> AriaOption {
+  {
+    enabled: false,
+    label_enabled: true,
+    description: None,
+    general_with_title: "This is a chart about \"{title}\"",
+    general_without_title: "This is a chart",
+    series_max_count: 10,
+    series_single_prefix: "",
+    series_single_with_name: " with type {seriesType} named {seriesName}.",
+    series_single_without_name: " with type {seriesType}.",
+    series_multiple_prefix: ". It consists of {seriesCount} series count.",
+    series_multiple_with_name: " The {seriesId} series is a {seriesType} representing {seriesName}.",
+    series_multiple_without_name: " The {seriesId} series is a {seriesType}.",
+    series_multiple_separator_middle: "",
+    series_multiple_separator_end: "",
+    data_max_count: 10,
+    data_all_data: "The data is as follows: ",
+    data_partial_data: "The first {displayCnt} items are: ",
+    data_with_name: "the data for {name} is {value}",
+    data_without_name: "{value}",
+    data_separator_middle: ", ",
+    data_separator_end: ". ",
+  }
+}
+
+///|
 pub struct VisualMapOption {
   /// Minimum value of the mapped range.
   min : Double
@@ -408,6 +513,7 @@ pub struct ChartOption {
   radar : Array[RadarOption]
   series : Array[SeriesOption]
   background_color : String?
+  aria : AriaOption?
   visual_map : VisualMapOption?
 }
 
@@ -424,6 +530,7 @@ pub fn ChartOption::default() -> ChartOption {
     radar: [],
     series: [],
     background_color: None,
+    aria: None,
     visual_map: None,
   }
 }

@@ -232,6 +232,8 @@ pub struct LayoutRegistration {
   stage_name : String
   source_path : String
   series_type : String?
+  priority : Int
+  execution_key : String?
 }
 
 ///|
@@ -239,6 +241,8 @@ pub struct VisualRegistration {
   stage_name : String
   source_path : String
   series_type : String?
+  priority : Int
+  execution_key : String?
 }
 
 ///|
@@ -246,6 +250,8 @@ pub struct ProcessorRegistration {
   stage_name : String
   source_path : String
   series_type : String?
+  priority : Int
+  execution_key : String?
 }
 
 ///|
@@ -253,8 +259,10 @@ pub fn LayoutRegistration::new(
   stage_name : String,
   source_path : String,
   series_type : String?,
+  priority : Int,
+  execution_key : String?,
 ) -> LayoutRegistration {
-  { stage_name, source_path, series_type }
+  { stage_name, source_path, series_type, priority, execution_key }
 }
 
 ///|
@@ -262,8 +270,10 @@ pub fn VisualRegistration::new(
   stage_name : String,
   source_path : String,
   series_type : String?,
+  priority : Int,
+  execution_key : String?,
 ) -> VisualRegistration {
-  { stage_name, source_path, series_type }
+  { stage_name, source_path, series_type, priority, execution_key }
 }
 
 ///|
@@ -271,8 +281,10 @@ pub fn ProcessorRegistration::new(
   stage_name : String,
   source_path : String,
   series_type : String?,
+  priority : Int,
+  execution_key : String?,
 ) -> ProcessorRegistration {
-  { stage_name, source_path, series_type }
+  { stage_name, source_path, series_type, priority, execution_key }
 }
 
 ///|

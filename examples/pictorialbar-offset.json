@@ -1,0 +1,18 @@
+{
+  "width": 640,
+  "height": 420,
+  "title": { "text": "Pictorial Bar Offset" },
+  "xAxis": { "type": "category", "data": ["A", "B", "C"] },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "type": "pictorialBar",
+      "symbol": "rect",
+      "symbolRepeat": true,
+      "symbolRepeatDirection": "start",
+      "symbolOffset": ["10%", -4],
+      "symbolMargin": "10%",
+      "data": [12, 20, 15]
+    }
+  ]
+}
