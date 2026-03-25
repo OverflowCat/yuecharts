@@ -97,6 +97,8 @@ pub enum SeriesType {
   Bar
   Scatter
   Pie
+  Sunburst
+  Treemap
   Radar
   Candlestick
   Heatmap
@@ -118,6 +120,7 @@ pub enum DataValue {
 pub struct DataItem {
   value : DataValue
   name : String?
+  children : Array[DataItem]
 }
 
 ///|
@@ -142,6 +145,9 @@ pub struct SeriesOption {
   // For pie charts
   radius : Array[String]
   center : Array[String]
+  // For sunburst charts
+  min_angle : Double // option degrees, default 0
+  clockwise : Bool // default true
   // For gauge charts
   start_angle : Double // option degrees, default 225 (ECharts GaugeSeries.ts default)
   end_angle : Double // option degrees, default -45
@@ -170,6 +176,8 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     encode_y: None,
     radius: [],
     center: [],
+    min_angle: 0.0,
+    clockwise: true,
     start_angle: 225.0,
     end_angle: -45.0,
     min_val: 0.0,
@@ -200,6 +208,24 @@ pub fn SeriesOption::default_pie() -> SeriesOption {
     radius: ["0%", "75%"],
     center: ["50%", "50%"],
   }
+}
+
+///|
+pub fn SeriesOption::default_sunburst() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Sunburst,
+    radius: ["0%", "75%"],
+    center: ["50%", "50%"],
+    start_angle: 90.0,
+    min_angle: 0.0,
+    clockwise: true,
+  }
+}
+
+///|
+pub fn SeriesOption::default_treemap() -> SeriesOption {
+  { ..SeriesOption::default_line(), series_type: SeriesType::Treemap }
 }
 
 ///|

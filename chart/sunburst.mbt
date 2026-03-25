@@ -1,0 +1,400 @@
+// Corresponds to: echarts/src/chart/sunburst/SunburstView.ts
+//                  echarts/src/chart/sunburst/sunburstLayout.ts
+//                  echarts/src/chart/sunburst/SunburstSeries.ts
+
+///|
+fn data_item_value(item : @option.DataItem) -> Double {
+  let derived = match item.value {
+    @option.Num(n) => n
+    @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { 0.0 }
+    @option.Null => {
+      let mut sum = 0.0
+      let mut i = 0
+      while i < item.children.length() {
+        sum = sum + complete_tree_value(item.children[i])
+        i = i + 1
+      }
+      sum
+    }
+  }
+  if derived < 0.0 {
+    0.0
+  } else {
+    derived
+  }
+}
+
+///|
+fn complete_tree_value(item : @option.DataItem) -> Double {
+  let mut child_sum = 0.0
+  let mut i = 0
+  while i < item.children.length() {
+    child_sum = child_sum + complete_tree_value(item.children[i])
+    i = i + 1
+  }
+  let own_value = match item.value {
+    @option.Num(n) => n
+    @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { child_sum }
+    @option.Null => child_sum
+  }
+  if own_value < 0.0 {
+    0.0
+  } else {
+    own_value
+  }
+}
+
+///|
+fn tree_height(item : @option.DataItem) -> Int {
+  if item.children.length() == 0 {
+    return 1
+  }
+  let mut max_child = 0
+  let mut i = 0
+  while i < item.children.length() {
+    let h = tree_height(item.children[i])
+    if h > max_child {
+      max_child = h
+    }
+    i = i + 1
+  }
+  max_child + 1
+}
+
+///|
+fn abs_double(v : Double) -> Double {
+  if v < 0.0 {
+    -v
+  } else {
+    v
+  }
+}
+
+///|
+fn sector_path(
+  cx : Double,
+  cy : Double,
+  r0 : Double,
+  r : Double,
+  a0 : Double,
+  a1 : Double,
+  clockwise : Bool,
+) -> String {
+  let outer_x0 = cx + r * @math.cos(a0)
+  let outer_y0 = cy + r * @math.sin(a0)
+  let outer_x1 = cx + r * @math.cos(a1)
+  let outer_y1 = cy + r * @math.sin(a1)
+  let span = abs_double(a1 - a0)
+  let large_arc = if span > @math.PI { 1 } else { 0 }
+  let outer_sweep = if clockwise { 1 } else { 0 }
+  let inner_sweep = if clockwise { 0 } else { 1 }
+  if r0 <= 0.5 {
+    "M \{r4(cx)} \{r4(cy)} L \{r4(outer_x0)} \{r4(outer_y0)} A \{r4(r)} \{r4(r)} 0 \{large_arc} \{outer_sweep} \{r4(outer_x1)} \{r4(outer_y1)} Z"
+  } else {
+    let inner_x0 = cx + r0 * @math.cos(a0)
+    let inner_y0 = cy + r0 * @math.sin(a0)
+    let inner_x1 = cx + r0 * @math.cos(a1)
+    let inner_y1 = cy + r0 * @math.sin(a1)
+    "M \{r4(outer_x0)} \{r4(outer_y0)} A \{r4(r)} \{r4(r)} 0 \{large_arc} \{outer_sweep} \{r4(outer_x1)} \{r4(outer_y1)} L \{r4(inner_x1)} \{r4(inner_y1)} A \{r4(r0)} \{r4(r0)} 0 \{large_arc} \{inner_sweep} \{r4(inner_x0)} \{r4(inner_y0)} Z"
+  }
+}
+
+///|
+fn sorted_indices_desc(values : Array[Double]) -> Array[Int] {
+  let indices : Array[Int] = []
+  let mut i = 0
+  while i < values.length() {
+    indices.push(i)
+    i = i + 1
+  }
+  let mut a = 0
+  while a < indices.length() {
+    let mut b = a
+    while b > 0 && values[indices[b - 1]] < values[indices[b]] {
+      let tmp = indices[b - 1]
+      indices[b - 1] = indices[b]
+      indices[b] = tmp
+      b = b - 1
+    }
+    a = a + 1
+  }
+  indices
+}
+
+///|
+fn render_sunburst_node(
+  elems : Array[@graphic.Element],
+  node : @option.DataItem,
+  depth : Int,
+  start_angle : Double,
+  sweep_angle : Double,
+  min_angle : Double,
+  top_color_idx : Int,
+  cx : Double,
+  cy : Double,
+  inner_radius : Double,
+  radius_per_level : Double,
+  clockwise : Bool,
+) -> Unit {
+  let r0 = inner_radius + depth.to_double() * radius_per_level
+  let r1 = r0 + radius_per_level
+  let fill_color = @visual.palette_color(top_color_idx)
+  let opacity = {
+    let o = 0.95 - depth.to_double() * 0.14
+    if o < 0.38 {
+      0.38
+    } else {
+      o
+    }
+  }
+  let end_angle = if clockwise {
+    start_angle + sweep_angle
+  } else {
+    start_angle - sweep_angle
+  }
+  let path_d = sector_path(cx, cy, r0, r1, start_angle, end_angle, clockwise)
+  elems.push(
+    @graphic.Element::path_fill_stroke(
+      path_d, fill_color, "#ffffff", 1.0, opacity,
+    ),
+  )
+
+  let label = match node.name {
+    Some(s) => s
+    None => ""
+  }
+  if label != "" && sweep_angle >= 0.28 {
+    let mid = if clockwise {
+      start_angle + sweep_angle / 2.0
+    } else {
+      start_angle - sweep_angle / 2.0
+    }
+    let label_r = (r0 + r1) / 2.0
+    let lx = cx + label_r * @math.cos(mid)
+    let ly = cy + label_r * @math.sin(mid)
+    elems.push(
+      @graphic.Element::text_colored(
+        lx,
+        ly,
+        label,
+        @graphic.TextAnchor::middle(),
+        @graphic.TextBaseline::middle(),
+        "#ffffff",
+      ),
+    )
+  }
+
+  if node.children.length() == 0 {
+    return
+  }
+
+  let child_values : Array[Double] = []
+  let mut total = 0.0
+  let mut i = 0
+  while i < node.children.length() {
+    let v = complete_tree_value(node.children[i])
+    child_values.push(v)
+    total = total + v
+    i = i + 1
+  }
+  let order = sorted_indices_desc(child_values)
+  let mut child_angle = start_angle
+  let child_min_angle = if min_angle * node.children.length().to_double() >
+    sweep_angle {
+    0.0
+  } else {
+    min_angle
+  }
+  let fallback_span = if node.children.length() > 0 {
+    sweep_angle / node.children.length().to_double()
+  } else {
+    0.0
+  }
+  let mut oi = 0
+  while oi < order.length() {
+    let idx = order[oi]
+    let child = node.children[idx]
+    let child_value = child_values[idx]
+    let child_span = if total > 0.0 {
+      let s = sweep_angle * child_value / total
+      if s < child_min_angle {
+        child_min_angle
+      } else {
+        s
+      }
+    } else {
+      fallback_span
+    }
+    if child_span > 0.0 {
+      render_sunburst_node(
+        elems,
+        child,
+        depth + 1,
+        child_angle,
+        child_span,
+        min_angle,
+        top_color_idx,
+        cx,
+        cy,
+        inner_radius,
+        radius_per_level,
+        clockwise,
+      )
+      child_angle = if clockwise {
+        child_angle + child_span
+      } else {
+        child_angle - child_span
+      }
+    }
+    oi = oi + 1
+  }
+}
+
+///|
+pub fn render_sunbursts(
+  opt : @option.ChartOption,
+  _coord : @coord.Cartesian2D,
+) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  let mut color_idx = 0
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    si = si + 1
+    match series.series_type {
+      Sunburst => ()
+      _ => {
+        color_idx = color_idx + 1
+        continue
+      }
+    }
+    let series_elems = render_sunburst_series(
+      series,
+      color_idx,
+      opt.width,
+      opt.height,
+    )
+    let mut i = 0
+    while i < series_elems.length() {
+      elems.push(series_elems[i])
+      i = i + 1
+    }
+    color_idx = color_idx + 1
+  }
+  elems
+}
+
+///|
+pub fn render_sunburst_series(
+  series : @option.SeriesOption,
+  series_index : Int,
+  chart_width : Double,
+  chart_height : Double,
+) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  if series.data.length() == 0 {
+    return elems
+  }
+
+  let cx = if series.center.length() >= 1 {
+    parse_pct_or_px(series.center[0], chart_width)
+  } else {
+    chart_width * 0.5
+  }
+  let cy = if series.center.length() >= 2 {
+    parse_pct_or_px(series.center[1], chart_height)
+  } else {
+    chart_height * 0.5
+  }
+  let ref_r = (if chart_width < chart_height {
+      chart_width
+    } else {
+      chart_height
+    }) /
+    2.0
+  let r_inner = if series.radius.length() >= 1 {
+    parse_pct_or_px(series.radius[0], ref_r)
+  } else {
+    0.0
+  }
+  let r_outer = if series.radius.length() >= 2 {
+    parse_pct_or_px(series.radius[1], ref_r)
+  } else if series.radius.length() == 1 {
+    parse_pct_or_px(series.radius[0], ref_r)
+  } else {
+    ref_r * 0.75
+  }
+
+  let mut total = 0.0
+  let mut max_height = 0
+  let root_values : Array[Double] = []
+  let mut i = 0
+  while i < series.data.length() {
+    let node = series.data[i]
+    let v = data_item_value(node)
+    root_values.push(v)
+    total = total + v
+    let h = tree_height(node)
+    if h > max_height {
+      max_height = h
+    }
+    i = i + 1
+  }
+  if max_height <= 0 {
+    return elems
+  }
+
+  let start_angle = -(series.start_angle * @math.PI / 180.0)
+  let min_angle = series.min_angle * @math.PI / 180.0
+  let radius_per_level = (r_outer - r_inner) / max_height.to_double()
+  let order = sorted_indices_desc(root_values)
+  let mut current_angle = start_angle
+  let full_span = @math.PI * 2.0
+  let fallback_span = full_span / series.data.length().to_double()
+  let root_min_angle = if min_angle * series.data.length().to_double() >
+    full_span {
+    0.0
+  } else {
+    min_angle
+  }
+  let mut oi = 0
+  while oi < order.length() {
+    let idx = order[oi]
+    let node = series.data[idx]
+    let v = root_values[idx]
+    let sweep = if total > 0.0 {
+      let s = full_span * v / total
+      if s < root_min_angle {
+        root_min_angle
+      } else {
+        s
+      }
+    } else {
+      fallback_span
+    }
+    if sweep > 0.0 {
+      render_sunburst_node(
+        elems,
+        node,
+        0,
+        current_angle,
+        sweep,
+        min_angle,
+        series_index + oi,
+        cx,
+        cy,
+        r_inner,
+        radius_per_level,
+        series.clockwise,
+      )
+      current_angle = if series.clockwise {
+        current_angle + sweep
+      } else {
+        current_angle - sweep
+      }
+    }
+    oi = oi + 1
+  }
+
+  elems
+}

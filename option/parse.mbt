@@ -171,6 +171,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "bar" => SeriesType::Bar
     "scatter" => SeriesType::Scatter
     "pie" => SeriesType::Pie
+    "sunburst" => SeriesType::Sunburst
+    "treemap" => SeriesType::Treemap
     "radar" => SeriesType::Radar
     "candlestick" => SeriesType::Candlestick
     "heatmap" => SeriesType::Heatmap
@@ -184,6 +186,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Bar => SeriesOption::default_bar()
     Scatter => SeriesOption::default_scatter()
     Pie => SeriesOption::default_pie()
+    Sunburst => SeriesOption::default_sunburst()
+    Treemap => SeriesOption::default_treemap()
     Gauge => SeriesOption::default_gauge()
     _ => SeriesOption::default_line()
   }
@@ -232,6 +236,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(String(s)) => [s]
     _ => base.center
   }
+  let min_angle = j_number(j, "minAngle", base.min_angle)
+  let clockwise = j_bool(j, "clockwise", base.clockwise)
   let start_angle = j_number(j, "startAngle", base.start_angle)
   let end_angle = j_number(j, "endAngle", base.end_angle)
   let min_val = j_number(j, "min", base.min_val)
@@ -255,6 +261,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     encode_y: None,
     radius,
     center,
+    min_angle,
+    clockwise,
     start_angle,
     end_angle,
     min_val,
@@ -266,10 +274,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
 ///|
 fn parse_data_item(j : Json) -> DataItem {
   match j {
-    Number(n, ..) => { value: DataValue::Num(n), name: None }
-    Null => { value: DataValue::Null, name: None }
-    True => { value: DataValue::Num(1.0), name: None }
-    False => { value: DataValue::Num(0.0), name: None }
+    Number(n, ..) => { value: DataValue::Num(n), name: None, children: [] }
+    Null => { value: DataValue::Null, name: None, children: [] }
+    True => { value: DataValue::Num(1.0), name: None, children: [] }
+    False => { value: DataValue::Num(0.0), name: None, children: [] }
     Array(arr) => {
       let nums = arr.map(fn(v) {
         match v {
@@ -277,7 +285,7 @@ fn parse_data_item(j : Json) -> DataItem {
           _ => 0.0
         }
       })
-      { value: DataValue::Vec(nums), name: None }
+      { value: DataValue::Vec(nums), name: None, children: [] }
     }
     Object(_) => {
       let v = match j_field(j, "value") {
@@ -297,9 +305,13 @@ fn parse_data_item(j : Json) -> DataItem {
         Some(String(s)) => Some(s)
         _ => None
       }
-      { value: v, name }
+      let children = match j_field(j, "children") {
+        Some(Array(arr)) => arr.map(parse_data_item)
+        _ => []
+      }
+      { value: v, name, children }
     }
-    _ => { value: DataValue::Null, name: None }
+    _ => { value: DataValue::Null, name: None, children: [] }
   }
 }
 

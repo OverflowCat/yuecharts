@@ -1,0 +1,80 @@
+{
+  "width": 720,
+  "height": 520,
+  "title": {
+    "text": "Sunburst"
+  },
+  "series": [
+    {
+      "type": "sunburst",
+      "radius": ["12%", "72%"],
+      "center": ["50%", "56%"],
+      "data": [
+        {
+          "name": "Analytics",
+          "children": [
+            {
+              "name": "Traffic",
+              "value": 8,
+              "children": [
+                { "name": "Organic", "value": 3 },
+                { "name": "Ads", "value": 2 },
+                { "name": "Email", "value": 3 }
+              ]
+            },
+            {
+              "name": "Retention",
+              "value": 6,
+              "children": [
+                { "name": "Weekly", "value": 2 },
+                { "name": "Monthly", "value": 4 }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Platform",
+          "children": [
+            {
+              "name": "Web",
+              "value": 7,
+              "children": [
+                { "name": "Docs", "value": 2 },
+                { "name": "App", "value": 5 }
+              ]
+            },
+            {
+              "name": "Mobile",
+              "value": 5,
+              "children": [
+                { "name": "iOS", "value": 2 },
+                { "name": "Android", "value": 3 }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "Operations",
+          "children": [
+            {
+              "name": "Infra",
+              "value": 4,
+              "children": [
+                { "name": "Build", "value": 1 },
+                { "name": "Deploy", "value": 3 }
+              ]
+            },
+            {
+              "name": "Support",
+              "value": 3,
+              "children": [
+                { "name": "Tickets", "value": 2 },
+                { "name": "On-call", "value": 1 }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

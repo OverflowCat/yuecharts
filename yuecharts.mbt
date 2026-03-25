@@ -100,6 +100,20 @@ pub fn render(json_str : String) -> String {
     elems.push(pie_elems[pii])
     pii = pii + 1
   }
+  // Series: sunburst
+  let sunburst_elems = @chart.render_sunbursts(opt, coord)
+  let mut sbi = 0
+  while sbi < sunburst_elems.length() {
+    elems.push(sunburst_elems[sbi])
+    sbi = sbi + 1
+  }
+  // Series: treemap
+  let treemap_elems = @chart.render_treemaps(opt, coord)
+  let mut tmi = 0
+  while tmi < treemap_elems.length() {
+    elems.push(treemap_elems[tmi])
+    tmi = tmi + 1
+  }
   // Series: funnel
   let funnel_elems = @chart.render_funnels(opt, coord)
   let mut fni = 0
@@ -113,6 +127,13 @@ pub fn render(json_str : String) -> String {
   while rdi < radar_elems.length() {
     elems.push(radar_elems[rdi])
     rdi = rdi + 1
+  }
+  // Series: gauge
+  let gauge_elems = @chart.render_gauges(opt)
+  let mut gai = 0
+  while gai < gauge_elems.length() {
+    elems.push(gauge_elems[gai])
+    gai = gai + 1
   }
   // Title component
   let title_elems = @component.render_title(opt)

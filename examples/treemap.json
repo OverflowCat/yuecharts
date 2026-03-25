@@ -1,0 +1,38 @@
+{
+  "width": 760,
+  "height": 520,
+  "title": {
+    "text": "Treemap"
+  },
+  "series": [
+    {
+      "type": "treemap",
+      "data": [
+        {
+          "name": "Product",
+          "children": [
+            { "name": "Core", "value": 14 },
+            { "name": "API", "value": 10 },
+            { "name": "CLI", "value": 8 }
+          ]
+        },
+        {
+          "name": "Growth",
+          "children": [
+            { "name": "SEO", "value": 7 },
+            { "name": "Ads", "value": 9 },
+            { "name": "Partners", "value": 5 }
+          ]
+        },
+        {
+          "name": "Ops",
+          "children": [
+            { "name": "Infra", "value": 6 },
+            { "name": "QA", "value": 4 },
+            { "name": "Support", "value": 5 }
+          ]
+        }
+      ]
+    }
+  ]
+}
