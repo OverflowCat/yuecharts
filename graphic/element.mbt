@@ -458,6 +458,26 @@ pub fn Element::rect_colored(
 }
 
 ///|
+pub fn Element::rect_colored_opacity(
+  x : Double,
+  y : Double,
+  w : Double,
+  h : Double,
+  color_str : String,
+  opacity : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  Rect({
+    bbox: BBox::new(x, y, w, h),
+    rx: 0.0,
+    ry: 0.0,
+    fill: Some({ color, }),
+    stroke: None,
+    opacity,
+  })
+}
+
+///|
 /// Polyline stroked with a CSS/hex color string.
 pub fn Element::polyline_stroked(
   points : Array[Point],

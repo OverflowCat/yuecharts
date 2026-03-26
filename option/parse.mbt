@@ -241,9 +241,35 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(String(s)) => Some(s)
     _ => base.symbol_repeat_direction
   }
+  let bar_gap = match j_field(j, "barGap") {
+    Some(String(s)) => Some(s)
+    Some(Number(n, ..)) => Some("\{n}")
+    _ => base.bar_gap
+  }
+  let bar_category_gap = match j_field(j, "barCategoryGap") {
+    Some(String(s)) => Some(s)
+    Some(Number(n, ..)) => Some("\{n}")
+    _ => base.bar_category_gap
+  }
   let color = match j_string_opt(j, "color") {
     Some(c) => Some(c)
     None => base.color
+  }
+  let item_style = match j_field(j, "itemStyle") {
+    Some(style) =>
+      match j_field(style, "color") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+    _ => None
+  }
+  let item_opacity = match j_field(j, "itemStyle") {
+    Some(style) =>
+      match j_field(style, "opacity") {
+        Some(Number(n, ..)) => Some(n)
+        _ => None
+      }
+    _ => None
   }
   let area_style = match j_field(j, "areaStyle") {
     None => base.area_style
@@ -298,6 +324,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     symbol_bounding_data,
     symbol_offset,
     symbol_repeat_direction,
+    bar_gap,
+    bar_category_gap,
     x_axis_index,
     y_axis_index,
     radar_index,
@@ -306,7 +334,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     symbol_size,
     color,
     line_style_width: None,
-    item_style: None,
+    item_style,
+    item_opacity,
     area_style,
     encode_x: None,
     encode_y: None,
@@ -325,10 +354,13 @@ fn parse_series_option(j : Json) -> SeriesOption {
 ///|
 fn parse_data_item(j : Json) -> DataItem {
   match j {
-    Number(n, ..) => { value: DataValue::Num(n), name: None, symbol: None, children: [] }
+    Number(n, ..) =>
+      { value: DataValue::Num(n), name: None, symbol: None, children: [] }
     Null => { value: DataValue::Null, name: None, symbol: None, children: [] }
-    True => { value: DataValue::Num(1.0), name: None, symbol: None, children: [] }
-    False => { value: DataValue::Num(0.0), name: None, symbol: None, children: [] }
+    True =>
+      { value: DataValue::Num(1.0), name: None, symbol: None, children: [] }
+    False =>
+      { value: DataValue::Num(0.0), name: None, symbol: None, children: [] }
     Array(arr) => {
       let nums = arr.map(fn(v) {
         match v {

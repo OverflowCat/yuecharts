@@ -2,6 +2,7 @@
 
 ## 2026-03-26 Update
 
+- `chart/pictorial_bar.mbt` now additionally translates the `path://` symbol branch from `util/symbol.ts`/`util/graphic.ts` for static cartesian pictorial bars: series-level and item-level `symbol` both work, path symbols are normalized to the upstream `symbolPatternSize = 400` coordinate system, and `itemStyle.opacity` plus `barCategoryGap` now affect the static SVG output.
 - `chart/pictorial_bar.mbt` now covers a larger static subset of `installPictorialBar.ts`, `PictorialBarSeries.ts`, and `PictorialBarView.ts`: `symbolSize`, `symbolRepeat`, `symbolClip`, `symbolPosition`, `symbolBoundingData`, `symbolOffset`, and `symbolRepeatDirection` are partially translated for cartesian/category static SVG output.
 - `visual/aria.mbt` now covers static `aria.ts` label generation with default English template strings and option overrides parsed through `option/parse.mbt`.
 - Added example/reference pairs: `examples/pictorialbar-offset.{json,svg,ref.svg}`, `examples/pictorialbar-symbolsize.{json,svg,ref.svg}`, and `examples/aria-template.{json,svg,ref.svg}`.

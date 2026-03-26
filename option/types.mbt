@@ -155,6 +155,8 @@ pub struct SeriesOption {
   symbol_bounding_data : SymbolBoundingData?
   symbol_offset : Array[String]?
   symbol_repeat_direction : String?
+  bar_gap : String?
+  bar_category_gap : String?
   x_axis_index : Int
   y_axis_index : Int
   // For radar: index into ChartOption.radar[]
@@ -165,6 +167,7 @@ pub struct SeriesOption {
   color : String?
   line_style_width : Double?
   item_style : String? // color override
+  item_opacity : Double?
   area_style : Bool
   encode_x : String?
   encode_y : String?
@@ -200,6 +203,8 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     symbol_bounding_data: None,
     symbol_offset: None,
     symbol_repeat_direction: None,
+    bar_gap: None,
+    bar_category_gap: None,
     x_axis_index: 0,
     y_axis_index: 0,
     radar_index: 0,
@@ -209,6 +214,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     color: None,
     line_style_width: None,
     item_style: None,
+    item_opacity: None,
     area_style: false,
     encode_x: None,
     encode_y: None,
@@ -245,6 +251,8 @@ pub fn SeriesOption::default_pictorial_bar() -> SeriesOption {
     symbol_bounding_data: None,
     symbol_offset: None,
     symbol_repeat_direction: Some("end"),
+    bar_gap: Some("-100%"),
+    bar_category_gap: None,
   }
 }
 

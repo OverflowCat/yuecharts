@@ -267,6 +267,45 @@ test "pictorial bar repeat emits multiple symbols" {
 }
 
 ///|
+test "pictorial bar path symbol uses normalized path transform" {
+  let json_str =
+    #|{
+    #|  "xAxis": {"type": "category", "data": ["A"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [{
+    #|    "type": "pictorialBar",
+    #|    "symbol": "path://M0,10 L10,10 C5.5,10 5.5,5 5,0 C4.5,5 4.5,10 0,10 z",
+    #|    "barCategoryGap": "-130%",
+    #|    "itemStyle": {"opacity": 0.5},
+    #|    "data": [12]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("matrix(40,0,0,40,-200,-200)"))
+  assert_true(svg.contains("opacity=\"0.5\""))
+}
+
+///|
+test "pictorial bar item symbol overrides series symbol" {
+  let json_str =
+    #|{
+    #|  "xAxis": {"type": "category", "data": ["A"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [{
+    #|    "type": "pictorialBar",
+    #|    "symbol": "circle",
+    #|    "data": [{
+    #|      "value": 12,
+    #|      "symbol": "path://M0,10 L10,10 C5.5,10 5.5,5 5,0 C4.5,5 4.5,10 0,10 z"
+    #|    }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("matrix(40,0,0,40,-200,-200)"))
+  assert_true(!svg.contains("<circle"))
+}
+
+///|
 test "aria label is emitted on svg root" {
   let json_str =
     #|{

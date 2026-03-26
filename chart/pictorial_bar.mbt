@@ -14,6 +14,14 @@ fn pictorial_symbol_color(
 }
 
 ///|
+fn pictorial_symbol_opacity(series : @option.SeriesOption) -> Double {
+  match series.item_opacity {
+    Some(opacity) => opacity
+    None => 1.0
+  }
+}
+
+///|
 fn pictorial_bar_repeat_times(
   series : @option.SeriesOption,
   bar_length : Double,
@@ -107,6 +115,11 @@ fn parse_symbol_size_component(value : String, reference : Double) -> Double {
       Err(_) => reference
     }
   }
+}
+
+///|
+fn parse_percent_like(value : String, reference : Double) -> Double {
+  parse_offset_component(value, reference)
 }
 
 ///|
@@ -240,16 +253,36 @@ fn round_rect_path(
 
 ///|
 fn is_path_command(ch : Char) -> Bool {
-  ch == 'M' || ch == 'm' || ch == 'L' || ch == 'l' || ch == 'H' ||
-  ch == 'h' || ch == 'V' || ch == 'v' || ch == 'C' || ch == 'c' ||
-  ch == 'S' || ch == 's' || ch == 'Q' || ch == 'q' || ch == 'T' ||
-  ch == 't' || ch == 'A' || ch == 'a' || ch == 'Z' || ch == 'z'
+  ch == 'M' ||
+  ch == 'm' ||
+  ch == 'L' ||
+  ch == 'l' ||
+  ch == 'H' ||
+  ch == 'h' ||
+  ch == 'V' ||
+  ch == 'v' ||
+  ch == 'C' ||
+  ch == 'c' ||
+  ch == 'S' ||
+  ch == 's' ||
+  ch == 'Q' ||
+  ch == 'q' ||
+  ch == 'T' ||
+  ch == 't' ||
+  ch == 'A' ||
+  ch == 'a' ||
+  ch == 'Z' ||
+  ch == 'z'
 }
 
 ///|
 fn is_number_char(ch : Char) -> Bool {
-  (ch >= '0' && ch <= '9') || ch == '-' || ch == '+' || ch == '.' ||
-  ch == 'e' || ch == 'E'
+  (ch >= '0' && ch <= '9') ||
+  ch == '-' ||
+  ch == '+' ||
+  ch == '.' ||
+  ch == 'e' ||
+  ch == 'E'
 }
 
 ///|
@@ -277,15 +310,15 @@ fn parse_path_number(d : String, start : Int) -> (Double, Int)? {
     i = i + 1
   }
   while i < d.length() &&
-    d[i].unsafe_to_char() >= '0' &&
-    d[i].unsafe_to_char() <= '9' {
+        d[i].unsafe_to_char() >= '0' &&
+        d[i].unsafe_to_char() <= '9' {
     i = i + 1
   }
   if i < d.length() && d[i].unsafe_to_char() == '.' {
     i = i + 1
     while i < d.length() &&
-      d[i].unsafe_to_char() >= '0' &&
-      d[i].unsafe_to_char() <= '9' {
+          d[i].unsafe_to_char() >= '0' &&
+          d[i].unsafe_to_char() <= '9' {
       i = i + 1
     }
   }
@@ -297,8 +330,8 @@ fn parse_path_number(d : String, start : Int) -> (Double, Int)? {
       i = i + 1
     }
     while i < d.length() &&
-      d[i].unsafe_to_char() >= '0' &&
-      d[i].unsafe_to_char() <= '9' {
+          d[i].unsafe_to_char() >= '0' &&
+          d[i].unsafe_to_char() <= '9' {
       i = i + 1
     }
   }
@@ -315,12 +348,29 @@ fn update_path_bbox(
 ) -> (Double, Double, Double, Double) {
   let (x, y) = point
   match bbox {
-    Some((min_x, min_y, max_x, max_y)) => (
-      if x < min_x { x } else { min_x },
-      if y < min_y { y } else { min_y },
-      if x > max_x { x } else { max_x },
-      if y > max_y { y } else { max_y },
-    )
+    Some((min_x, min_y, max_x, max_y)) =>
+      (
+        if x < min_x {
+          x
+        } else {
+          min_x
+        },
+        if y < min_y {
+          y
+        } else {
+          min_y
+        },
+        if x > max_x {
+          x
+        } else {
+          max_x
+        },
+        if y > max_y {
+          y
+        } else {
+          max_y
+        },
+      )
     None => (x, y, x, y)
   }
 }
@@ -388,7 +438,7 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
           None => break
         }
       }
-      'H' | 'h' => {
+      'H' | 'h' =>
         match parse_path_number(d, i) {
           Some((x0, i1)) => {
             let x = if cmd == 'h' { cur_x + x0 } else { x0 }
@@ -398,8 +448,7 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
           }
           None => break
         }
-      }
-      'V' | 'v' => {
+      'V' | 'v' =>
         match parse_path_number(d, i) {
           Some((y0, i1)) => {
             let y = if cmd == 'v' { cur_y + y0 } else { y0 }
@@ -409,8 +458,7 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
           }
           None => break
         }
-      }
-      'C' | 'c' => {
+      'C' | 'c' =>
         match parse_path_number(d, i) {
           Some((x1, i1)) =>
             match parse_path_number(d, i1) {
@@ -423,12 +471,36 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
                           Some((x3, i5)) =>
                             match parse_path_number(d, i5) {
                               Some((y3, i6)) => {
-                                let ax1 = if cmd == 'c' { cur_x + x1 } else { x1 }
-                                let ay1 = if cmd == 'c' { cur_y + y1 } else { y1 }
-                                let ax2 = if cmd == 'c' { cur_x + x2 } else { x2 }
-                                let ay2 = if cmd == 'c' { cur_y + y2 } else { y2 }
-                                let ax3 = if cmd == 'c' { cur_x + x3 } else { x3 }
-                                let ay3 = if cmd == 'c' { cur_y + y3 } else { y3 }
+                                let ax1 = if cmd == 'c' {
+                                  cur_x + x1
+                                } else {
+                                  x1
+                                }
+                                let ay1 = if cmd == 'c' {
+                                  cur_y + y1
+                                } else {
+                                  y1
+                                }
+                                let ax2 = if cmd == 'c' {
+                                  cur_x + x2
+                                } else {
+                                  x2
+                                }
+                                let ay2 = if cmd == 'c' {
+                                  cur_y + y2
+                                } else {
+                                  y2
+                                }
+                                let ax3 = if cmd == 'c' {
+                                  cur_x + x3
+                                } else {
+                                  x3
+                                }
+                                let ay3 = if cmd == 'c' {
+                                  cur_y + y3
+                                } else {
+                                  y3
+                                }
                                 bbox = Some(update_path_bbox((ax1, ay1), bbox))
                                 bbox = Some(update_path_bbox((ax2, ay2), bbox))
                                 bbox = Some(update_path_bbox((ax3, ay3), bbox))
@@ -448,7 +520,6 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
             }
           None => break
         }
-      }
       'S' | 's' | 'Q' | 'q' => {
         let needed = if cmd == 'S' || cmd == 's' { 4 } else { 4 }
         let values : Array[Double] = []
@@ -490,7 +561,7 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
         }
         i = next_i
       }
-      'T' | 't' => {
+      'T' | 't' =>
         match parse_path_number(d, i) {
           Some((x0, i1)) =>
             match parse_path_number(d, i1) {
@@ -506,7 +577,6 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
             }
           None => break
         }
-      }
       'A' | 'a' => {
         let values : Array[Double] = []
         let mut next_i = i
@@ -531,15 +601,17 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
         let end_x = if cmd == 'a' { cur_x + values[5] } else { values[5] }
         let end_y = if cmd == 'a' { cur_y + values[6] } else { values[6] }
         bbox = Some(update_path_bbox((end_x, end_y), bbox))
-        bbox = Some(update_path_bbox((end_x + values[0], end_y + values[1]), bbox))
-        bbox = Some(update_path_bbox((end_x - values[0], end_y - values[1]), bbox))
+        bbox = Some(
+          update_path_bbox((end_x + values[0], end_y + values[1]), bbox),
+        )
+        bbox = Some(
+          update_path_bbox((end_x - values[0], end_y - values[1]), bbox),
+        )
         cur_x = end_x
         cur_y = end_y
         i = next_i
       }
-      _ => {
-        i = i + 1
-      }
+      _ => i = i + 1
     }
   }
   bbox
@@ -571,16 +643,19 @@ fn fallback_path_bbox(d : String) -> (Double, Double, Double, Double)? {
 }
 
 ///|
-fn normalized_path_symbol(
+fn normalized_path_symbol_with_opacity(
   d : String,
   color : String,
+  opacity : Double,
 ) -> @graphic.Element {
   match path_symbol_bbox(d) {
-    Some(bounds) => normalized_path_symbol_with_bounds(d, color, bounds)
+    Some(bounds) =>
+      normalized_path_symbol_with_bounds(d, color, opacity, bounds)
     None =>
       match fallback_path_bbox(d) {
-        Some(bounds) => normalized_path_symbol_with_bounds(d, color, bounds)
-        None => @graphic.Element::path_filled(d, color, 1.0)
+        Some(bounds) =>
+          normalized_path_symbol_with_bounds(d, color, opacity, bounds)
+        None => @graphic.Element::path_filled(d, color, opacity)
       }
   }
 }
@@ -589,19 +664,29 @@ fn normalized_path_symbol(
 fn normalized_path_symbol_with_bounds(
   d : String,
   color : String,
+  opacity : Double,
   bounds : (Double, Double, Double, Double),
 ) -> @graphic.Element {
+  let symbol_pattern_size = 400.0
   let (min_x, min_y, max_x, max_y) = bounds
   let width = max_x - min_x
   let height = max_y - min_y
-  let sx = if width.abs() > 0.000001 { 2.0 / width } else { 1.0 }
-  let sy = if height.abs() > 0.000001 { 2.0 / height } else { 1.0 }
+  let sx = if width.abs() > 0.000001 {
+    symbol_pattern_size / width
+  } else {
+    1.0
+  }
+  let sy = if height.abs() > 0.000001 {
+    symbol_pattern_size / height
+  } else {
+    1.0
+  }
   let transform = @graphic.Matrix::translate(
-    -1.0 - min_x * sx,
-    -1.0 - min_y * sy,
+    -(symbol_pattern_size / 2.0) - min_x * sx,
+    -(symbol_pattern_size / 2.0) - min_y * sy,
   ).then(@graphic.Matrix::scale(sx, sy))
   @graphic.Element::group_transformed(
-    [@graphic.Element::path_filled(d, color, 1.0)],
+    [@graphic.Element::path_filled(d, color, opacity)],
     transform,
   )
 }
@@ -614,9 +699,10 @@ fn make_symbol_element(
   w : Double,
   h : Double,
   color : String,
+  opacity : Double,
 ) -> @graphic.Element {
   match symbol {
-    "rect" => @graphic.Element::rect_colored(x, y, w, h, color)
+    "rect" => @graphic.Element::rect_colored_opacity(x, y, w, h, color, opacity)
     "roundRect" => {
       let d = round_rect_path(
         x,
@@ -629,20 +715,28 @@ fn make_symbol_element(
           h * 0.25
         },
       )
-      @graphic.Element::path_filled(d, color, 1.0)
+      @graphic.Element::path_filled(d, color, opacity)
     }
     _ if symbol.has_prefix("path://") => {
       let d = symbol[7:].to_string()
-      let transform = @graphic.Matrix::translate(x + w / 2.0, y + h / 2.0)
-        .then(@graphic.Matrix::scale(w / 2.0, h / 2.0))
+      let symbol_pattern_size = 400.0
+      let transform = @graphic.Matrix::translate(x + w / 2.0, y + h / 2.0).then(
+        @graphic.Matrix::scale(w / symbol_pattern_size, h / symbol_pattern_size),
+      )
       @graphic.Element::group_transformed(
-        [normalized_path_symbol(d, color)],
+        [normalized_path_symbol_with_opacity(d, color, opacity)],
         transform,
       )
     }
     _ => {
       let r = if w < h { w / 2.0 } else { h / 2.0 }
-      @graphic.Element::circle_colored(x + w / 2.0, y + h / 2.0, r, color)
+      @graphic.Element::circle_colored_opacity(
+        x + w / 2.0,
+        y + h / 2.0,
+        r,
+        color,
+        opacity,
+      )
     }
   }
 }
@@ -695,6 +789,7 @@ fn render_pictorial_bar_series(
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
   let color = pictorial_symbol_color(series, series_index)
+  let opacity = pictorial_symbol_opacity(series)
   let zero_y = value_axis_zero_y(coord, y_idx)
   let symbol = match series.symbol {
     Some(s) => s
@@ -707,13 +802,29 @@ fn render_pictorial_bar_series(
     Ordinal(s) => {
       let band_step = s.band_step()
       let n = if total_bars > 0 { total_bars } else { 1 }
-      let cat_gap_pct = if 35 - n * 4 > 15 {
-        (35 - n * 4).to_double()
+      let default_category_gap_pct = if 35 - n * 4 > 15 {
+        35 - n * 4
       } else {
-        15.0
+        15
       }
-      let total_span = band_step * (1.0 - cat_gap_pct / 100.0)
-      let bar_w = total_span / n.to_double() / 1.3
+      let category_gap_str = match series.bar_category_gap {
+        Some(gap) => gap
+        None => "\{default_category_gap_pct}%"
+      }
+      let bar_gap_percent = match series.bar_gap {
+        Some(gap) => parse_percent_like(gap, 1.0)
+        None => -1.0
+      }
+      let category_gap = parse_percent_like(category_gap_str, band_step)
+      let bar_w = ((band_step - category_gap) /
+      (n.to_double() + (n - 1).to_double() * bar_gap_percent)).max(0.0)
+      let width_sum = if n > 0 {
+        n.to_double() * bar_w * (1.0 + bar_gap_percent) -
+        bar_w * bar_gap_percent
+      } else {
+        0.0
+      }
+      let offset_base = -width_sum / 2.0
       let nd = series.data.length()
       let mut di = 0
       while di < nd {
@@ -729,9 +840,9 @@ fn render_pictorial_bar_series(
         } else {
           coord.bbox.x
         }
-        let bar_x = cat_px -
-          total_span / 2.0 +
-          bar_index.to_double() * bar_w * 1.3
+        let bar_x = cat_px +
+          offset_base +
+          bar_index.to_double() * bar_w * (1.0 + bar_gap_percent)
         let value = match item.value {
           Num(n) => n
           Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
@@ -834,6 +945,7 @@ fn render_pictorial_bar_series(
                   symbol_w,
                   visible_h,
                   color,
+                  opacity,
                 ),
               )
             None => ()
