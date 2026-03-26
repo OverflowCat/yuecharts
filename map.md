@@ -2,10 +2,13 @@
 
 ## 2026-03-26 Update
 
+- option/types.mbt now derives Eq for SeriesType, enabling registry/stage filtering to use enum equality directly instead of ad-hoc string names.
+- core/registry.mbt, chart/install.mbt, and yuecharts.mbt now store and compare typed @option.SeriesType? for stage/chart applicability; component/install.mbt also aligns aria visual priority with upstream PRIORITY.VISUAL.ARIA = 6000.
 - `chart/pictorial_bar.mbt` now additionally translates the `path://` symbol branch from `util/symbol.ts`/`util/graphic.ts` for static cartesian pictorial bars: series-level and item-level `symbol` both work, path symbols are normalized to the upstream `symbolPatternSize = 400` coordinate system, and `itemStyle.opacity` plus `barCategoryGap` now affect the static SVG output.
 - `chart/pictorial_bar.mbt` now covers a larger static subset of `installPictorialBar.ts`, `PictorialBarSeries.ts`, and `PictorialBarView.ts`: `symbolSize`, `symbolRepeat`, `symbolClip`, `symbolPosition`, `symbolBoundingData`, `symbolOffset`, and `symbolRepeatDirection` are partially translated for cartesian/category static SVG output.
 - `visual/aria.mbt` now covers static `aria.ts` label generation with default English template strings and option overrides parsed through `option/parse.mbt`.
 - Added example/reference pairs: `examples/pictorialbar-offset.{json,svg,ref.svg}`, `examples/pictorialbar-symbolsize.{json,svg,ref.svg}`, and `examples/aria-template.{json,svg,ref.svg}`.
+- Added `scale/interval_wbtest.mbt`, translating the portable subset of `test/ut/spec/scale/interval.test.ts` onto the current `LinearScale` port.
 ## Scope
 
 This file is a source-to-port map for the ECharts files that matter to the
@@ -45,6 +48,8 @@ E:\yuecharts
 ├── yuecharts.mbt
 ├── yuecharts_test.mbt
 ├── yuecharts_wbtest.mbt
+├── gap.md
+├── map.md
 ├── chart
 │   ├── moon.pkg
 │   ├── bar.mbt
@@ -56,6 +61,7 @@ E:\yuecharts
 │   ├── heatmap.mbt
 │   ├── install.mbt
 │   ├── line.mbt
+│   ├── pictorial_bar.mbt
 │   ├── pie.mbt
 │   ├── radar.mbt
 │   ├── scatter.mbt
@@ -81,27 +87,68 @@ E:\yuecharts
 ├── graphic
 │   ├── moon.pkg
 │   ├── color.mbt
+│   ├── color_wbtest.mbt
 │   ├── element.mbt
-│   └── transform.mbt
+│   ├── element_wbtest.mbt
+│   ├── transform.mbt
+│   └── transform_wbtest.mbt
 ├── layout
 │   ├── moon.pkg
-│   └── grid.mbt
+│   ├── grid.mbt
+│   ├── grid_wbtest.mbt
+│   └── install.mbt
 ├── option
 │   ├── moon.pkg
 │   ├── parse.mbt
 │   └── types.mbt
+├── examples
+│   ├── aria-template.json / .svg / .ref.svg
+│   ├── bar.json / .svg / .ref.svg
+│   ├── boxplot.json / .svg / .ref.svg
+│   ├── candlestick.json / .svg / .ref.svg
+│   ├── donut.json / .svg
+│   ├── effectscatter.json / .svg / .ref.svg
+│   ├── funnel.json / .svg / .ref.svg
+│   ├── gauge.json / .svg
+│   ├── heatmap.json / .svg / .ref.svg
+│   ├── line.json / .svg / .ref.svg
+│   ├── mixed.json / .svg / .ref.svg
+│   ├── multibar.json / .svg
+│   ├── pictorialbar.json / .svg / .ref.svg
+│   ├── pictorialbar-body-fill.json
+│   ├── pictorialbar-clip.json / .svg / .ref.svg
+│   ├── pictorialbar-offset.json / .svg / .ref.svg
+│   ├── pictorialbar-path.json / .svg / .ref.svg
+│   ├── pictorialbar-path-dup.json / .svg / .ref.svg
+│   ├── pictorialbar-symbolsize.json / .svg / .ref.svg
+│   ├── pie.json / .svg
+│   ├── pie-legend-selected.json
+│   ├── radar.json / .svg
+│   ├── scatter.json / .svg / .ref.svg
+│   ├── sunburst.json / .svg / .echarts.svg
+│   └── treemap.json / .svg / .ref.svg
 ├── scale
 │   ├── moon.pkg
 │   ├── linear.mbt
+│   ├── number_helper_wbtest.mbt
 │   ├── ordinal.mbt
+│   ├── ordinal_wbtest.mbt
 │   └── interval_wbtest.mbt
 ├── svg
 │   ├── moon.pkg
 │   └── painter.mbt
+├── tools
+│   ├── compare.ps1
+│   └── echarts-render.js
 └── visual
     ├── moon.pkg
+    ├── aria.mbt
     └── palette.mbt
 ```
+
+Notes:
+- This tree intentionally lists source, tests, examples, and comparison tools; it omits generated `_build/`, local scratch `_tmp/`, and editor metadata.
+- `examples/` is now broad enough to cover every currently implemented chart type, with `.ref.svg` present for many JS-vs-MoonBit comparisons and a few output-only fixtures still waiting for reference baselines.
 
 ## Important dependency files outside `echarts/src`
 
@@ -180,7 +227,7 @@ E:\recharts\echarts\src
 │   └── Component.ts =>  [missing] Feature: component view base class
 │
 ├── visual
-│   ├── aria.ts =>  [missing] Feature: aria visual text generation
+│   ├── aria.ts => visual/aria.mbt [translated] Feature: aria visual text generation
 │   ├── commonVisualTypes.ts =>  [missing] Feature: visual type defs
 │   ├── decal.ts =>  [missing] Feature: decal pattern visual
 │   ├── helper.ts => visual/palette.mbt [partial] Feature: visual helper glue
@@ -346,7 +393,7 @@ E:\recharts\echarts\src
 │       └── compatStyle.ts => option/parse.mbt [partial] Feature: compat style conversion
 │
 ├── component
-│   ├── aria.ts =>  [missing] Feature: aria component entry
+│   ├── aria/install.ts => component/install.mbt, visual/aria.mbt [partial] Feature: aria component entry + visual registration
 │   ├── axisPointer.ts =>  [missing] Feature: axisPointer component entry
 │   ├── brush.ts =>  [missing] Feature: brush component entry
 │   ├── calendar.ts =>  [missing] Feature: calendar component entry
@@ -600,7 +647,7 @@ E:\recharts\echarts\src
 │   ├── lines.ts =>  [missing] Feature: lines chart entry
 │   ├── map.ts =>  [missing] Feature: map chart entry
 │   ├── parallel.ts =>  [missing] Feature: parallel chart entry
-│   ├── pictorialBar.ts =>  [missing] Feature: pictorial bar chart entry
+│   ├── pictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar chart entry
 │   ├── pie.ts => chart/pie.mbt [partial] Feature: pie chart entry
 │   ├── radar.ts => chart/radar.mbt [partial] Feature: radar chart entry
 │   ├── sankey.ts =>  [missing] Feature: sankey chart entry
@@ -813,6 +860,7 @@ E:\recharts\echarts\src
     │   ├── coord/cartesian.mbt [cartesian coordinate object]
     │   ├── scale/linear.mbt [linear scale]
     │   ├── scale/ordinal.mbt [ordinal scale]
+    │   ├── visual/aria.mbt [static aria label generation]
     │   ├── visual/palette.mbt [palette and partial style defaults]
     │   ├── graphic/color.mbt [color parsing]
     │   ├── graphic/element.mbt [scene graph primitives]
