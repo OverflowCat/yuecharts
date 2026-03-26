@@ -14,48 +14,21 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let width = j_number(j, "width", base.width)
   let height = j_number(j, "height", base.height)
   let background_color = j_string_opt(j, "backgroundColor")
-  let title = match j_field(j, "title") {
-    Some(t) => Some(parse_title(t))
-    None => None
-  }
-  let legend = match j_field(j, "legend") {
-    Some(l) => Some(parse_legend(l))
-    None => None
-  }
-  let aria = match j_field(j, "aria") {
-    Some(a) => Some(parse_aria_option(a))
-    None => None
-  }
-  // x_axis can be object or array
-  let x_axis = match j_field(j, "xAxis") {
-    Some(Array(arr)) => arr.map(parse_axis_option_x)
-    Some(obj) if obj is Object(_) => [parse_axis_option_x(obj)]
-    _ => [AxisOption::default_x()]
-  }
-  let y_axis = match j_field(j, "yAxis") {
-    Some(Array(arr)) => arr.map(parse_axis_option_y)
-    Some(obj) if obj is Object(_) => [parse_axis_option_y(obj)]
-    _ => [AxisOption::default_y()]
-  }
-  let grid = match j_field(j, "grid") {
-    Some(Array(arr)) => arr.map(parse_grid_option)
-    Some(obj) if obj is Object(_) => [parse_grid_option(obj)]
-    _ => [GridOption::default()]
-  }
-  let radar = match j_field(j, "radar") {
-    Some(Array(arr)) => arr.map(parse_radar_option)
-    Some(obj) if obj is Object(_) => [parse_radar_option(obj)]
-    _ => []
-  }
-  let series = match j_field(j, "series") {
-    Some(Array(arr)) => arr.map(parse_series_option)
-    Some(obj) if obj is Object(_) => [parse_series_option(obj)]
-    _ => []
-  }
-  let visual_map = match j_field(j, "visualMap") {
-    Some(vm) => Some(parse_visual_map(vm))
-    None => None
-  }
+  let title = j_parse_optional(j, "title", parse_title)
+  let legend = j_parse_optional(j, "legend", parse_legend)
+  let aria = j_parse_optional(j, "aria", parse_aria_option)
+  let x_axis = j_parse_one_or_many(j, "xAxis", parse_axis_option_x, [
+    AxisOption::default_x(),
+  ])
+  let y_axis = j_parse_one_or_many(j, "yAxis", parse_axis_option_y, [
+    AxisOption::default_y(),
+  ])
+  let grid = j_parse_one_or_many(j, "grid", parse_grid_option, [
+    GridOption::default(),
+  ])
+  let radar = j_parse_one_or_many(j, "radar", parse_radar_option, [])
+  let series = j_parse_one_or_many(j, "series", parse_series_option, [])
+  let visual_map = j_parse_optional(j, "visualMap", parse_visual_map)
   {
     width,
     height,
@@ -121,16 +94,7 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     "right" => Some(AxisPosition::Right)
     _ => base.position
   }
-  let data = match j_field(j, "data") {
-    Some(Array(arr)) =>
-      arr.map(fn(item) {
-        match item {
-          String(s) => s
-          _ => item.to_string()
-        }
-      })
-    _ => base.data
-  }
+  let data = j_string_array_lossy(j, "data", base.data)
   let name = j_string_opt(j, "name")
   let min = j_number_opt(j, "min")
   let max = j_number_opt(j, "max")
@@ -217,40 +181,35 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let smooth = j_bool(j, "smooth", base.smooth)
   let symbol_size_values = parse_symbol_size_values(j)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
-  let symbol = match j_field(j, "symbol") {
-    Some(String(s)) => Some(s)
-    _ => base.symbol
-  }
+  let symbol = j_string_or_number_as_string_opt(j, "symbol", base.symbol)
   let (symbol_repeat, symbol_repeat_count, symbol_repeat_fixed) = parse_symbol_repeat(
     j, base,
   )
-  let symbol_margin = match j_field(j, "symbolMargin") {
-    Some(String(s)) => Some(s)
-    Some(Number(n, ..)) => Some("\{n}")
-    _ => base.symbol_margin
-  }
+  let symbol_margin = j_string_or_number_as_string_opt(
+    j,
+    "symbolMargin",
+    base.symbol_margin,
+  )
   let symbol_clip = j_bool(j, "symbolClip", base.symbol_clip)
-  let symbol_position = match j_field(j, "symbolPosition") {
-    Some(String(s)) => Some(s)
-    _ => base.symbol_position
-  }
+  let symbol_position = j_string_or_number_as_string_opt(
+    j,
+    "symbolPosition",
+    base.symbol_position,
+  )
   let symbol_rotate = j_number_opt(j, "symbolRotate")
   let symbol_bounding_data = parse_symbol_bounding_data(j)
   let symbol_offset = parse_symbol_offset(j)
-  let symbol_repeat_direction = match j_field(j, "symbolRepeatDirection") {
-    Some(String(s)) => Some(s)
-    _ => base.symbol_repeat_direction
-  }
-  let bar_gap = match j_field(j, "barGap") {
-    Some(String(s)) => Some(s)
-    Some(Number(n, ..)) => Some("\{n}")
-    _ => base.bar_gap
-  }
-  let bar_category_gap = match j_field(j, "barCategoryGap") {
-    Some(String(s)) => Some(s)
-    Some(Number(n, ..)) => Some("\{n}")
-    _ => base.bar_category_gap
-  }
+  let symbol_repeat_direction = j_string_or_number_as_string_opt(
+    j,
+    "symbolRepeatDirection",
+    base.symbol_repeat_direction,
+  )
+  let bar_gap = j_string_or_number_as_string_opt(j, "barGap", base.bar_gap)
+  let bar_category_gap = j_string_or_number_as_string_opt(
+    j,
+    "barCategoryGap",
+    base.bar_category_gap,
+  )
   let color = match j_string_opt(j, "color") {
     Some(c) => Some(c)
     None => base.color
@@ -277,30 +236,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(_) => true
   }
   let stack = j_string_opt(j, "stack")
-  let radius = match j_field(j, "radius") {
-    Some(Array(arr)) =>
-      arr.map(fn(v) {
-        match v {
-          String(s) => s
-          Number(n, ..) => "\{n}"
-          _ => ""
-        }
-      })
-    Some(String(s)) => [s]
-    _ => base.radius
-  }
-  let center = match j_field(j, "center") {
-    Some(Array(arr)) =>
-      arr.map(fn(v) {
-        match v {
-          String(s) => s
-          Number(n, ..) => "\{n}"
-          _ => ""
-        }
-      })
-    Some(String(s)) => [s]
-    _ => base.center
-  }
+  let radius = j_stringish_array(j, "radius", base.radius)
+  let center = j_stringish_array(j, "center", base.center)
   let min_angle = j_number(j, "minAngle", base.min_angle)
   let clockwise = j_bool(j, "clockwise", base.clockwise)
   let start_angle = j_number(j, "startAngle", base.start_angle)
@@ -361,43 +298,17 @@ fn parse_data_item(j : Json) -> DataItem {
       { value: DataValue::Num(1.0), name: None, symbol: None, children: [] }
     False =>
       { value: DataValue::Num(0.0), name: None, symbol: None, children: [] }
-    Array(arr) => {
-      let nums = arr.map(fn(v) {
-        match v {
-          Number(n, ..) => n
-          _ => 0.0
-        }
-      })
-      { value: DataValue::Vec(nums), name: None, symbol: None, children: [] }
-    }
-    Object(_) => {
-      let v = match j_field(j, "value") {
-        Some(Number(n, ..)) => DataValue::Num(n)
-        Some(Array(arr)) => {
-          let nums = arr.map(fn(vv) {
-            match vv {
-              Number(n, ..) => n
-              _ => 0.0
-            }
-          })
-          DataValue::Vec(nums)
-        }
-        _ => DataValue::Null
+    Array(arr) =>
+      {
+        value: DataValue::Vec(arr.map(json_number_or_zero)),
+        name: None,
+        symbol: None,
+        children: [],
       }
-      let name = match j_field(j, "name") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let symbol = match j_field(j, "symbol") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
-      let children = match j_field(j, "children") {
-        Some(Array(arr)) => arr.map(parse_data_item)
-        _ => []
-      }
-      { value: v, name, symbol, children }
-    }
+    { "value": Number(n, ..), .. } => parse_data_object(j, DataValue::Num(n))
+    { "value": Array(arr), .. } =>
+      parse_data_object(j, DataValue::Vec(arr.map(json_number_or_zero)))
+    Object(_) => parse_data_object(j, DataValue::Null)
     _ => { value: DataValue::Null, name: None, symbol: None, children: [] }
   }
 }
@@ -409,26 +320,9 @@ fn parse_data_item(j : Json) -> DataItem {
 /// Corresponds to echarts/src/coord/radar/RadarModel.ts option parsing.
 fn parse_radar_option(j : Json) -> RadarOption {
   let base = RadarOption::default()
-  let indicator = match j_field(j, "indicator") {
-    Some(Array(arr)) => arr.map(parse_radar_indicator)
-    _ => []
-  }
-  let center = match j_field(j, "center") {
-    Some(Array(arr)) =>
-      arr.map(fn(v) {
-        match v {
-          String(s) => s
-          Number(n, ..) => "\{n}"
-          _ => "50%"
-        }
-      })
-    _ => base.center
-  }
-  let radius = match j_field(j, "radius") {
-    Some(String(s)) => s
-    Some(Number(n, ..)) => "\{n}"
-    _ => base.radius
-  }
+  let indicator = j_parse_array(j, "indicator", parse_radar_indicator, [])
+  let center = j_stringish_array(j, "center", base.center)
+  let radius = j_string_or_number(j, "radius", base.radius)
   let start_angle = j_number(j, "startAngle", base.start_angle)
   let clockwise = j_bool(j, "clockwise", base.clockwise)
   let split_number = j_int(j, "splitNumber", base.split_number)
@@ -461,10 +355,7 @@ fn parse_aria_option(j : Json) -> AriaOption {
     Some(False) => false
     _ => show_enabled.unwrap_or(base.enabled)
   }
-  let label = match j_field(j, "label") {
-    Some(v) => v
-    None => j
-  }
+  let label = j_field_or_self(j, "label")
   let label_enabled = match j_field(label, "enabled") {
     Some(True) => true
     Some(False) => false
@@ -474,34 +365,13 @@ fn parse_aria_option(j : Json) -> AriaOption {
     Some(String(s)) => Some(s)
     _ => j_string_opt(j, "description")
   }
-  let general = match j_field(label, "general") {
-    Some(v) => v
-    None => j
-  }
-  let series = match j_field(label, "series") {
-    Some(v) => v
-    None => j
-  }
-  let data = match j_field(label, "data") {
-    Some(v) => v
-    None => j
-  }
-  let series_single = match j_field(series, "single") {
-    Some(v) => v
-    None => series
-  }
-  let series_multiple = match j_field(series, "multiple") {
-    Some(v) => v
-    None => series
-  }
-  let series_separator = match j_field(series_multiple, "separator") {
-    Some(v) => v
-    None => series_multiple
-  }
-  let data_separator = match j_field(data, "separator") {
-    Some(v) => v
-    None => data
-  }
+  let general = j_field_or_self(label, "general")
+  let series = j_field_or_self(label, "series")
+  let data = j_field_or_self(label, "data")
+  let series_single = j_field_or_self(series, "single")
+  let series_multiple = j_field_or_self(series, "multiple")
+  let series_separator = j_field_or_self(series_multiple, "separator")
+  let data_separator = j_field_or_self(data, "separator")
   {
     enabled,
     label_enabled,
@@ -588,84 +458,19 @@ fn parse_symbol_repeat(j : Json, base : SeriesOption) -> (String?, Int?, Bool) {
 fn parse_symbol_bounding_data(j : Json) -> SymbolBoundingData? {
   match j_field(j, "symbolBoundingData") {
     Some(Number(n, ..)) => Some(Single(n))
-    Some(Array(arr)) =>
-      if arr.length() >= 2 {
-        let a = match arr[0] {
-          Number(n, ..) => n
-          _ => 0.0
-        }
-        let b = match arr[1] {
-          Number(n, ..) => n
-          _ => 0.0
-        }
-        Some(Pair(a, b))
-      } else {
-        None
-      }
+    Some(Array(arr)) => pair_symbol_bounding_data(arr)
     _ => None
   }
 }
 
 ///|
 fn parse_symbol_size_values(j : Json) -> Array[String]? {
-  match j_field(j, "symbolSize") {
-    Some(String(s)) => Some([s, s])
-    Some(Number(n, ..)) => {
-      let value = "\{n}"
-      Some([value, value])
-    }
-    Some(Array(arr)) => {
-      let values : Array[String] = []
-      let mut i = 0
-      while i < arr.length() && i < 2 {
-        match arr[i] {
-          String(s) => values.push(s)
-          Number(n, ..) => values.push("\{n}")
-          _ => values.push("0")
-        }
-        i = i + 1
-      }
-      if values.length() == 1 {
-        Some([values[0], values[0]])
-      } else if values.length() >= 2 {
-        Some([values[0], values[1]])
-      } else {
-        None
-      }
-    }
-    _ => None
-  }
+  j_stringish_pair_opt(j, "symbolSize")
 }
 
 ///|
 fn parse_symbol_offset(j : Json) -> Array[String]? {
-  match j_field(j, "symbolOffset") {
-    Some(String(s)) => Some([s, s])
-    Some(Number(n, ..)) => {
-      let value = "\{n}"
-      Some([value, value])
-    }
-    Some(Array(arr)) => {
-      let values : Array[String] = []
-      let mut i = 0
-      while i < arr.length() && i < 2 {
-        match arr[i] {
-          String(s) => values.push(s)
-          Number(n, ..) => values.push("\{n}")
-          _ => values.push("0")
-        }
-        i = i + 1
-      }
-      if values.length() == 1 {
-        Some([values[0], values[0]])
-      } else if values.length() >= 2 {
-        Some([values[0], values[1]])
-      } else {
-        None
-      }
-    }
-    _ => None
-  }
+  j_stringish_pair_opt(j, "symbolOffset")
 }
 
 ///|
@@ -674,6 +479,175 @@ fn parse_symbol_offset(j : Json) -> Array[String]? {
 fn parse_visual_map(j : Json) -> VisualMapOption {
   let base = VisualMapOption::default()
   { min: j_number(j, "min", base.min), max: j_number(j, "max", base.max) }
+}
+
+///|
+fn[T] j_parse_optional(j : Json, key : String, parse_one : (Json) -> T) -> T? {
+  match j_field(j, key) {
+    Some(value) => Some(parse_one(value))
+    None => None
+  }
+}
+
+///|
+fn[T] j_parse_array(
+  j : Json,
+  key : String,
+  parse_one : (Json) -> T,
+  default_val : Array[T],
+) -> Array[T] {
+  match j_field(j, key) {
+    Some(Array(arr)) => arr.map(parse_one)
+    _ => default_val
+  }
+}
+
+///|
+fn[T] j_parse_one_or_many(
+  j : Json,
+  key : String,
+  parse_one : (Json) -> T,
+  default_val : Array[T],
+) -> Array[T] {
+  match j_field(j, key) {
+    Some(value) =>
+      match value {
+        Array(arr) => arr.map(parse_one)
+        Object(_) => [parse_one(value)]
+        _ => default_val
+      }
+    None => default_val
+  }
+}
+
+///|
+fn j_field_or_self(j : Json, key : String) -> Json {
+  match j_field(j, key) {
+    Some(value) => value
+    None => j
+  }
+}
+
+///|
+fn j_string_or_number(j : Json, key : String, default_val : String) -> String {
+  match j_field(j, key) {
+    Some(String(s)) => s
+    Some(Number(n, ..)) => "\{n}"
+    _ => default_val
+  }
+}
+
+///|
+fn j_string_or_number_as_string_opt(
+  j : Json,
+  key : String,
+  default_val : String?,
+) -> String? {
+  match j_field(j, key) {
+    Some(String(s)) => Some(s)
+    Some(Number(n, ..)) => Some("\{n}")
+    _ => default_val
+  }
+}
+
+///|
+fn j_string_array_lossy(
+  j : Json,
+  key : String,
+  default_val : Array[String],
+) -> Array[String] {
+  match j_field(j, key) {
+    Some(Array(arr)) =>
+      arr.map(fn(item) {
+        match item {
+          String(s) => s
+          _ => item.to_string()
+        }
+      })
+    _ => default_val
+  }
+}
+
+///|
+fn j_stringish_array(
+  j : Json,
+  key : String,
+  default_val : Array[String],
+) -> Array[String] {
+  match j_field(j, key) {
+    Some(Array(arr)) => arr.map(json_to_stringish_empty)
+    Some(String(s)) => [s]
+    _ => default_val
+  }
+}
+
+///|
+fn j_stringish_pair_opt(j : Json, key : String) -> Array[String]? {
+  match j_field(j, key) {
+    Some(String(s)) => Some([s, s])
+    Some(Number(n, ..)) => {
+      let value = "\{n}"
+      Some([value, value])
+    }
+    Some(Array(arr)) => pair_strings_from_json(arr)
+    _ => None
+  }
+}
+
+///|
+fn pair_strings_from_json(arr : Array[Json]) -> Array[String]? {
+  match arr {
+    [] => None
+    [first] => {
+      let value = json_to_stringish_zero(first)
+      Some([value, value])
+    }
+    [first, second, ..] =>
+      Some([json_to_stringish_zero(first), json_to_stringish_zero(second)])
+  }
+}
+
+///|
+fn pair_symbol_bounding_data(arr : Array[Json]) -> SymbolBoundingData? {
+  match arr {
+    [first, second, ..] =>
+      Some(Pair(json_number_or_zero(first), json_number_or_zero(second)))
+    _ => None
+  }
+}
+
+///|
+fn parse_data_object(j : Json, value : DataValue) -> DataItem {
+  let name = j_string_opt(j, "name")
+  let symbol = j_string_opt(j, "symbol")
+  let children = j_parse_array(j, "children", parse_data_item, [])
+  { value, name, symbol, children }
+}
+
+///|
+fn json_number_or_zero(j : Json) -> Double {
+  match j {
+    Number(n, ..) => n
+    _ => 0.0
+  }
+}
+
+///|
+fn json_to_stringish_zero(j : Json) -> String {
+  match j {
+    String(s) => s
+    Number(n, ..) => "\{n}"
+    _ => "0"
+  }
+}
+
+///|
+fn json_to_stringish_empty(j : Json) -> String {
+  match j {
+    String(s) => s
+    Number(n, ..) => "\{n}"
+    _ => ""
+  }
 }
 
 ///|
