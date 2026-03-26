@@ -1,0 +1,11 @@
+import {
+  "OverflowCat/yuecharts" @lib,
+}
+
+options(
+  link: {
+    "wasm": { "export-memory-name": "memory", "exports": [ "do_render" ] },
+    "wasm-gc": { "exports": [ "render" ], "use-js-builtin-string": true },
+  },
+  targets: { "main_gc.mbt": [ "wasm-gc" ], "main_linear.mbt": [ "wasm" ] },
+)

@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YueCharts WASM Demo</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      padding: 24px;
+    }
+
+    h1 {
+      margin-bottom: 16px;
+      font-size: 1.5rem;
+    }
+
+    .container {
+      display: flex;
+      gap: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .panel {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+      padding: 16px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .panel h2 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: #666;
+    }
+
+    textarea {
+      width: 100%;
+      height: 480px;
+      font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+      font-size: 13px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 12px;
+      resize: vertical;
+      tab-size: 2;
+    }
+
+    textarea:focus {
+      outline: 2px solid #5470c6;
+      border-color: transparent;
+    }
+
+    .toolbar {
+      margin: 12px 0;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    button {
+      padding: 8px 20px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #5470c6;
+      color: #fff;
+      transition: background 0.15s;
+    }
+
+    button:hover {
+      background: #3a56a7;
+    }
+
+    button:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+
+    #status {
+      font-size: 13px;
+      color: #888;
+    }
+
+    #status.error {
+      color: #c23531;
+    }
+
+    #output {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      min-height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fafafa;
+      overflow: auto;
+    }
+
+    #output svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .examples-bar {
+      margin-bottom: 12px;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .examples-bar button {
+      background: #eee;
+      color: #333;
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+
+    .examples-bar button:hover {
+      background: #ddd;
+    }
+
+    .backend-toggle {
+      display: inline-flex;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      overflow: hidden;
+      font-size: 13px;
+    }
+    .backend-toggle input[type=radio] { display: none; }
+    .backend-toggle label {
+      padding: 4px 14px;
+      cursor: pointer;
+      background: #f0f0f0;
+      color: #555;
+      user-select: none;
+      transition: background 0.12s, color 0.12s;
+      border-right: 1px solid #ccc;
+    }
+    .backend-toggle label:last-of-type { border-right: none; }
+    .backend-toggle input[type=radio]:checked + label {
+      background: #5470c6;
+      color: #fff;
+    }
+    .backend-toggle label.loading { opacity: 0.45; cursor: not-allowed; }
+    .backend-toggle label.unavailable { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+  </style>
+</head>
+
+<body>
+
+  <h1>YueCharts WASM Demo</h1>
+
+  <div class="container">
+    <div class="panel">
+      <h2>ECharts JSON Option</h2>
+      <div class="examples-bar" id="examplesBar"></div>
+      <textarea id="jsonInput" spellcheck="false">{
+  "width": 600,
+  "height": 400,
+  "title": { "text": "Weekly Sales" },
+  "xAxis": {
+  "type": "category",
+  "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [
+  {
+    "type": "bar",
+    "name": "Sales",
+    "data": [120, 200, 150, 80, 70, 110, 130]
+  }
+  ]
+}</textarea>
+      <div class="toolbar">
+        <div class="backend-toggle">
+          <input type="radio" name="backend" id="backendGC" value="gc" checked>
+          <label for="backendGC" id="labelGC" class="loading">wasm-gc</label>
+          <input type="radio" name="backend" id="backendLinear" value="linear">
+          <label for="backendLinear" id="labelLinear" class="loading">wasm</label>
+        </div>
+        <button id="renderBtn">Render</button>
+        <span id="status">Loading WASM modules…</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>SVG Output</h2>
+      <div id="output"><span style="color:#aaa">Click "Render" to see the chart</span></div>
+    </div>
+  </div>
+
+  <script>
+    // Example chart configs
+    const EXAMPLES = {
+      bar: {
+        width: 600, height: 400,
+        title: { text: "Weekly Sales" },
+        xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
+        yAxis: { type: "value" },
+        series: [{ type: "bar", name: "Sales", data: [120, 200, 150, 80, 70, 110, 130] }]
+      },
+      line: {
+        width: 600, height: 400,
+        title: { text: "Temperature" },
+        xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
+        yAxis: { type: "value" },
+        series: [{ type: "line", name: "Temp", data: [10, 11, 13, 11, 12, 12, 9] }]
+      },
+      pie: {
+        width: 600, height: 400,
+        title: { text: "Browser Share" },
+        series: [{
+          type: "pie", name: "Browser", radius: "50%",
+          data: [
+            { value: 1048, name: "Chrome" },
+            { value: 735, name: "Firefox" },
+            { value: 580, name: "Safari" },
+            { value: 484, name: "Edge" },
+            { value: 300, name: "Other" }
+          ]
+        }]
+      },
+      scatter: {
+        width: 600, height: 400,
+        title: { text: "Scatter Plot" },
+        xAxis: { type: "value" },
+        yAxis: { type: "value" },
+        series: [{
+          type: "scatter", name: "Data",
+          data: [[10, 8], [14, 12], [20, 15], [25, 20], [30, 22], [35, 28], [40, 30], [45, 32], [50, 40]]
+        }]
+      },
+      radar: {
+        width: 600, height: 400,
+        title: { text: "Radar Chart" },
+        radar: {
+          indicator: [
+            { name: "Attack", max: 100 },
+            { name: "Defense", max: 100 },
+            { name: "Speed", max: 100 },
+            { name: "Power", max: 100 },
+            { name: "Endurance", max: 100 }
+          ]
+        },
+        series: [{
+          type: "radar", name: "Stats",
+          data: [{ value: [80, 50, 90, 60, 70], name: "Player A" }]
+        }]
+      },
+      funnel: {
+        width: 600, height: 400,
+        title: { text: "Funnel Chart" },
+        series: [{
+          type: "funnel", name: "Funnel",
+          data: [
+            { value: 100, name: "Visit" },
+            { value: 80, name: "Inquiry" },
+            { value: 60, name: "Order" },
+            { value: 40, name: "Click" },
+            { value: 20, name: "Show" }
+          ]
+        }]
+      }
+    };
+
+    // Populate example buttons
+    const exBar = document.getElementById("examplesBar");
+    for (const [name] of Object.entries(EXAMPLES)) {
+      const btn = document.createElement("button");
+      btn.textContent = name;
+      btn.addEventListener("click", () => {
+        document.getElementById("jsonInput").value = JSON.stringify(EXAMPLES[name], null, 2);
+      });
+      exBar.appendChild(btn);
+    }
+
+    // WASM loading and rendering
+    const renderers = { gc: null, linear: null };
+    const renderBtn = document.getElementById("renderBtn");
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+    const jsonInput = document.getElementById("jsonInput");
+    const labelGC = document.getElementById("labelGC");
+    const labelLinear = document.getElementById("labelLinear");
+    const backendGC = document.getElementById("backendGC");
+    const backendLinear = document.getElementById("backendLinear");
+
+    function activeRenderer() {
+      const v = document.querySelector('input[name=backend]:checked').value;
+      return renderers[v];
+    }
+
+    // --- wasm-gc mode (JS String Builtins) ---
+    async function loadWasmGC() {
+      const response = await fetch("wasm-gc.wasm");
+      if (!response.ok) throw new Error(`${response.status}`);
+      const bytes = await response.arrayBuffer();
+      const { instance } = await WebAssembly.instantiate(bytes, {}, {
+        builtins: ["js-string"],
+        importedStringConstants: "_"
+      });
+      if (instance.exports._start) instance.exports._start();
+      const renderFn = instance.exports.render;
+      return (json) => renderFn(json);
+    }
+
+    // --- plain wasm mode (linear memory, no GC) ---
+    async function loadWasmLinear() {
+      const response = await fetch("wasm.wasm");
+      if (!response.ok) throw new Error(`${response.status}`);
+      const bytes = await response.arrayBuffer();
+
+      // I/O state for the linear wasm module
+      let inputStr = "";
+      let inputPos = 0;
+      let outputChars = [];
+
+      const importObject = {
+        spectest: {
+          print_char: (ch) => { outputChars.push(String.fromCharCode(ch)); }
+        },
+        input: {
+          getchar: () => {
+            if (inputPos >= inputStr.length) return -1;
+            return inputStr.charCodeAt(inputPos++);
+          }
+        }
+      };
+
+      const { instance } = await WebAssembly.instantiate(bytes, importObject);
+      if (instance.exports._start) instance.exports._start();
+      const doRenderWasm = instance.exports.do_render;
+
+      return (json) => {
+        inputStr = json;
+        inputPos = 0;
+        outputChars = [];
+        doRenderWasm();
+        // Remove trailing newline from println
+        let result = outputChars.join("");
+        if (result.endsWith("\n")) result = result.slice(0, -1);
+        return result;
+      };
+    }
+
+    async function loadWasm() {
+      // Load both modules in parallel
+      const [gcResult, linearResult] = await Promise.allSettled([
+        loadWasmGC(),
+        loadWasmLinear(),
+      ]);
+
+      if (gcResult.status === "fulfilled") {
+        renderers.gc = gcResult.value;
+        labelGC.classList.remove("loading");
+      } else {
+        console.warn("wasm-gc unavailable:", gcResult.reason);
+        labelGC.classList.remove("loading");
+        labelGC.classList.add("unavailable");
+        backendGC.disabled = true;
+      }
+
+      if (linearResult.status === "fulfilled") {
+        renderers.linear = linearResult.value;
+        labelLinear.classList.remove("loading");
+      } else {
+        console.warn("wasm (linear) unavailable:", linearResult.reason);
+        labelLinear.classList.remove("loading");
+        labelLinear.classList.add("unavailable");
+        backendLinear.disabled = true;
+      }
+
+      // Select best available backend by default
+      if (!renderers.gc && renderers.linear) {
+        backendLinear.checked = true;
+      }
+
+      const anyReady = renderers.gc || renderers.linear;
+      if (anyReady) {
+        statusEl.textContent = "WASM modules ready — select backend above";
+        statusEl.className = "";
+      } else {
+        statusEl.textContent = "Failed to load any WASM module";
+        statusEl.className = "error";
+      }
+    }
+
+    function onRender() {
+      const doRender = activeRenderer();
+      if (!doRender) {
+        statusEl.textContent = "This backend is not available";
+        statusEl.className = "error";
+        return;
+      }
+      const json = jsonInput.value.trim();
+      if (!json) {
+        statusEl.textContent = "Please enter JSON";
+        statusEl.className = "error";
+        return;
+      }
+      try { JSON.parse(json); } catch (e) {
+        statusEl.textContent = "Invalid JSON: " + e.message;
+        statusEl.className = "error";
+        return;
+      }
+      try {
+        const t0 = performance.now();
+        const svg = doRender(json);
+        const elapsed = (performance.now() - t0).toFixed(1);
+        outputEl.innerHTML = svg;
+        statusEl.textContent = `Rendered in ${elapsed} ms`;
+        statusEl.className = "";
+      } catch (e) {
+        statusEl.textContent = "Render error: " + e.message;
+        statusEl.className = "error";
+        console.error("Render error:", e);
+      }
+    }
+
+    renderBtn.addEventListener("click", onRender);
+    jsonInput.addEventListener("keydown", (e) => {
+      if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); onRender(); }
+    });
+
+    loadWasm();
+  </script>
+</body>
+
+</html>
