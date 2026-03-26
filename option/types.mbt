@@ -60,7 +60,7 @@ pub fn AxisOption::default_y() -> AxisOption {
 
 ///|
 /// Grid layout specification.
-pub struct GridOption {
+pub(all) struct GridOption {
   left : SizeSpec
   right : SizeSpec
   top : SizeSpec
@@ -72,7 +72,7 @@ pub struct GridOption {
 
 ///|
 /// A size specification: pixel value or percentage string.
-pub enum SizeSpec {
+pub(all) enum SizeSpec {
   Px(Double)
   Pct(Double) // 0-100
 }
