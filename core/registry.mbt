@@ -231,7 +231,7 @@ pub fn ComponentRegistration::new(
 pub struct LayoutRegistration {
   stage_name : String
   source_path : String
-  series_type : String?
+  series_type : @option.SeriesType?
   priority : Int
   execution_key : String?
 }
@@ -240,7 +240,7 @@ pub struct LayoutRegistration {
 pub struct VisualRegistration {
   stage_name : String
   source_path : String
-  series_type : String?
+  series_type : @option.SeriesType?
   priority : Int
   execution_key : String?
 }
@@ -249,7 +249,7 @@ pub struct VisualRegistration {
 pub struct ProcessorRegistration {
   stage_name : String
   source_path : String
-  series_type : String?
+  series_type : @option.SeriesType?
   priority : Int
   execution_key : String?
 }
@@ -258,7 +258,7 @@ pub struct ProcessorRegistration {
 pub fn LayoutRegistration::new(
   stage_name : String,
   source_path : String,
-  series_type : String?,
+  series_type : @option.SeriesType?,
   priority : Int,
   execution_key : String?,
 ) -> LayoutRegistration {
@@ -269,7 +269,7 @@ pub fn LayoutRegistration::new(
 pub fn VisualRegistration::new(
   stage_name : String,
   source_path : String,
-  series_type : String?,
+  series_type : @option.SeriesType?,
   priority : Int,
   execution_key : String?,
 ) -> VisualRegistration {
@@ -280,7 +280,7 @@ pub fn VisualRegistration::new(
 pub fn ProcessorRegistration::new(
   stage_name : String,
   source_path : String,
-  series_type : String?,
+  series_type : @option.SeriesType?,
   priority : Int,
   execution_key : String?,
 ) -> ProcessorRegistration {

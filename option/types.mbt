@@ -110,7 +110,7 @@ pub(all) enum SeriesType {
   Boxplot
   Funnel
   Gauge
-}
+} derive(Eq)
 
 ///|
 /// Data value in a series: can be a number, an array, or null.

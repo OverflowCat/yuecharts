@@ -122,7 +122,7 @@ fn register_chart(
   layout_sources : Array[String],
   visual_sources : Array[String],
   processor_sources : Array[String],
-  stage_series_type : String,
+  stage_series_type : @option.SeriesType,
   view : &@core.ChartViewLike,
 ) -> Unit {
   registry.register_chart(
@@ -183,7 +183,7 @@ pub fn install_bar(registry : @core.Registry) -> Unit {
     ["echarts/src/layout/barGrid.ts"],
     [],
     ["echarts/src/processor/dataSample.ts"],
-    "bar",
+    @option.SeriesType::Bar,
     BarChartView::{  },
   )
 }
@@ -199,7 +199,7 @@ pub fn install_line(registry : @core.Registry) -> Unit {
     ["echarts/src/layout/points.ts"],
     ["echarts/src/chart/line/install.ts"],
     ["echarts/src/processor/dataSample.ts"],
-    "line",
+    @option.SeriesType::Line,
     LineChartView::{  },
   )
 }
@@ -215,7 +215,7 @@ pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
     ["echarts/src/layout/barGrid.ts"],
     [],
     [],
-    "pictorialBar",
+    @option.SeriesType::PictorialBar,
     PictorialBarChartView::{  },
   )
 }
@@ -231,7 +231,7 @@ pub fn install_scatter(registry : @core.Registry) -> Unit {
     ["echarts/src/layout/points.ts"],
     [],
     [],
-    "scatter",
+    @option.SeriesType::Scatter,
     ScatterChartView::{  },
   )
 }
@@ -247,7 +247,7 @@ pub fn install_effect_scatter(registry : @core.Registry) -> Unit {
     ["echarts/src/layout/points.ts"],
     [],
     [],
-    "effectScatter",
+    @option.SeriesType::EffectScatter,
     EffectScatterChartView::{  },
   )
 }
@@ -263,7 +263,7 @@ pub fn install_pie(registry : @core.Registry) -> Unit {
     ["echarts/src/chart/pie/pieLayout.ts"],
     ["echarts/src/chart/pie/labelLayout.ts"],
     [],
-    "pie",
+    @option.SeriesType::Pie,
     PieChartView::{  },
   )
 }
@@ -279,7 +279,7 @@ pub fn install_sunburst(registry : @core.Registry) -> Unit {
     ["echarts/src/chart/sunburst/sunburstLayout.ts"],
     ["echarts/src/chart/sunburst/sunburstVisual.ts"],
     [],
-    "sunburst",
+    @option.SeriesType::Sunburst,
     SunburstChartView::{  },
   )
 }
@@ -295,7 +295,7 @@ pub fn install_treemap(registry : @core.Registry) -> Unit {
     ["echarts/src/chart/treemap/treemapLayout.ts"],
     ["echarts/src/chart/treemap/treemapVisual.ts"],
     [],
-    "treemap",
+    @option.SeriesType::Treemap,
     TreemapChartView::{  },
   )
 }
@@ -311,7 +311,7 @@ pub fn install_radar(registry : @core.Registry) -> Unit {
     ["echarts/src/chart/radar/radarLayout.ts"],
     [],
     [],
-    "radar",
+    @option.SeriesType::Radar,
     RadarChartView::{  },
   )
 }
@@ -327,7 +327,7 @@ pub fn install_candlestick(registry : @core.Registry) -> Unit {
     ["echarts/src/chart/candlestick/candlestickLayout.ts"],
     ["echarts/src/chart/candlestick/candlestickVisual.ts"],
     [],
-    "candlestick",
+    @option.SeriesType::Candlestick,
     CandlestickChartView::{  },
   )
 }
@@ -343,7 +343,7 @@ pub fn install_heatmap(registry : @core.Registry) -> Unit {
     [],
     [],
     [],
-    "heatmap",
+    @option.SeriesType::Heatmap,
     HeatmapChartView::{  },
   )
 }
@@ -359,7 +359,7 @@ pub fn install_boxplot(registry : @core.Registry) -> Unit {
     ["echarts/src/chart/boxplot/boxplotLayout.ts"],
     [],
     [],
-    "boxplot",
+    @option.SeriesType::Boxplot,
     BoxplotChartView::{  },
   )
 }
@@ -375,7 +375,7 @@ pub fn install_funnel(registry : @core.Registry) -> Unit {
     ["echarts/src/chart/funnel/funnelLayout.ts"],
     [],
     [],
-    "funnel",
+    @option.SeriesType::Funnel,
     FunnelChartView::{  },
   )
 }
@@ -391,7 +391,7 @@ pub fn install_gauge(registry : @core.Registry) -> Unit {
     [],
     [],
     [],
-    "gauge",
+    @option.SeriesType::Gauge,
     GaugeChartView::{  },
   )
 }

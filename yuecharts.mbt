@@ -48,31 +48,14 @@ fn build_registry() -> @core.Registry {
 ///|
 fn has_registered_series_type(
   opt : @option.ChartOption,
-  series_type : String?,
+  series_type : @option.SeriesType?,
 ) -> Bool {
   match series_type {
     None => true
     Some(target) => {
       let mut i = 0
       while i < opt.series.length() {
-        let series = opt.series[i]
-        let matches = match series.series_type {
-          @option.Line => target == "line"
-          @option.Bar => target == "bar"
-          @option.PictorialBar => target == "pictorialBar"
-          @option.Scatter => target == "scatter"
-          @option.EffectScatter => target == "effectScatter"
-          @option.Pie => target == "pie"
-          @option.Sunburst => target == "sunburst"
-          @option.Treemap => target == "treemap"
-          @option.Radar => target == "radar"
-          @option.Candlestick => target == "candlestick"
-          @option.Heatmap => target == "heatmap"
-          @option.Boxplot => target == "boxplot"
-          @option.Funnel => target == "funnel"
-          @option.Gauge => target == "gauge"
-        }
-        if matches {
+        if opt.series[i].series_type == target {
           return true
         }
         i = i + 1
@@ -287,6 +270,9 @@ fn render_registered_charts(
   while i < registry.charts.length() {
     let registration = registry.charts[i]
     i = i + 1
+    if !has_registered_series_type(ctx.option, Some(registration.series_type)) {
+      continue
+    }
     append_elements(elems, registration.view.render(ctx))
   }
 }

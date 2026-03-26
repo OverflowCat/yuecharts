@@ -120,7 +120,7 @@ pub fn install_aria(registry : @core.Registry) -> Unit {
       "visual-aria",
       "echarts/src/visual/aria.ts",
       None,
-      9000,
+      6000,
       Some("aria_label"),
     ),
   )
