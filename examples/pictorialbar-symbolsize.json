@@ -1,0 +1,17 @@
+{
+  "width": 640,
+  "height": 420,
+  "title": { "text": "Pictorial Bar Symbol Size" },
+  "xAxis": { "type": "category", "data": ["A", "B", "C"] },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "type": "pictorialBar",
+      "symbol": "circle",
+      "symbolRepeat": true,
+      "symbolSize": ["70%", "35%"],
+      "symbolMargin": "10%",
+      "data": [12, 20, 15]
+    }
+  ]
+}

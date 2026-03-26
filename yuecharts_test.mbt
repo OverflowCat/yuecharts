@@ -11,6 +11,11 @@ let palette_0 = "#5070dd" // series index 0
 let palette_1 = "#b6d634" // series index 1
 
 ///|
+fn count_substring(haystack : String, needle : String) -> Int {
+  haystack.split(needle).map(StringView::to_string).collect().length() - 1
+}
+
+///|
 /// Bar series must use palette[0] fill color.
 test "bar series uses palette color" {
   let json_str =
@@ -237,6 +242,28 @@ test "pictorial bar uses palette color and circle symbols" {
   let svg = @yuecharts.render(json_str)
   assert_true(svg.contains(palette_0))
   assert_true(svg.contains("<circle"))
+}
+
+///|
+test "pictorial bar repeat emits multiple symbols" {
+  let json_str =
+    #|{
+    #|  "width": 640, "height": 420,
+    #|  "xAxis": {"type": "category", "data": ["A"]},
+    #|  "yAxis": {"type": "value"},
+    #|  "series": [
+    #|    {
+    #|      "type": "pictorialBar",
+    #|      "symbol": "circle",
+    #|      "symbolRepeat": true,
+    #|      "symbolSize": ["40%", "20%"],
+    #|      "data": [12]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  let count = count_substring(svg, "<circle")
+  assert_true(count > 1)
 }
 
 ///|

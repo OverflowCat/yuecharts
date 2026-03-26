@@ -40,22 +40,36 @@ fn pictorial_bar_repeat_times(
 ///|
 fn pictorial_margin_px(series : @option.SeriesOption, unit : Double) -> Double {
   match series.symbol_margin {
-    Some(margin) =>
-      if margin.has_suffix("%") {
-        let pct_str = margin[:margin.length() - 1]
+    Some(margin) => {
+      let margin_value = if margin.has_suffix("!") {
+        margin[:margin.length() - 1].to_string()
+      } else {
+        margin
+      }
+      if margin_value.has_suffix("%") {
+        let pct_str = margin_value[:margin_value.length() - 1]
         let parsed = try? @strconv.parse_double(pct_str.to_string())
         match parsed {
           Ok(pct) => unit * pct / 100.0
           Err(_) => unit * 0.15
         }
       } else {
-        let parsed = try? @strconv.parse_double(margin)
+        let parsed = try? @strconv.parse_double(margin_value)
         match parsed {
           Ok(px) => px
           Err(_) => unit * 0.15
         }
       }
+    }
     None => unit * 0.15
+  }
+}
+
+///|
+fn has_end_gap(series : @option.SeriesOption) -> Bool {
+  match series.symbol_margin {
+    Some(margin) => margin.has_suffix("!")
+    None => false
   }
 }
 
@@ -74,6 +88,56 @@ fn parse_offset_component(value : String, reference : Double) -> Double {
       Ok(px) => px
       Err(_) => 0.0
     }
+  }
+}
+
+///|
+fn parse_symbol_size_component(value : String, reference : Double) -> Double {
+  if value.has_suffix("%") {
+    let pct_str = value[:value.length() - 1]
+    let parsed = try? @strconv.parse_double(pct_str.to_string())
+    match parsed {
+      Ok(pct) => reference * pct / 100.0
+      Err(_) => reference
+    }
+  } else {
+    let parsed = try? @strconv.parse_double(value)
+    match parsed {
+      Ok(px) => px
+      Err(_) => reference
+    }
+  }
+}
+
+///|
+fn pictorial_symbol_size(
+  series : @option.SeriesOption,
+  category_size : Double,
+  bounding_length : Double,
+  symbol_repeat : Bool,
+) -> (Double, Double) {
+  let value_reference = if symbol_repeat {
+    category_size
+  } else {
+    bounding_length.abs()
+  }
+  match series.symbol_size_values {
+    Some(values) => {
+      let width = if values.length() > 0 {
+        parse_symbol_size_component(values[0], category_size)
+      } else {
+        category_size
+      }
+      let height = if values.length() > 1 {
+        parse_symbol_size_component(values[1], value_reference)
+      } else if values.length() > 0 {
+        parse_symbol_size_component(values[0], value_reference)
+      } else {
+        value_reference
+      }
+      (width, height)
+    }
+    None => (category_size, value_reference)
   }
 }
 
@@ -233,6 +297,16 @@ fn single_symbol_y(
 }
 
 ///|
+fn to_int_times(times : Double) -> Int {
+  let rounded = times.round().to_int()
+  if (times - rounded.to_double()).abs() < 0.0001 {
+    rounded
+  } else {
+    times.ceil().to_int()
+  }
+}
+
+///|
 fn render_pictorial_bar_series(
   series : @option.SeriesOption,
   series_index : Int,
@@ -290,28 +364,74 @@ fn render_pictorial_bar_series(
         let bounding_length = pictorial_bounding_length(
           series, coord, y_idx, actual_length, zero_y,
         )
-        let repeat_times = pictorial_bar_repeat_times(
-          series, bounding_length, bar_w,
+        let symbol_repeat = match series.symbol_repeat {
+          Some("true") | Some("fixed") | Some("number") => true
+          _ => false
+        }
+        let (symbol_w, base_symbol_h) = pictorial_symbol_size(
+          series, bar_w, bounding_length, symbol_repeat,
         )
-        let unit_h = bounding_length / repeat_times.to_double()
-        let margin = pictorial_margin_px(series, unit_h)
-        let symbol_h = if repeat_times > 1 {
-          let candidate = unit_h - margin
-          if candidate > 1.0 {
-            candidate
+        let repeat_times = if symbol_repeat {
+          pictorial_bar_repeat_times(
+            series,
+            bounding_length.abs(),
+            base_symbol_h,
+          )
+        } else {
+          1
+        }
+        let mut symbol_h = if base_symbol_h > 1.0 { base_symbol_h } else { 1.0 }
+        let mut margin = pictorial_margin_px(series, symbol_h)
+        let mut unit = symbol_h + margin * 2.0
+        if symbol_repeat {
+          let end_gap = has_end_gap(series)
+          let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
+          let denom = if end_gap {
+            if repeat_times > 0 {
+              repeat_times
+            } else {
+              1
+            }
+          } else if repeat_times > 1 {
+            repeat_times - 1
           } else {
-            unit_h
+            1
+          }
+          let m_diff = bounding_length.abs() -
+            repeat_times.to_double() * symbol_h
+          margin = m_diff / 2.0 / denom.to_double()
+          unit = symbol_h + margin * 2.0
+          if series.symbol_repeat != Some("fixed") &&
+            series.symbol_repeat_count is None {
+            let adjusted_times = to_int_times(
+              (actual_length.abs() + end_fix) / unit,
+            )
+            if adjusted_times > 0 {
+              let denom = if end_gap {
+                adjusted_times
+              } else if adjusted_times > 1 {
+                adjusted_times - 1
+              } else {
+                1
+              }
+              let m_diff = bounding_length.abs() -
+                adjusted_times.to_double() * symbol_h
+              margin = m_diff / 2.0 / denom.to_double()
+              unit = symbol_h + margin * 2.0
+            }
           }
         } else {
-          bounding_length
+          symbol_h = bounding_length.abs()
+          margin = 0.0
+          unit = symbol_h
         }
         let (offset_x, offset_y) = pictorial_symbol_offset(
-          series, bar_w, symbol_h,
+          series, symbol_w, symbol_h,
         )
         let mut ri = 0
         while ri < repeat_times {
           let slot_index = effective_repeat_slot(series, ri, repeat_times)
-          let slot_top = zero_y - (slot_index + 1).to_double() * unit_h
+          let slot_top = zero_y - (slot_index + 1).to_double() * unit
           let raw_symbol_y = if repeat_times > 1 {
             slot_top + margin / 2.0 + offset_y
           } else {
@@ -330,7 +450,7 @@ fn render_pictorial_bar_series(
                   symbol,
                   bar_x + offset_x,
                   symbol_y,
-                  bar_w,
+                  symbol_w,
                   visible_h,
                   color,
                 ),

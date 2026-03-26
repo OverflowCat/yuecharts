@@ -215,6 +215,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let y_axis_index = j_int(j, "yAxisIndex", base.y_axis_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
   let smooth = j_bool(j, "smooth", base.smooth)
+  let symbol_size_values = parse_symbol_size_values(j)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
   let symbol = match j_field(j, "symbol") {
     Some(String(s)) => Some(s)
@@ -286,6 +287,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     name,
     data,
     symbol,
+    symbol_size_values,
     symbol_repeat,
     symbol_repeat_count,
     symbol_repeat_fixed,
@@ -564,6 +566,37 @@ fn parse_symbol_bounding_data(j : Json) -> SymbolBoundingData? {
       } else {
         None
       }
+    _ => None
+  }
+}
+
+///|
+fn parse_symbol_size_values(j : Json) -> Array[String]? {
+  match j_field(j, "symbolSize") {
+    Some(String(s)) => Some([s, s])
+    Some(Number(n, ..)) => {
+      let value = "\{n}"
+      Some([value, value])
+    }
+    Some(Array(arr)) => {
+      let values : Array[String] = []
+      let mut i = 0
+      while i < arr.length() && i < 2 {
+        match arr[i] {
+          String(s) => values.push(s)
+          Number(n, ..) => values.push("\{n}")
+          _ => values.push("0")
+        }
+        i = i + 1
+      }
+      if values.length() == 1 {
+        Some([values[0], values[0]])
+      } else if values.length() >= 2 {
+        Some([values[0], values[1]])
+      } else {
+        None
+      }
+    }
     _ => None
   }
 }

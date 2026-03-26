@@ -1,5 +1,10 @@
 ﻿# ECharts to yuecharts Port Map
 
+## 2026-03-26 Update
+
+- `chart/pictorial_bar.mbt` now covers a larger static subset of `installPictorialBar.ts`, `PictorialBarSeries.ts`, and `PictorialBarView.ts`: `symbolSize`, `symbolRepeat`, `symbolClip`, `symbolPosition`, `symbolBoundingData`, `symbolOffset`, and `symbolRepeatDirection` are partially translated for cartesian/category static SVG output.
+- `visual/aria.mbt` now covers static `aria.ts` label generation with default English template strings and option overrides parsed through `option/parse.mbt`.
+- Added example/reference pairs: `examples/pictorialbar-offset.{json,svg,ref.svg}`, `examples/pictorialbar-symbolsize.{json,svg,ref.svg}`, and `examples/aria-template.{json,svg,ref.svg}`.
 ## Scope
 
 This file is a source-to-port map for the ECharts files that matter to the
@@ -640,9 +645,9 @@ E:\recharts\echarts\src
 │   │   ├── BarView.ts => chart/bar.mbt [translated] Feature: bar renderer
 │   │   ├── BaseBarSeries.ts => chart/bar.mbt [partial] Feature: base bar model
 │   │   ├── install.ts => chart/bar.mbt [partial] Feature: bar install
-│   │   ├── installPictorialBar.ts =>  [missing] Feature: pictorial bar install
-│   │   ├── PictorialBarSeries.ts =>  [missing] Feature: pictorial bar series
-│   │   └── PictorialBarView.ts =>  [missing] Feature: pictorial bar view
+│   │   ├── installPictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar install
+│   │   ├── PictorialBarSeries.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar series
+│   │   └── PictorialBarView.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar view
 │   │
 │   ├── scatter
 │   │   ├── install.ts => chart/scatter.mbt [partial] Feature: scatter install
@@ -817,4 +822,5 @@ E:\recharts\echarts\src
         `visual.ts` / `action.ts` files are still only partially covered even
         when the final static SVG output exists.
 ```
+
 

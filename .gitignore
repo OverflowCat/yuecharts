@@ -12,6 +12,14 @@ moon.mod.lock
 *.svg
 
 # =========================
+# Documentation
+# =========================
+
+_docs
+*.md
+!map.md
+
+# =========================
 # OS generated files
 # =========================
 .DS_Store
@@ -40,4 +48,5 @@ node_modules/
 # =========================
 tmp/
 temp/
+_tmp/
 *.tmp
