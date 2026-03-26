@@ -178,43 +178,27 @@ pub fn path_bbox(d : String) -> (Double, Double, Double, Double)? {
     }
     match cmd {
       'M' | 'm' => {
-        let first = parse_path_number(d, i)
-        match first {
-          Some((x0, i1)) =>
-            match parse_path_number(d, i1) {
-              Some((y0, i2)) => {
-                let x = if cmd == 'm' { cur_x + x0 } else { x0 }
-                let y = if cmd == 'm' { cur_y + y0 } else { y0 }
-                cur_x = x
-                cur_y = y
-                start_x = x
-                start_y = y
-                bbox = Some(update_path_bbox((x, y), bbox))
-                i = i2
-                cmd = if cmd == 'm' { 'l' } else { 'L' }
-              }
-              None => break
-            }
-          None => break
-        }
+        guard parse_path_number(d, i) is Some((x0, i1)) else { break }
+        guard parse_path_number(d, i1) is Some((y0, i2)) else { break }
+        let x = if cmd == 'm' { cur_x + x0 } else { x0 }
+        let y = if cmd == 'm' { cur_y + y0 } else { y0 }
+        cur_x = x
+        cur_y = y
+        start_x = x
+        start_y = y
+        bbox = Some(update_path_bbox((x, y), bbox))
+        i = i2
+        cmd = if cmd == 'm' { 'l' } else { 'L' }
       }
       'L' | 'l' => {
-        let first = parse_path_number(d, i)
-        match first {
-          Some((x0, i1)) =>
-            match parse_path_number(d, i1) {
-              Some((y0, i2)) => {
-                let x = if cmd == 'l' { cur_x + x0 } else { x0 }
-                let y = if cmd == 'l' { cur_y + y0 } else { y0 }
-                bbox = Some(update_path_bbox((x, y), bbox))
-                cur_x = x
-                cur_y = y
-                i = i2
-              }
-              None => break
-            }
-          None => break
-        }
+        guard parse_path_number(d, i) is Some((x0, i1)) else { break }
+        guard parse_path_number(d, i1) is Some((y0, i2)) else { break }
+        let x = if cmd == 'l' { cur_x + x0 } else { x0 }
+        let y = if cmd == 'l' { cur_y + y0 } else { y0 }
+        bbox = Some(update_path_bbox((x, y), bbox))
+        cur_x = x
+        cur_y = y
+        i = i2
       }
       'H' | 'h' =>
         match parse_path_number(d, i) {
@@ -226,78 +210,33 @@ pub fn path_bbox(d : String) -> (Double, Double, Double, Double)? {
           }
           None => break
         }
-      'V' | 'v' =>
-        match parse_path_number(d, i) {
-          Some((y0, i1)) => {
-            let y = if cmd == 'v' { cur_y + y0 } else { y0 }
-            bbox = Some(update_path_bbox((cur_x, y), bbox))
-            cur_y = y
-            i = i1
-          }
-          None => break
-        }
-      'C' | 'c' =>
-        match parse_path_number(d, i) {
-          Some((x1, i1)) =>
-            match parse_path_number(d, i1) {
-              Some((y1, i2)) =>
-                match parse_path_number(d, i2) {
-                  Some((x2, i3)) =>
-                    match parse_path_number(d, i3) {
-                      Some((y2, i4)) =>
-                        match parse_path_number(d, i4) {
-                          Some((x3, i5)) =>
-                            match parse_path_number(d, i5) {
-                              Some((y3, i6)) => {
-                                let ax1 = if cmd == 'c' {
-                                  cur_x + x1
-                                } else {
-                                  x1
-                                }
-                                let ay1 = if cmd == 'c' {
-                                  cur_y + y1
-                                } else {
-                                  y1
-                                }
-                                let ax2 = if cmd == 'c' {
-                                  cur_x + x2
-                                } else {
-                                  x2
-                                }
-                                let ay2 = if cmd == 'c' {
-                                  cur_y + y2
-                                } else {
-                                  y2
-                                }
-                                let ax3 = if cmd == 'c' {
-                                  cur_x + x3
-                                } else {
-                                  x3
-                                }
-                                let ay3 = if cmd == 'c' {
-                                  cur_y + y3
-                                } else {
-                                  y3
-                                }
-                                bbox = Some(update_path_bbox((ax1, ay1), bbox))
-                                bbox = Some(update_path_bbox((ax2, ay2), bbox))
-                                bbox = Some(update_path_bbox((ax3, ay3), bbox))
-                                cur_x = ax3
-                                cur_y = ay3
-                                i = i6
-                              }
-                              None => break
-                            }
-                          None => break
-                        }
-                      None => break
-                    }
-                  None => break
-                }
-              None => break
-            }
-          None => break
-        }
+      'V' | 'v' => {
+        guard parse_path_number(d, i) is Some((y0, i1)) else { break }
+        let y = if cmd == 'v' { cur_y + y0 } else { y0 }
+        bbox = Some(update_path_bbox((cur_x, y), bbox))
+        cur_y = y
+        i = i1
+      }
+      'C' | 'c' => {
+        guard parse_path_number(d, i) is Some((x1, i1)) else { break }
+        guard parse_path_number(d, i1) is Some((y1, i2)) else { break }
+        guard parse_path_number(d, i2) is Some((x2, i3)) else { break }
+        guard parse_path_number(d, i3) is Some((y2, i4)) else { break }
+        guard parse_path_number(d, i4) is Some((x3, i5)) else { break }
+        guard parse_path_number(d, i5) is Some((y3, i6)) else { break }
+        let ax1 = if cmd == 'c' { cur_x + x1 } else { x1 }
+        let ay1 = if cmd == 'c' { cur_y + y1 } else { y1 }
+        let ax2 = if cmd == 'c' { cur_x + x2 } else { x2 }
+        let ay2 = if cmd == 'c' { cur_y + y2 } else { y2 }
+        let ax3 = if cmd == 'c' { cur_x + x3 } else { x3 }
+        let ay3 = if cmd == 'c' { cur_y + y3 } else { y3 }
+        bbox = Some(update_path_bbox((ax1, ay1), bbox))
+        bbox = Some(update_path_bbox((ax2, ay2), bbox))
+        bbox = Some(update_path_bbox((ax3, ay3), bbox))
+        cur_x = ax3
+        cur_y = ay3
+        i = i6
+      }
       'S' | 's' | 'Q' | 'q' => {
         let needed = 4
         let values : Array[Double] = []
@@ -335,22 +274,16 @@ pub fn path_bbox(d : String) -> (Double, Double, Double, Double)? {
         }
         i = next_i
       }
-      'T' | 't' =>
-        match parse_path_number(d, i) {
-          Some((x0, i1)) =>
-            match parse_path_number(d, i1) {
-              Some((y0, i2)) => {
-                let x = if cmd == 't' { cur_x + x0 } else { x0 }
-                let y = if cmd == 't' { cur_y + y0 } else { y0 }
-                bbox = Some(update_path_bbox((x, y), bbox))
-                cur_x = x
-                cur_y = y
-                i = i2
-              }
-              None => break
-            }
-          None => break
-        }
+      'T' | 't' => {
+        guard parse_path_number(d, i) is Some((x0, i1)) else { break }
+        guard parse_path_number(d, i1) is Some((y0, i2)) else { break }
+        let x = if cmd == 't' { cur_x + x0 } else { x0 }
+        let y = if cmd == 't' { cur_y + y0 } else { y0 }
+        bbox = Some(update_path_bbox((x, y), bbox))
+        cur_x = x
+        cur_y = y
+        i = i2
+      }
       'A' | 'a' => {
         let values : Array[Double] = []
         let mut next_i = i
