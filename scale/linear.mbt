@@ -3,15 +3,10 @@
 
 ///|
 /// A tick mark on a scale axis.
-pub struct Tick {
+pub(all) struct Tick {
   value : Double
   label : String
-}
-
-///|
-pub impl Show for Tick with output(self, logger) {
-  logger.write_string("Tick(\{self.value}, \"\{self.label}\")")
-}
+} derive(Show)
 
 ///|
 /// Linear scale: maps a numeric domain [min, max] to a pixel range [range_min, range_max].
@@ -103,7 +98,7 @@ pub fn LinearScale::ticks(self : LinearScale, count : Int) -> Array[Tick] {
   while value <= limit {
     let label = format_tick(value, step)
     result.push({ value, label })
-    value = value + step
+    value += step
   }
   result
 }

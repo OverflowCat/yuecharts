@@ -16,7 +16,10 @@ fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
       | @option.Scatter
       | @option.EffectScatter
       | @option.Candlestick
-      | @option.Boxplot => return true
+      | @option.Boxplot =>
+        if s.coordinate_system != Some("polar") {
+          return true
+        }
       @option.Heatmap =>
         if s.coordinate_system != Some("calendar") {
           return true
@@ -264,6 +267,7 @@ fn run_registered_layouts(
   opt : @option.ChartOption,
 ) -> @core.RenderContext {
   let mut coord = @layout.build_cartesian(opt)
+  let mut polar = @layout.build_polar(opt)
   let mut calendar = @coord.Calendar::build(opt)
   let visited = new_flags(registry.layouts.length())
   let mut done = 0
@@ -276,13 +280,14 @@ fn run_registered_layouts(
         let registration = registry.layouts[index]
         match registration.execution_key {
           Some("build_cartesian") => coord = @layout.build_cartesian(opt)
+          Some("build_polar") => polar = @layout.build_polar(opt)
           Some("build_calendar") => calendar = @coord.Calendar::build(opt)
           _ => ()
         }
       }
     }
   }
-  @core.RenderContext::new(raw_opt, opt, coord, calendar)
+  @core.RenderContext::new(raw_opt, opt, coord, polar, calendar)
 }
 
 ///|
@@ -368,30 +373,16 @@ pub fn render(json_str : String) -> String {
   let aria_label = run_registered_visuals(registry, processed_opt)
   let elems : Array[@graphic.Element] = []
   let has_cartesian = has_cartesian_series(processed_opt)
-  render_registered_components(
-    elems,
-    registry,
-    ctx,
-    @core.ComponentRenderStage::background(),
-    has_cartesian,
-  )
+  render_registered_components(elems, registry, ctx, Background, has_cartesian)
   render_registered_charts(elems, registry, ctx)
-  render_registered_components(
-    elems,
-    registry,
-    ctx,
-    @core.ComponentRenderStage::foreground(),
-    has_cartesian,
-  )
+  render_registered_components(elems, registry, ctx, Foreground, has_cartesian)
   let bg = match processed_opt.background_color {
     Some(c) => @graphic.Color::from_hex(c)
     None => None
   }
-  let accessibility = match aria_label {
-    Some(label) =>
-      Some(@svg.SvgAccessibility::new("img", Some(label), None, Some(label)))
-    None => None
-  }
+  let accessibility = aria_label.map(label => {
+    @svg.SvgAccessibility::new("img", Some(label), None, Some(label))
+  })
   @svg.paint(
     elems,
     processed_opt.width,

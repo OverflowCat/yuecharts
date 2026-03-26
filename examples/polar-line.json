@@ -1,0 +1,18 @@
+{
+  "width": 600,
+  "height": 400,
+  "title": { "text": "Polar Line" },
+  "angleAxis": {
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+  },
+  "radiusAxis": {},
+  "polar": {},
+  "series": [
+    {
+      "type": "line",
+      "coordinateSystem": "polar",
+      "data": [120, 132, 101, 134, 90, 230, 210]
+    }
+  ]
+}

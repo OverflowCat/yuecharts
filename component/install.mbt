@@ -3,6 +3,7 @@
 // and echarts/src/component/title/install.ts
 // and echarts/src/component/legend/install.ts
 // and echarts/src/component/calendar/install.ts
+// and echarts/src/component/polar/install.ts
 
 ///|
 struct GridLinesComponentView {}
@@ -20,7 +21,7 @@ struct AxisComponentView {}
 
 ///|
 pub impl @core.ComponentViewLike for AxisComponentView with render(_self, ctx) {
-  render_axes(ctx.option, ctx.coord)
+  render_axes(ctx.option, ctx.coord, polar=ctx.polar)
 }
 
 ///|
@@ -77,7 +78,7 @@ pub fn install_grid_lines(registry : @core.Registry) -> Unit {
     "echarts/src/component/grid/installSimple.ts",
     "echarts/src/coord/cartesian/GridModel.ts",
     "echarts/src/component/axis/axisSplitHelper.ts",
-    @core.ComponentRenderStage::background(),
+    Background,
     true,
     GridLinesComponentView::{  },
   )
@@ -89,10 +90,10 @@ pub fn install_axis(registry : @core.Registry) -> Unit {
     registry,
     "axis",
     "echarts/src/component/axis/install.ts",
-    "echarts/src/component/axis/AxisModel.ts",
     "echarts/src/component/axis/AxisView.ts",
-    @core.ComponentRenderStage::background(),
-    true,
+    "echarts/src/component/axis/AxisView.ts",
+    Background,
+    false,
     AxisComponentView::{  },
   )
 }
@@ -105,7 +106,7 @@ pub fn install_title(registry : @core.Registry) -> Unit {
     "echarts/src/component/title/install.ts",
     "echarts/src/component/title/install.ts",
     "echarts/src/component/title/install.ts",
-    @core.ComponentRenderStage::foreground(),
+    Foreground,
     false,
     TitleComponentView::{  },
   )
@@ -119,7 +120,7 @@ pub fn install_legend(registry : @core.Registry) -> Unit {
     "echarts/src/component/legend/install.ts",
     "echarts/src/component/legend/LegendModel.ts",
     "echarts/src/component/legend/LegendView.ts",
-    @core.ComponentRenderStage::foreground(),
+    Foreground,
     false,
     LegendComponentView::{  },
   )
@@ -146,7 +147,7 @@ pub fn install_calendar(registry : @core.Registry) -> Unit {
     "echarts/src/component/calendar/install.ts",
     "echarts/src/coord/calendar/CalendarModel.ts",
     "echarts/src/component/calendar/CalendarView.ts",
-    @core.ComponentRenderStage::background(),
+    Background,
     false,
     CalendarComponentView::{  },
   )

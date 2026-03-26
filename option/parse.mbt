@@ -23,9 +23,22 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let y_axis = j_parse_one_or_many(j, "yAxis", parse_axis_option_y, [
     AxisOption::default_y(),
   ])
+  let angle_axis = j_parse_one_or_many(
+    j,
+    "angleAxis",
+    parse_angle_axis_option,
+    [],
+  )
+  let radius_axis = j_parse_one_or_many(
+    j,
+    "radiusAxis",
+    parse_radius_axis_option,
+    [],
+  )
   let grid = j_parse_one_or_many(j, "grid", parse_grid_option, [
     GridOption::default(),
   ])
+  let polar = j_parse_one_or_many(j, "polar", parse_polar_option, [])
   let calendar = j_parse_one_or_many(j, "calendar", parse_calendar_option, [])
   let radar = j_parse_one_or_many(j, "radar", parse_radar_option, [])
   let series = j_parse_one_or_many(j, "series", parse_series_option, [])
@@ -37,7 +50,10 @@ fn parse_chart_option(j : Json) -> ChartOption {
     legend,
     x_axis,
     y_axis,
+    angle_axis,
+    radius_axis,
     grid,
+    polar,
     calendar,
     radar,
     series,
@@ -101,6 +117,21 @@ fn parse_axis_option_y(j : Json) -> AxisOption {
 }
 
 ///|
+fn parse_angle_axis_option(j : Json) -> AxisOption {
+  let base = {
+    ..AxisOption::default_x(),
+    start_angle: Some(90.0),
+    clockwise: Some(true),
+  }
+  parse_axis_option(j, base)
+}
+
+///|
+fn parse_radius_axis_option(j : Json) -> AxisOption {
+  parse_axis_option(j, AxisOption::default_y())
+}
+
+///|
 fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
   let axis_type = match j_string(j, "type", "") {
     "value" => AxisType::Value
@@ -120,7 +151,36 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
   let name = j_string_opt(j, "name")
   let min = j_number_opt(j, "min")
   let max = j_number_opt(j, "max")
-  { axis_type, position, name, data, min, max, grid_index: base.grid_index }
+  let grid_index = Some(j_int(j, "gridIndex", base.grid_index.unwrap_or(0)))
+  let polar_index = Some(j_int(j, "polarIndex", base.polar_index.unwrap_or(0)))
+  let start_angle = match j_field(j, "startAngle") {
+    Some(Number(n, ..)) => Some(n)
+    _ => base.start_angle
+  }
+  let end_angle = match j_field(j, "endAngle") {
+    Some(Number(n, ..)) => Some(n)
+    _ => base.end_angle
+  }
+  let clockwise = match j_field(j, "clockwise") {
+    Some(True) => Some(true)
+    Some(False) => Some(false)
+    _ => base.clockwise
+  }
+  let inverse = j_bool(j, "inverse", base.inverse)
+  {
+    axis_type,
+    position,
+    name,
+    data,
+    min,
+    max,
+    grid_index,
+    polar_index,
+    start_angle,
+    end_angle,
+    clockwise,
+    inverse,
+  }
 }
 
 ///|
@@ -135,6 +195,19 @@ fn parse_grid_option(j : Json) -> GridOption {
     height: None,
     contain_label: j_bool(j, "containLabel", base.contain_label),
   }
+}
+
+///|
+fn parse_polar_option(j : Json) -> PolarOption {
+  let base = PolarOption::default()
+  let center = j_stringish_array(j, "center", base.center)
+  let radius = match j_field(j, "radius") {
+    Some(Array(arr)) => arr.map(json_to_stringish_zero)
+    Some(String(s)) => ["0", s]
+    Some(Number(n, ..)) => ["0", "\{n}"]
+    _ => base.radius
+  }
+  { center, radius }
 }
 
 ///|
@@ -247,6 +320,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let name = j_string_opt(j, "name")
   let x_axis_index = j_int(j, "xAxisIndex", base.x_axis_index)
   let y_axis_index = j_int(j, "yAxisIndex", base.y_axis_index)
+  let radius_axis_index = j_int(j, "radiusAxisIndex", base.radius_axis_index)
+  let angle_axis_index = j_int(j, "angleAxisIndex", base.angle_axis_index)
+  let polar_index = j_int(j, "polarIndex", base.polar_index)
   let coordinate_system = j_string_opt(j, "coordinateSystem")
   let calendar_index = j_int(j, "calendarIndex", base.calendar_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
@@ -337,6 +413,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     bar_category_gap,
     x_axis_index,
     y_axis_index,
+    radius_axis_index,
+    angle_axis_index,
+    polar_index,
     coordinate_system,
     calendar_index,
     radar_index,

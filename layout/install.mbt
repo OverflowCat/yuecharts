@@ -22,4 +22,13 @@ pub fn install_all(registry : @core.Registry) -> Unit {
       Some("build_calendar"),
     ),
   )
+  registry.register_layout(
+    @core.LayoutRegistration::new(
+      "layout-root",
+      "echarts/src/coord/polar/polarCreator.ts",
+      None,
+      105,
+      Some("build_polar"),
+    ),
+  )
 }

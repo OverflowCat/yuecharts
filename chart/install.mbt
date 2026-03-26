@@ -5,7 +5,7 @@ struct BarChartView {}
 
 ///|
 pub impl @core.ChartViewLike for BarChartView with render(_self, ctx) {
-  render_bars(ctx.option, ctx.coord)
+  render_bars(ctx.option, ctx.coord, polar=ctx.polar)
 }
 
 ///|
@@ -13,7 +13,7 @@ struct LineChartView {}
 
 ///|
 pub impl @core.ChartViewLike for LineChartView with render(_self, ctx) {
-  render_lines(ctx.option, ctx.coord)
+  render_lines(ctx.option, ctx.coord, polar=ctx.polar)
 }
 
 ///|
@@ -29,7 +29,7 @@ struct ScatterChartView {}
 
 ///|
 pub impl @core.ChartViewLike for ScatterChartView with render(_self, ctx) {
-  render_scatters(ctx.option, ctx.coord)
+  render_scatters(ctx.option, ctx.coord, polar=ctx.polar)
 }
 
 ///|
@@ -37,7 +37,7 @@ struct EffectScatterChartView {}
 
 ///|
 pub impl @core.ChartViewLike for EffectScatterChartView with render(_self, ctx) {
-  render_effect_scatters(ctx.option, ctx.coord)
+  render_effect_scatters(ctx.option, ctx.coord, polar=ctx.polar)
 }
 
 ///|
@@ -189,7 +189,7 @@ pub fn install_bar(registry : @core.Registry) -> Unit {
     "echarts/src/chart/bar/install.ts",
     "echarts/src/chart/bar/BarSeries.ts",
     "echarts/src/chart/bar/BarView.ts",
-    ["echarts/src/layout/barGrid.ts"],
+    ["echarts/src/layout/barGrid.ts", "echarts/src/layout/barPolar.ts"],
     [],
     ["echarts/src/processor/dataSample.ts"],
     @option.SeriesType::Bar,

@@ -9,6 +9,13 @@
 - `visual/aria.mbt` now covers static `aria.ts` label generation with default English template strings and option overrides parsed through `option/parse.mbt`.
 - Added example/reference pairs: `examples/pictorialbar-offset.{json,svg,ref.svg}`, `examples/pictorialbar-symbolsize.{json,svg,ref.svg}`, and `examples/aria-template.{json,svg,ref.svg}`.
 - Added `scale/interval_wbtest.mbt`, translating the portable subset of `test/ut/spec/scale/interval.test.ts` onto the current `LinearScale` port.
+
+## 2026-03-27 Update
+
+- Added first-pass polar coordinate plumbing across `option/types.mbt`, `option/parse.mbt`, `coord/polar.mbt`, `layout/polar.mbt`, `core/registry.mbt`, `layout/install.mbt`, and `yuecharts.mbt`, covering static `polar` / `angleAxis` / `radiusAxis` parsing plus root layout creation.
+- `component/axis.mbt` now renders static polar angle/radius axes and split lines based on `AngleAxisView.ts` / `RadiusAxisView.ts`.
+- `chart/bar.mbt`, `chart/line.mbt`, `chart/scatter.mbt`, and `chart/effect_scatter.mbt` now accept polar render context; `examples/polar-bar.json`, `examples/polar-line.json`, and `examples/polar-scatter.json` were rendered against JS SSR references.
+- Current status is still `partial`: the static SVG output now exists and uses the polar coordinate model, but `barPolar.ts` / `LineView.ts` behavior is not yet 1:1 with upstream and the generated element structure still differs from ECharts SSR.
 ## Scope
 
 This file is a source-to-port map for the ECharts files that matter to the
@@ -123,6 +130,9 @@ E:\yuecharts
 │   ├── pictorialbar-symbolsize.json / .svg / .ref.svg
 │   ├── pie.json / .svg
 │   ├── pie-legend-selected.json
+│   ├── js
+│   │   └── polar-line2.js
+│   ├── polar-line2.jsgen.svg / .jsgen.ref.svg
 │   ├── radar.json / .svg
 │   ├── scatter.json / .svg / .ref.svg
 │   ├── sunburst.json / .svg / .echarts.svg
@@ -139,7 +149,9 @@ E:\yuecharts
 │   └── painter.mbt
 ├── tools
 │   ├── compare.ps1
-│   └── echarts-render.js
+│   ├── eval-option.js
+│   ├── echarts-render.js
+│   └── option-loader.js
 └── visual
     ├── moon.pkg
     ├── aria.mbt
@@ -303,13 +315,13 @@ E:\recharts\echarts\src
 │   │   └── RadarModel.ts => option/types.mbt [partial] Feature: radar option model
 │   │
 │   ├── polar
-│   │   ├── AngleAxis.ts =>  [missing] Feature: polar angle axis
-│   │   ├── AxisModel.ts =>  [missing] Feature: polar axis model
-│   │   ├── Polar.ts =>  [missing] Feature: polar coordinate system
-│   │   ├── polarCreator.ts =>  [missing] Feature: polar creator
-│   │   ├── PolarModel.ts =>  [missing] Feature: polar model
+│   │   ├── AngleAxis.ts => coord/polar.mbt [partial] Feature: polar angle axis
+│   │   ├── AxisModel.ts => option/types.mbt, option/parse.mbt [partial] Feature: polar axis model
+│   │   ├── Polar.ts => coord/polar.mbt [partial] Feature: polar coordinate system
+│   │   ├── polarCreator.ts => layout/polar.mbt, layout/install.mbt [partial] Feature: polar creator
+│   │   ├── PolarModel.ts => option/types.mbt, option/parse.mbt [partial] Feature: polar model
 │   │   ├── prepareCustom.ts =>  [missing] Feature: polar custom adapter
-│   │   └── RadiusAxis.ts =>  [missing] Feature: polar radius axis
+│   │   └── RadiusAxis.ts => coord/polar.mbt [partial] Feature: polar radius axis
 │   │
 │   ├── single
 │   │   ├── AxisModel.ts =>  [missing] Feature: singleAxis model
@@ -359,7 +371,7 @@ E:\recharts\echarts\src
 │
 ├── layout
 │   ├── barGrid.ts => chart/bar.mbt [partial] Feature: bar grid layout
-│   ├── barPolar.ts =>  [missing] Feature: bar layout on polar
+│   ├── barPolar.ts => chart/bar.mbt [partial] Feature: bar layout on polar
 │   └── points.ts => chart/scatter.mbt, chart/effect_scatter.mbt [partial] Feature: point layout for scatter/effectScatter
 │
 ├── processor
@@ -414,7 +426,7 @@ E:\recharts\echarts\src
 │   ├── markPoint.ts =>  [missing] Feature: markPoint component entry
 │   ├── matrix.ts =>  [missing] Feature: matrix component entry
 │   ├── parallel.ts =>  [missing] Feature: parallel component entry
-│   ├── polar.ts =>  [missing] Feature: polar component entry
+│   ├── polar.ts => component/install.mbt, component/axis.mbt [partial] Feature: polar component entry
 │   ├── radar.ts => chart/radar.mbt [partial] Feature: radar component entry
 │   ├── singleAxis.ts =>  [missing] Feature: singleAxis component entry
 │   ├── thumbnail.ts =>  [missing] Feature: thumbnail component entry
@@ -592,7 +604,7 @@ E:\recharts\echarts\src
 │   │   └── MatrixView.ts =>  [missing] Feature: matrix view
 │   │
 │   ├── polar
-│   │   └── install.ts =>  [missing] Feature: polar install
+│   │   └── install.ts => layout/polar.mbt, layout/install.mbt, component/install.mbt [partial] Feature: polar install
 │   │
 │   ├── radar
 │   │   ├── install.ts => chart/radar.mbt [partial] Feature: radar install

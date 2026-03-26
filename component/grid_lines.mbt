@@ -1,8 +1,7 @@
 // Corresponds to: echarts/src/component/axis/axisSplitHelper.ts
 
-// Default split line color from ECharts tokens: tokens.color.axisSplitLine = neutral15 = #dbdee4
-
 ///|
+// Default split line color from ECharts tokens: tokens.color.axisSplitLine = neutral15 = #dbdee4
 let split_line_color : String = "#dbdee4"
 
 ///|

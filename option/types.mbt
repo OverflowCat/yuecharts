@@ -4,12 +4,12 @@
 
 ///|
 /// Axis type.
-pub enum AxisType {
+pub(all) enum AxisType {
   Value // continuous numeric
   Category // discrete string categories
   Time // time series
   Log // logarithmic
-}
+} derive(Eq)
 
 ///|
 /// Position of an axis.
@@ -22,7 +22,7 @@ pub enum AxisPosition {
 
 ///|
 /// X or Y axis configuration.
-pub struct AxisOption {
+pub(all) struct AxisOption {
   axis_type : AxisType
   position : AxisPosition?
   name : String?
@@ -30,6 +30,11 @@ pub struct AxisOption {
   min : Double?
   max : Double?
   grid_index : Int?
+  polar_index : Int?
+  start_angle : Double?
+  end_angle : Double?
+  clockwise : Bool?
+  inverse : Bool
 }
 
 ///|
@@ -42,6 +47,11 @@ pub fn AxisOption::default_x() -> AxisOption {
     min: None,
     max: None,
     grid_index: None,
+    polar_index: None,
+    start_angle: None,
+    end_angle: None,
+    clockwise: None,
+    inverse: false,
   }
 }
 
@@ -55,7 +65,25 @@ pub fn AxisOption::default_y() -> AxisOption {
     min: None,
     max: None,
     grid_index: None,
+    polar_index: None,
+    start_angle: None,
+    end_angle: None,
+    clockwise: None,
+    inverse: false,
   }
+}
+
+///|
+/// Polar coordinate component option.
+/// Corresponds to: echarts/src/coord/polar/PolarModel.ts
+pub(all) struct PolarOption {
+  center : Array[String]
+  radius : Array[String]
+}
+
+///|
+pub impl Default for PolarOption with default() {
+  { center: ["50%", "50%"], radius: ["0", "80%"] }
 }
 
 ///|
@@ -160,6 +188,9 @@ pub(all) struct SeriesOption {
   bar_category_gap : String?
   x_axis_index : Int
   y_axis_index : Int
+  radius_axis_index : Int
+  angle_axis_index : Int
+  polar_index : Int
   coordinate_system : String?
   calendar_index : Int
   // For radar: index into ChartOption.radar[]
@@ -210,6 +241,9 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     bar_category_gap: None,
     x_axis_index: 0,
     y_axis_index: 0,
+    radius_axis_index: 0,
+    angle_axis_index: 0,
+    polar_index: 0,
     coordinate_system: None,
     calendar_index: 0,
     radar_index: 0,
@@ -645,7 +679,10 @@ pub(all) struct ChartOption {
   legend : LegendOption?
   x_axis : Array[AxisOption]
   y_axis : Array[AxisOption]
+  angle_axis : Array[AxisOption]
+  radius_axis : Array[AxisOption]
   grid : Array[GridOption]
+  polar : Array[PolarOption]
   calendar : Array[CalendarOption]
   radar : Array[RadarOption]
   series : Array[SeriesOption]
@@ -665,7 +702,10 @@ pub impl Default for ChartOption with default() {
     legend: None,
     x_axis: [],
     y_axis: [],
+    angle_axis: [],
+    radius_axis: [],
     grid: [GridOption::default()],
+    polar: [],
     calendar: [],
     radar: [],
     series: [],
