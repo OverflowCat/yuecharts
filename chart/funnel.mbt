@@ -52,7 +52,7 @@ pub fn render_funnels(
   let mut si = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Funnel => ()
       _ => {
@@ -66,12 +66,8 @@ pub fn render_funnels(
       opt.width,
       opt.height,
     )
-    let mut i = 0
-    while i < series_elems.length() {
-      elems.push(series_elems[i])
-      i = i + 1
-    }
-    color_idx = color_idx + 1
+    elems.append(series_elems)
+    color_idx += 1
   }
   elems
 }
@@ -107,7 +103,7 @@ pub fn render_funnel_series(
   let mut di = 0
   while di < nd {
     let item = series.data[di]
-    di = di + 1
+    di += 1
     let v = match item.value {
       Num(n) => n
       _ => 0.0
@@ -120,19 +116,17 @@ pub fn render_funnel_series(
   let mut ii = 0
   while ii < nd {
     indices.push(ii)
-    ii = ii + 1
+    ii += 1
   }
   // Simple insertion sort descending
   let mut a = 0
   while a < indices.length() {
     let mut b = a
     while b > 0 && values[indices[b - 1]] < values[indices[b]] {
-      let tmp = indices[b - 1]
-      indices[b - 1] = indices[b]
-      indices[b] = tmp
-      b = b - 1
+      indices.swap(b - 1, b)
+      b -= 1
     }
-    a = a + 1
+    a += 1
   }
 
   // Data extent
@@ -143,7 +137,7 @@ pub fn render_funnel_series(
     if values[fi] > v_max {
       v_max = values[fi]
     }
-    fi = fi + 1
+    fi += 1
   }
 
   // minSize=0%, maxSize=100% of viewWidth
@@ -187,10 +181,7 @@ pub fn render_funnel_series(
       ),
     )
     // Label: outside right with leader polyline (ECharts default labelPosition='right')
-    let label_name = match series.data[orig_idx].name {
-      Some(n) => n
-      None => ""
-    }
+    let label_name = series.data[orig_idx].name.unwrap_or("")
     if label_name != "" {
       let mid_y = (y_top + y_bot) / 2.0
       // Right-edge midpoint = average of top-right and bottom-right x
@@ -199,10 +190,7 @@ pub fn render_funnel_series(
       // Leader polyline from right-edge midpoint → 20px to the right
       elems.push(
         @graphic.Element::polyline_leader(
-          [
-            @graphic.Point::new(right_mid_x, mid_y),
-            @graphic.Point::new(leader_end_x, mid_y),
-          ],
+          [{ x: right_mid_x, y: mid_y }, { x: leader_end_x, y: mid_y }],
           color_str,
         ),
       )
@@ -212,13 +200,13 @@ pub fn render_funnel_series(
           leader_end_x + 5.0,
           mid_y,
           label_name,
-          @graphic.TextAnchor::start(),
-          @graphic.TextBaseline::middle(),
+          @graphic.TextAnchor::Start,
+          @graphic.TextBaseline::Middle,
           "#333333",
         ),
       )
     }
-    ki = ki + 1
+    ki += 1
   }
   elems
 }

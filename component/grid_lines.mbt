@@ -19,7 +19,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
         let mut ti = 0
         while ti < ticks.length() {
           let tick = ticks[ti]
-          ti = ti + 1
+          ti += 1
           let py = s.data_to_pixel(tick.value)
           elems.push(
             @graphic.Element::line_colored(
@@ -38,7 +38,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
         let mut ti = 0
         while ti < ticks.length() {
           let tick = ticks[ti]
-          ti = ti + 1
+          ti += 1
           let py = tick.value
           elems.push(
             @graphic.Element::line_colored(
@@ -53,7 +53,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
         }
       }
     }
-    i = i + 1
+    i += 1
   }
   elems
 }

@@ -19,7 +19,7 @@ pub fn render_scatter_series(
   let mut di = 0
   while di < nd {
     let item = series.data[di]
-    di = di + 1
+    di += 1
     match item.value {
       Null => ()
       Num(n) => {
@@ -99,7 +99,7 @@ pub fn render_scatters(
   let mut color_idx = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Scatter => ()
       _ => {

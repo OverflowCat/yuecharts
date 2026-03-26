@@ -20,7 +20,7 @@ pub fn render_line_series(
   let mut di = 0
   while di < nd {
     let item = series.data[di]
-    di = di + 1
+    di += 1
     let px = if x_idx < coord.x_scales.length() {
       match coord.x_scales[x_idx] {
         Ordinal(s) => s.band_center(di - 1)
@@ -95,7 +95,7 @@ pub fn render_lines(
   let mut color_idx = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Line => ()
       _ => {

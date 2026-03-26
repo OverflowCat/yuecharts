@@ -85,7 +85,7 @@ fn render_effect_ripple(
         ripple_opacities[i],
       ),
     )
-    i = i + 1
+    i += 1
   }
 }
 
@@ -114,7 +114,7 @@ pub fn render_effect_scatter_series(
       }
       None => ()
     }
-    di = di + 1
+    di += 1
   }
   elems
 }
@@ -130,7 +130,7 @@ pub fn render_effect_scatters(
   let mut color_idx = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       EffectScatter => ()
       _ => {

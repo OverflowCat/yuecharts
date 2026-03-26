@@ -29,24 +29,9 @@ pub impl Default for FillStyle with default() {
 
 ///|
 /// Text anchor alignment.
-pub enum TextAnchor {
+pub(all) enum TextAnchor {
   Start
   Middle
-  End
-}
-
-///|
-pub fn TextAnchor::start() -> TextAnchor {
-  Start
-}
-
-///|
-pub fn TextAnchor::middle() -> TextAnchor {
-  Middle
-}
-
-///|
-pub fn TextAnchor::end() -> TextAnchor {
   End
 }
 
@@ -61,12 +46,13 @@ pub fn TextAnchor::to_svg(self : TextAnchor) -> String {
 
 ///|
 /// Text baseline alignment.
-pub enum TextBaseline {
+pub(all) enum TextBaseline {
   Auto
   Top
   Hanging
   Middle
-  Central // SVG "central" — equivalent to CSS middle, used by ECharts for title/labels
+  /// SVG "central" — equivalent to CSS middle, used by ECharts for title/labels
+  Central
   Alphabetic
   Ideographic
   Bottom
@@ -75,41 +61,6 @@ pub enum TextBaseline {
 ///|
 pub fn TextBaseline::auto() -> TextBaseline {
   Auto
-}
-
-///|
-pub fn TextBaseline::top() -> TextBaseline {
-  Top
-}
-
-///|
-pub fn TextBaseline::hanging() -> TextBaseline {
-  Hanging
-}
-
-///|
-pub fn TextBaseline::middle() -> TextBaseline {
-  Middle
-}
-
-///|
-pub fn TextBaseline::central() -> TextBaseline {
-  Central
-}
-
-///|
-pub fn TextBaseline::alphabetic() -> TextBaseline {
-  Alphabetic
-}
-
-///|
-pub fn TextBaseline::ideographic() -> TextBaseline {
-  Ideographic
-}
-
-///|
-pub fn TextBaseline::bottom() -> TextBaseline {
-  Bottom
 }
 
 ///|

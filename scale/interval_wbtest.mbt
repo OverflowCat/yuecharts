@@ -27,7 +27,7 @@ test "scale_interval ticks_small_value" {
     assert_true(approx_eq(ticks[i].value, expected_values[i]))
     assert_eq(ticks[i].label, expected_labels[i])
     assert_true(!ticks[i].label.contains("e"))
-    i = i + 1
+    i += 1
   }
 }
 
@@ -47,7 +47,7 @@ test "scale_interval cases" {
     assert_true(ticks[0].value <= ticks[ticks.length() - 1].value)
     assert_true(ticks[0].label != "")
     assert_true(ticks[ticks.length() - 1].label != "")
-    i = i + 1
+    i += 1
   }
 }
 

@@ -3,7 +3,7 @@
 
 ///|
 /// 2D point.
-pub struct Point {
+pub(all) struct Point {
   x : Double
   y : Double
 }

@@ -8,7 +8,7 @@ fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
   let mut i = 0
   while i < opt.series.length() {
     let s = opt.series[i]
-    i = i + 1
+    i += 1
     match s.series_type {
       @option.Bar
       | @option.Line
@@ -32,7 +32,7 @@ fn append_elements(
   let mut i = 0
   while i < items.length() {
     elems.push(items[i])
-    i = i + 1
+    i += 1
   }
 }
 
@@ -58,7 +58,7 @@ fn has_registered_series_type(
         if opt.series[i].series_type == target {
           return true
         }
-        i = i + 1
+        i += 1
       }
       false
     }
@@ -67,13 +67,9 @@ fn has_registered_series_type(
 
 ///|
 fn is_legend_selected(opt : @option.ChartOption, name : String?) -> Bool {
-  match name {
-    Some(value) =>
-      match opt.legend {
-        Some(legend) => @option.LegendOption::is_selected(legend, value)
-        None => true
-      }
-    None => true
+  match (name, opt.legend) {
+    (Some(value), Some(lg)) => @option.LegendOption::is_selected(lg, value)
+    _ => true
   }
 }
 
@@ -89,7 +85,7 @@ fn filter_series_data_by_legend(
     if is_legend_selected(opt, item.name) {
       filtered.push(item)
     }
-    i = i + 1
+    i += 1
   }
   { ..series, data: filtered }
 }
@@ -109,7 +105,7 @@ fn filter_series_negative_values(
     if keep {
       filtered.push(item)
     }
-    i = i + 1
+    i += 1
   }
   { ..series, data: filtered }
 }
@@ -138,7 +134,7 @@ fn apply_processor_to_option(
       series
     }
     next_series.push(next)
-    i = i + 1
+    i += 1
   }
   { ..opt, series: next_series }
 }
@@ -149,7 +145,7 @@ fn new_flags(count : Int) -> Array[Bool] {
   let mut i = 0
   while i < count {
     flags.push(false)
-    i = i + 1
+    i += 1
   }
   flags
 }
@@ -171,7 +167,7 @@ fn next_layout_index(
         best_priority = registration.priority
       }
     }
-    i = i + 1
+    i += 1
   }
   if best_index == -1 {
     None
@@ -197,7 +193,7 @@ fn next_visual_index(
         best_priority = registration.priority
       }
     }
-    i = i + 1
+    i += 1
   }
   if best_index == -1 {
     None
@@ -223,7 +219,7 @@ fn next_processor_index(
         best_priority = registration.priority
       }
     }
-    i = i + 1
+    i += 1
   }
   if best_index == -1 {
     None
@@ -320,18 +316,10 @@ fn render_registered_components(
   let mut i = 0
   while i < registry.components.length() {
     let registration = registry.components[i]
-    i = i + 1
+    i += 1
     let stage_matches = match registration.render_stage {
-      Background =>
-        match stage {
-          Background => true
-          Foreground => false
-        }
-      Foreground =>
-        match stage {
-          Background => false
-          Foreground => true
-        }
+      Background => stage == @core.ComponentRenderStage::Background
+      Foreground => stage == @core.ComponentRenderStage::Foreground
     }
     if !stage_matches {
       continue
@@ -352,7 +340,7 @@ fn render_registered_charts(
   let mut i = 0
   while i < registry.charts.length() {
     let registration = registry.charts[i]
-    i = i + 1
+    i += 1
     if !has_registered_series_type(ctx.option, Some(registration.series_type)) {
       continue
     }

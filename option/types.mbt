@@ -368,7 +368,7 @@ pub fn LegendOption::is_selected(self : LegendOption, name : String) -> Bool {
     if item.name == name {
       return item.selected
     }
-    i = i + 1
+    i += 1
   }
   true
 }

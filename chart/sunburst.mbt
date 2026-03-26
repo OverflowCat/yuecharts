@@ -12,7 +12,7 @@ fn data_item_value(item : @option.DataItem) -> Double {
       let mut i = 0
       while i < item.children.length() {
         sum = sum + complete_tree_value(item.children[i])
-        i = i + 1
+        i += 1
       }
       sum
     }
@@ -30,7 +30,7 @@ fn complete_tree_value(item : @option.DataItem) -> Double {
   let mut i = 0
   while i < item.children.length() {
     child_sum = child_sum + complete_tree_value(item.children[i])
-    i = i + 1
+    i += 1
   }
   let own_value = match item.value {
     @option.Num(n) => n
@@ -56,7 +56,7 @@ fn tree_height(item : @option.DataItem) -> Int {
     if h > max_child {
       max_child = h
     }
-    i = i + 1
+    i += 1
   }
   max_child + 1
 }
@@ -105,7 +105,7 @@ fn sorted_indices_desc(values : Array[Double]) -> Array[Int] {
   let mut i = 0
   while i < values.length() {
     indices.push(i)
-    i = i + 1
+    i += 1
   }
   let mut a = 0
   while a < indices.length() {
@@ -177,8 +177,8 @@ fn render_sunburst_node(
         lx,
         ly,
         label,
-        @graphic.TextAnchor::middle(),
-        @graphic.TextBaseline::middle(),
+        @graphic.TextAnchor::Middle,
+        @graphic.TextBaseline::Middle,
         "#ffffff",
       ),
     )
@@ -195,7 +195,7 @@ fn render_sunburst_node(
     let v = complete_tree_value(node.children[i])
     child_values.push(v)
     total = total + v
-    i = i + 1
+    i += 1
   }
   let order = sorted_indices_desc(child_values)
   let mut child_angle = start_angle
@@ -260,7 +260,7 @@ pub fn render_sunbursts(
   let mut si = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Sunburst => ()
       _ => {
@@ -277,7 +277,7 @@ pub fn render_sunbursts(
     let mut i = 0
     while i < series_elems.length() {
       elems.push(series_elems[i])
-      i = i + 1
+      i += 1
     }
     color_idx = color_idx + 1
   }
@@ -338,7 +338,7 @@ pub fn render_sunburst_series(
     if h > max_height {
       max_height = h
     }
-    i = i + 1
+    i += 1
   }
   if max_height <= 0 {
     return elems

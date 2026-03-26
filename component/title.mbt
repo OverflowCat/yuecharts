@@ -29,9 +29,9 @@ pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
   // Resolve horizontal position and text anchor.
   // ECharts default: left='center'.
   let (tx, anchor) = match title.left {
-    "center" => (opt.width * 0.5, @graphic.TextAnchor::middle())
-    "right" => (opt.width - 10.0, @graphic.TextAnchor::end())
-    _ => (10.0, @graphic.TextAnchor::start()) // "left", "auto", or pixel value
+    "center" => (opt.width * 0.5, @graphic.TextAnchor::Middle)
+    "right" => (opt.width - 10.0, @graphic.TextAnchor::End)
+    _ => (10.0, @graphic.TextAnchor::Start) // "left", "auto", or pixel value
   }
   // ty = tokens.size.m + padding = 15 + 5 = 20
   // With dominant-baseline="central" the glyph center sits at ty + fontSize/2.
@@ -58,7 +58,7 @@ pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
         ty_sub,
         title.subtext,
         anchor,
-        @graphic.TextBaseline::central(),
+        @graphic.TextBaseline::Central,
         "#54555a", // tokens.color.neutral70
       ),
     )

@@ -86,7 +86,7 @@ pub fn render_gauges(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let mut color_idx = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       @option.Gauge => ()
       _ => {
@@ -103,7 +103,7 @@ pub fn render_gauges(opt : @option.ChartOption) -> Array[@graphic.Element] {
     let mut i = 0
     while i < gauge_elems.length() {
       elems.push(gauge_elems[i])
-      i = i + 1
+      i += 1
     }
     color_idx = color_idx + 1
   }
@@ -242,8 +242,8 @@ pub fn render_gauge_series(
         lx,
         ly,
         fmt_gauge_val(split_val),
-        @graphic.TextAnchor::middle(),
-        @graphic.TextBaseline::middle(),
+        @graphic.TextAnchor::Middle,
+        @graphic.TextBaseline::Middle,
         label_color,
       ),
     )
@@ -257,7 +257,7 @@ pub fn render_gauge_series(
   while ti <= minor_total {
     // Skip positions that coincide with split lines (every minor_per_split)
     if ti % minor_per_split == 0 {
-      ti = ti + 1
+      ti += 1
       continue
     }
     let a = start_rad + angle_span * ti.to_double() / minor_total.to_double()
@@ -268,7 +268,7 @@ pub fn render_gauge_series(
     let ix = cx + (r - tick_len) * ux
     let iy = cy + (r - tick_len) * uy
     elems.push(@graphic.Element::line_colored(ox, oy, ix, iy, tick_color, 1.0))
-    ti = ti + 1
+    ti += 1
   }
 
   // --- 5. Pointer ---
@@ -299,8 +299,8 @@ pub fn render_gauge_series(
       cx,
       val_y,
       val_label,
-      @graphic.TextAnchor::middle(),
-      @graphic.TextBaseline::middle(),
+      @graphic.TextAnchor::Middle,
+      @graphic.TextBaseline::Middle,
       "#3c3c41",
     ),
   )

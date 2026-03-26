@@ -29,7 +29,7 @@ pub fn render_boxplot_series(
   let mut di = 0
   while di < nd {
     let item = series.data[di]
-    di = di + 1
+    di += 1
     match item.value {
       Vec(arr) if arr.length() >= 5 => {
         let v_min = arr[0]
@@ -140,7 +140,7 @@ pub fn render_boxplots(
   let mut color_idx = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Boxplot => ()
       _ => {

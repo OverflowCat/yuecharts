@@ -89,7 +89,7 @@ pub impl ScaleLike for LinearScaleAdapter with ticks(self, count) {
   while i < source_ticks.length() {
     let tick = source_ticks[i]
     result.push({ value: tick.value, label: tick.label })
-    i = i + 1
+    i += 1
   }
   result
 }
@@ -119,7 +119,7 @@ pub impl ScaleLike for OrdinalScaleAdapter with ticks(self, _count) {
   while i < source_ticks.length() {
     let tick = source_ticks[i]
     result.push({ value: tick.value, label: tick.label })
-    i = i + 1
+    i += 1
   }
   result
 }
@@ -147,10 +147,10 @@ pub impl CoordLike for CartesianCoordAdapter with plot_bbox(self) {
 }
 
 ///|
-pub enum ComponentRenderStage {
+pub(all) enum ComponentRenderStage {
   Background
   Foreground
-}
+} derive(Eq)
 
 ///|
 pub fn ComponentRenderStage::background() -> ComponentRenderStage {

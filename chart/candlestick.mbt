@@ -36,7 +36,7 @@ pub fn render_candlestick_series(
   let mut di = 0
   while di < nd {
     let item = series.data[di]
-    di = di + 1
+    di += 1
     match item.value {
       Vec(arr) if arr.length() >= 4 => {
         let open_v = arr[0]
@@ -110,7 +110,7 @@ pub fn render_candlesticks(
   let mut si = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Candlestick => {
         let series_elems = render_candlestick_series(series, si - 1, coord)

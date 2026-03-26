@@ -46,7 +46,7 @@ fn append_data_legend_items(
       let selected = @option.LegendOption::is_selected(lg, name)
       items.push((color, name, selected))
     }
-    i = i + 1
+    i += 1
   }
 }
 
@@ -137,8 +137,8 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
         cx + item_w + icon_text_gap,
         icon_cy,
         name,
-        @graphic.TextAnchor::start(),
-        @graphic.TextBaseline::middle(),
+        @graphic.TextAnchor::Start,
+        @graphic.TextBaseline::Middle,
         text_color,
       ),
     )

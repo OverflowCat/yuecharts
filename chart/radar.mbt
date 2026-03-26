@@ -91,20 +91,16 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let mut ri = 0
   while ri < opt.radar.length() {
     let radar_opt = opt.radar[ri]
-    ri = ri + 1
+    ri += 1
     let bg_elems = render_radar_background(radar_opt, opt.width, opt.height)
-    let mut i = 0
-    while i < bg_elems.length() {
-      elems.push(bg_elems[i])
-      i = i + 1
-    }
+    elems.append(bg_elems)
   }
   // Render each radar series
   let mut si = 0
   let mut color_idx = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Radar => ()
       _ => {
@@ -126,11 +122,7 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
       opt.width,
       opt.height,
     )
-    let mut j = 0
-    while j < series_elems.length() {
-      elems.push(series_elems[j])
-      j = j + 1
-    }
+    elems.append(series_elems)
     color_idx = color_idx + 1
   }
   elems
@@ -187,7 +179,7 @@ fn render_radar_background(
       let angle = radar_angle(i, n, start_angle_rad, sign)
       let (px, py) = radar_point(cx, cy, level_r, angle)
       ring_pts.push(@graphic.Point::new(px, py))
-      i = i + 1
+      i += 1
     }
     let ring_color_val = @graphic.Color::from_string(ring_stroke_color).unwrap_or(
       @graphic.black,
@@ -215,7 +207,7 @@ fn render_radar_background(
     let angle = radar_angle(i, n, start_angle_rad, sign)
     let (px, py) = radar_point(cx, cy, r, angle)
     elems.push(@graphic.Element::line_colored(cx, cy, px, py, spoke_color, 1.0))
-    i = i + 1
+    i += 1
   }
 
   // Indicator labels at tip + a small offset
@@ -225,11 +217,11 @@ fn render_radar_background(
     let label_r = r + 15.0
     let (lx, ly) = radar_point(cx, cy, label_r, angle)
     let anchor = if @math.cos(angle) > 0.05 {
-      @graphic.TextAnchor::start()
+      @graphic.TextAnchor::Start
     } else if @math.cos(angle) < -0.05 {
-      @graphic.TextAnchor::end()
+      @graphic.TextAnchor::End
     } else {
-      @graphic.TextAnchor::middle()
+      @graphic.TextAnchor::Middle
     }
     let indicator = radar_opt.indicator[i2]
     elems.push(
@@ -238,11 +230,11 @@ fn render_radar_background(
         ly,
         indicator.name,
         anchor,
-        @graphic.TextBaseline::middle(),
+        @graphic.TextBaseline::Middle,
         label_color,
       ),
     )
-    i2 = i2 + 1
+    i2 += 1
   }
   elems
 }
@@ -292,7 +284,7 @@ pub fn render_radar_series(
     let color = @graphic.Color::from_string(data_color_str).unwrap_or(
       @graphic.black,
     )
-    di = di + 1
+    di += 1
     let values = match item.value {
       Vec(arr) => arr
       _ => continue
@@ -322,7 +314,7 @@ pub fn render_radar_series(
       let angle = radar_angle(i, n, start_angle_rad, sign)
       let (px, py) = radar_point(cx, cy, coord, angle)
       pts.push(@graphic.Point::new(px, py))
-      i = i + 1
+      i += 1
     }
     if pts.length() < 2 {
       continue

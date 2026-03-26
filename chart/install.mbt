@@ -142,7 +142,7 @@ fn register_chart(
         None,
       ),
     )
-    i = i + 1
+    i += 1
   }
   let mut j = 0
   while j < visual_sources.length() {

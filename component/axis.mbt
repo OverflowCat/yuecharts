@@ -17,7 +17,7 @@ pub fn render_axes(
   let mut i = 0
   while i < opt.x_axis.length() {
     render_x_axis(opt.x_axis[i], coord, i, elems)
-    i = i + 1
+    i += 1
   }
   let mut j = 0
   while j < opt.y_axis.length() {
@@ -60,7 +60,7 @@ fn render_x_axis(
       let mut ti = 0
       while ti < ticks.length() {
         let tick = ticks[ti]
-        ti = ti + 1
+        ti += 1
         let px = tick.value
         let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
         let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
@@ -71,16 +71,16 @@ fn render_x_axis(
         )
         let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
         let baseline = if pos == bbox.y {
-          @graphic.TextBaseline::bottom()
+          @graphic.TextBaseline::Bottom
         } else {
-          @graphic.TextBaseline::hanging()
+          @graphic.TextBaseline::Hanging
         }
         elems.push(
           @graphic.Element::text_colored(
             px,
             label_y,
             tick.label,
-            @graphic.TextAnchor::middle(),
+            @graphic.TextAnchor::Middle,
             baseline,
             axis_line_color,
           ),
@@ -92,7 +92,7 @@ fn render_x_axis(
       let mut ti = 0
       while ti < ticks.length() {
         let tick = ticks[ti]
-        ti = ti + 1
+        ti += 1
         let px = s.data_to_pixel(tick.value)
         let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
         let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
@@ -103,16 +103,16 @@ fn render_x_axis(
         )
         let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
         let baseline = if pos == bbox.y {
-          @graphic.TextBaseline::bottom()
+          @graphic.TextBaseline::Bottom
         } else {
-          @graphic.TextBaseline::hanging()
+          @graphic.TextBaseline::Hanging
         }
         elems.push(
           @graphic.Element::text_colored(
             px,
             label_y,
             tick.label,
-            @graphic.TextAnchor::middle(),
+            @graphic.TextAnchor::Middle,
             baseline,
             axis_line_color,
           ),
@@ -155,7 +155,7 @@ fn render_y_axis(
       let mut ti = 0
       while ti < ticks.length() {
         let tick = ticks[ti]
-        ti = ti + 1
+        ti += 1
         let py = tick.value
         let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
         let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
@@ -166,9 +166,9 @@ fn render_y_axis(
         )
         let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
         let anchor = if pos == bbox.x {
-          @graphic.TextAnchor::end()
+          @graphic.TextAnchor::End
         } else {
-          @graphic.TextAnchor::start()
+          @graphic.TextAnchor::Start
         }
         elems.push(
           @graphic.Element::text_colored(
@@ -176,7 +176,7 @@ fn render_y_axis(
             py,
             tick.label,
             anchor,
-            @graphic.TextBaseline::middle(),
+            @graphic.TextBaseline::Middle,
             axis_line_color,
           ),
         )
@@ -187,7 +187,7 @@ fn render_y_axis(
       let mut ti = 0
       while ti < ticks.length() {
         let tick = ticks[ti]
-        ti = ti + 1
+        ti += 1
         let py = s.data_to_pixel(tick.value)
         let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
         let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
@@ -198,9 +198,9 @@ fn render_y_axis(
         )
         let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
         let anchor = if pos == bbox.x {
-          @graphic.TextAnchor::end()
+          @graphic.TextAnchor::End
         } else {
-          @graphic.TextAnchor::start()
+          @graphic.TextAnchor::Start
         }
         elems.push(
           @graphic.Element::text_colored(
@@ -208,7 +208,7 @@ fn render_y_axis(
             py,
             tick.label,
             anchor,
-            @graphic.TextBaseline::middle(),
+            @graphic.TextBaseline::Middle,
             axis_line_color,
           ),
         )

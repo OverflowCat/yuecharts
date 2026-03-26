@@ -16,7 +16,7 @@ fn treemap_complete_tree_value(item : @option.DataItem) -> Double {
   let mut i = 0
   while i < item.children.length() {
     child_sum = child_sum + treemap_complete_tree_value(item.children[i])
-    i = i + 1
+    i += 1
   }
   let own_value = match item.value {
     @option.Num(n) => n
@@ -50,7 +50,7 @@ fn worst_row_score(
         area_min = area
       }
     }
-    i = i + 1
+    i += 1
   }
   let square_area = row_area * row_area
   let f = row_fixed_length * row_fixed_length * ratio
@@ -112,7 +112,7 @@ fn position_row(
       { x: rect.x, y: last, width: row_other_length, height: mod_len }
     }
     last = last + mod_len
-    i = i + 1
+    i += 1
   }
   if horizontal {
     {
@@ -162,7 +162,7 @@ fn layout_squarify(
     let score = worst_row_score(row_areas, row_area, row_fixed_length, ratio)
     if score <= best {
       best = score
-      i = i + 1
+      i += 1
     } else {
       let last_index = row_indices.length() - 1
       row_area = row_area - row_areas[last_index]
@@ -203,7 +203,7 @@ fn sort_children_desc(
   let mut i = 0
   while i < children.length() {
     sorted.push(children[i])
-    i = i + 1
+    i += 1
   }
   let mut a = 0
   while a < sorted.length() {
@@ -239,7 +239,7 @@ fn render_treemap_children(
   let mut i = 0
   while i < sorted.length() {
     value_sum = value_sum + treemap_complete_tree_value(sorted[i])
-    i = i + 1
+    i += 1
   }
   if value_sum <= 0.0 {
     return
@@ -247,7 +247,7 @@ fn render_treemap_children(
   i = 0
   while i < sorted.length() {
     areas.push(treemap_complete_tree_value(sorted[i]) / value_sum * total_area)
-    i = i + 1
+    i += 1
   }
   let rects = layout_squarify(areas, rect)
   let mut ri = 0
@@ -285,8 +285,8 @@ fn render_treemap_children(
             child_rect.x + 6.0,
             child_rect.y + 16.0,
             label,
-            @graphic.TextAnchor::start(),
-            @graphic.TextBaseline::middle(),
+            @graphic.TextAnchor::Start,
+            @graphic.TextBaseline::Middle,
             "#ffffff",
           ),
         )
@@ -306,7 +306,7 @@ fn render_treemap_children(
         )
       }
     }
-    ri = ri + 1
+    ri += 1
   }
 }
 
@@ -320,7 +320,7 @@ pub fn render_treemaps(
   let mut si = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Treemap => ()
       _ => {
@@ -337,7 +337,7 @@ pub fn render_treemaps(
     let mut i = 0
     while i < series_elems.length() {
       elems.push(series_elems[i])
-      i = i + 1
+      i += 1
     }
     color_idx = color_idx + 1
   }

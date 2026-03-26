@@ -36,7 +36,7 @@ fn apply_placeholders(
   while i < keys.length() {
     let (key, value) = keys[i]
     result = replace_all(result, key, value)
-    i = i + 1
+    i += 1
   }
   result
 }
@@ -53,7 +53,7 @@ fn data_value_labels(
       let mut i = 0
       while i < arr.length() {
         labels.push(arr[i].to_string())
-        i = i + 1
+        i += 1
       }
       labels.join(middle_separator)
     }
@@ -114,7 +114,7 @@ fn series_label(
         ("value", data_value_labels(item.value, aria.data_separator_middle)),
       ]),
     )
-    i = i + 1
+    i += 1
   }
   header +
   data_prefix +
@@ -164,7 +164,7 @@ pub fn aria_label(opt : @option.ChartOption) -> String? {
   let mut i = 0
   while i < display_series_count {
     series_labels.push(series_label(aria, opt.series[i], i, series_count))
-    i = i + 1
+    i += 1
   }
   Some(
     result +

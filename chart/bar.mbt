@@ -43,7 +43,7 @@ pub fn render_bar_series(
       let mut di = 0
       while di < nd {
         let item = series.data[di]
-        di = di + 1
+        di += 1
         // Use category at this index
         let cat_px = if di - 1 < s.categories.length() {
           s.band_center(di - 1)
@@ -74,7 +74,7 @@ pub fn render_bar_series(
       let mut di = 0
       while di < nd {
         let item = series.data[di]
-        di = di + 1
+        di += 1
         let (x_val, y_val) = match item.value {
           Num(n) => (di.to_double(), n)
           Vec(arr) =>
@@ -118,16 +118,16 @@ pub fn render_bars(
   while xi_init <= max_xi {
     bar_counts.push(0)
     bar_rank_cursor.push(0)
-    xi_init = xi_init + 1
+    xi_init += 1
   }
   let mut count_i = 0
   while count_i < opt.series.length() {
     let s = opt.series[count_i]
-    count_i = count_i + 1
+    count_i += 1
     match s.series_type {
       Bar => {
         let xi = if s.x_axis_index < max_xi { s.x_axis_index } else { 0 }
-        bar_counts[xi] = bar_counts[xi] + 1
+        bar_counts[xi] += 1
       }
       _ => ()
     }
@@ -137,11 +137,11 @@ pub fn render_bars(
   color_idx = 0
   while sr < opt.series.length() {
     let series = opt.series[sr]
-    sr = sr + 1
+    sr += 1
     match series.series_type {
       Bar => ()
       _ => {
-        color_idx = color_idx + 1
+        color_idx += 1
         continue
       }
     }
@@ -150,12 +150,8 @@ pub fn render_bars(
     let rank = bar_rank_cursor[xi]
     bar_rank_cursor[xi] = rank + 1
     let series_elems = render_bar_series(series, color_idx, coord, rank, total)
-    let mut ei = 0
-    while ei < series_elems.length() {
-      elems.push(series_elems[ei])
-      ei = ei + 1
-    }
-    color_idx = color_idx + 1
+    elems.append(series_elems)
+    color_idx += 1
   }
   elems
 }

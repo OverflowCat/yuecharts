@@ -271,7 +271,7 @@ fn skip_path_separators(d : String, start : Int) -> Int {
   while i < d.length() {
     let ch = d[i].unsafe_to_char()
     if ch == ' ' || ch == '\n' || ch == '\r' || ch == '\t' || ch == ',' {
-      i = i + 1
+      i += 1
     } else {
       break
     }
@@ -287,32 +287,34 @@ fn parse_path_number(d : String, start : Int) -> (Double, Int)? {
   }
   let mut i = i0
   if d[i].unsafe_to_char() == '+' || d[i].unsafe_to_char() == '-' {
-    i = i + 1
+    i += 1
   }
   while i < d.length() &&
         d[i].unsafe_to_char() >= '0' &&
         d[i].unsafe_to_char() <= '9' {
-    i = i + 1
+    i += 1
   }
   if i < d.length() && d[i].unsafe_to_char() == '.' {
-    i = i + 1
+    i += 1
+
     while i < d.length() &&
           d[i].unsafe_to_char() >= '0' &&
           d[i].unsafe_to_char() <= '9' {
-      i = i + 1
+      i += 1
     }
   }
   if i < d.length() &&
     (d[i].unsafe_to_char() == 'e' || d[i].unsafe_to_char() == 'E') {
-    i = i + 1
+    i += 1
+
     if i < d.length() &&
       (d[i].unsafe_to_char() == '+' || d[i].unsafe_to_char() == '-') {
-      i = i + 1
+      i += 1
     }
     while i < d.length() &&
           d[i].unsafe_to_char() >= '0' &&
           d[i].unsafe_to_char() <= '9' {
-      i = i + 1
+      i += 1
     }
   }
   try @strconv.parse_double(d[i0:i].to_string()) catch {
@@ -372,7 +374,7 @@ fn path_symbol_bbox(d : String) -> (Double, Double, Double, Double)? {
     }
     if is_path_command(d[i].unsafe_to_char()) {
       cmd = d[i].unsafe_to_char()
-      i = i + 1
+      i += 1
       if cmd == 'Z' || cmd == 'z' {
         cur_x = start_x
         cur_y = start_y
@@ -806,7 +808,7 @@ fn render_pictorial_bar_series(
       while di < nd {
         let item = series.data[di]
         let data_index = di
-        di = di + 1
+        di += 1
         let item_symbol = item.symbol.unwrap_or(symbol)
         let cat_px = if data_index < s.categories.length() {
           s.band_center(data_index)
@@ -919,7 +921,7 @@ fn render_pictorial_bar_series(
               )
             None => ()
           }
-          ri = ri + 1
+          ri += 1
         }
       }
     }

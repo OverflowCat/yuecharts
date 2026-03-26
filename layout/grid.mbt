@@ -76,7 +76,7 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
   let mut xi = 0
   while xi < opt.x_axis.length() {
     let ax = opt.x_axis[xi]
-    xi = xi + 1
+    xi += 1
     let xs : @coord.XScale = match ax.axis_type {
       Category =>
         @coord.XScale::make_ordinal(make_ordinal_x_scale(ax.data, bbox))
@@ -113,7 +113,7 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
         )
     }
     y_scales.push(ys)
-    yi = yi + 1
+    yi += 1
   }
   @coord.Cartesian2D::new(bbox, x_scales, y_scales)
 }
@@ -129,7 +129,7 @@ fn series_y_range(opt : @option.ChartOption, y_idx : Int) -> (Double, Double) {
   let mut si = 0
   while si < ns {
     let s = opt.series[si]
-    si = si + 1
+    si += 1
     if s.y_axis_index != y_idx {
       continue
     }
@@ -137,7 +137,7 @@ fn series_y_range(opt : @option.ChartOption, y_idx : Int) -> (Double, Double) {
     let mut di = 0
     while di < nd {
       let item = s.data[di]
-      di = di + 1
+      di += 1
       match item.value {
         Num(n) =>
           if first {
@@ -193,7 +193,7 @@ fn series_x_range(opt : @option.ChartOption, x_idx : Int) -> (Double, Double) {
   let mut si = 0
   while si < ns {
     let s = opt.series[si]
-    si = si + 1
+    si += 1
     if s.x_axis_index != x_idx {
       continue
     }
@@ -201,7 +201,7 @@ fn series_x_range(opt : @option.ChartOption, x_idx : Int) -> (Double, Double) {
     let mut di = 0
     while di < nd {
       let item = s.data[di]
-      di = di + 1
+      di += 1
       let v_opt : Double? = match item.value {
         Num(n) => Some(n)
         Vec(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }

@@ -75,7 +75,7 @@ pub fn render_heatmap_series(
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
-    di = di + 1
+    di += 1
     match item.value {
       Vec(arr) if arr.length() >= 3 => {
         let xi = arr[0].to_int()
@@ -135,13 +135,13 @@ pub fn render_heatmaps(
       let mut si = 0
       while si < opt.series.length() {
         let series = opt.series[si]
-        si = si + 1
+        si += 1
         match series.series_type {
           @option.Heatmap => {
             let mut di = 0
             while di < series.data.length() {
               let item = series.data[di]
-              di = di + 1
+              di += 1
               match item.value {
                 Vec(arr) if arr.length() >= 3 => {
                   let v = arr[2]
@@ -175,7 +175,7 @@ pub fn render_heatmaps(
   let mut si = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Heatmap => {
         let series_elems = render_heatmap_series(

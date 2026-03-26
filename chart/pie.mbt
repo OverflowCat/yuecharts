@@ -57,7 +57,7 @@ pub fn render_pies(
   let mut si = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si = si + 1
+    si += 1
     match series.series_type {
       Pie => ()
       _ => {
@@ -74,7 +74,7 @@ pub fn render_pies(
     let mut i = 0
     while i < series_elems.length() {
       elems.push(series_elems[i])
-      i = i + 1
+      i += 1
     }
     color_idx = color_idx + 1
   }
@@ -133,7 +133,7 @@ pub fn render_pie_series(
   let mut di = 0
   while di < nd {
     let item = series.data[di]
-    di = di + 1
+    di += 1
     match item.value {
       Num(n) if n > 0.0 => total = total + n
       _ => ()
@@ -203,9 +203,9 @@ pub fn render_pie_series(
       let ly = cy + label_r * @math.sin(mid_angle)
       // Anchor: left if right half, right if left half
       let anchor = if @math.cos(mid_angle) >= 0.0 {
-        @graphic.TextAnchor::start()
+        @graphic.TextAnchor::Start
       } else {
-        @graphic.TextAnchor::end()
+        @graphic.TextAnchor::End
       }
       elems.push(
         @graphic.Element::text_colored(
@@ -213,7 +213,7 @@ pub fn render_pie_series(
           ly,
           label_name,
           anchor,
-          @graphic.TextBaseline::middle(),
+          @graphic.TextBaseline::Middle,
           "#333333",
         ),
       )
