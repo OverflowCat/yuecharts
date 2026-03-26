@@ -395,3 +395,26 @@ test "pictorial bar symbol offset affects output" {
   assert_true(offset_svg.contains("x=\"121.825\""))
   assert_true(base_svg != offset_svg)
 }
+
+///|
+test "pie legend selection and negative filter affect rendered slices" {
+  let json_str =
+    #|{
+    #|  "width": 800,
+    #|  "height": 600,
+    #|  "legend": {"selected": {"Bananas": false}},
+    #|  "series": [{
+    #|    "type": "pie",
+    #|    "data": [
+    #|      {"value": 40, "name": "Apples"},
+    #|      {"value": 20, "name": "Bananas"},
+    #|      {"value": -5, "name": "Neg"}
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_eq(count_substring(svg, "<path d=\"M 400 300 L"), 1)
+  assert_true(svg.contains("fill=\"#d7dbe3\""))
+  assert_true(svg.contains(">Bananas</text>"))
+  assert_true(!svg.contains("#b6d634"))
+}

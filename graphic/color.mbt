@@ -7,7 +7,7 @@ pub struct Color {
   g : Int
   b : Int
   a : Int
-}
+} derive(Eq)
 
 ///|
 /// Predefined transparent color constant.
