@@ -12,7 +12,7 @@ pub struct StrokeStyle {
 }
 
 ///|
-pub fn StrokeStyle::default() -> StrokeStyle {
+pub impl Default for StrokeStyle with default() {
   { color: black, width: 1.0, dash: [], line_cap: "butt", line_join: "miter" }
 }
 
@@ -23,7 +23,7 @@ pub struct FillStyle {
 }
 
 ///|
-pub fn FillStyle::default() -> FillStyle {
+pub impl Default for FillStyle with default() {
   { color: black }
 }
 
@@ -138,7 +138,7 @@ pub struct TextStyle {
 }
 
 ///|
-pub fn TextStyle::default() -> TextStyle {
+pub impl Default for TextStyle with default() {
   {
     fill: black,
     font_size: 12.0,

@@ -21,12 +21,7 @@ pub struct ItemStyle {
   border_color : String?
   border_width : Double?
   opacity : Double?
-}
-
-///|
-pub fn ItemStyle::default() -> ItemStyle {
-  { color: None, border_color: None, border_width: None, opacity: None }
-}
+} derive(Default)
 
 ///|
 pub fn ItemStyle::resolved_color(self : ItemStyle, index : Int) -> String {
@@ -50,12 +45,7 @@ pub struct LineStyle {
   color : String?
   width : Double?
   dash : Array[Double]?
-}
-
-///|
-pub fn LineStyle::default() -> LineStyle {
-  { color: None, width: None, dash: None }
-}
+} derive(Default)
 
 ///|
 pub fn LineStyle::resolved_width(self : LineStyle) -> Double {

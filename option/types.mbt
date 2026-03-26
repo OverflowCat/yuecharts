@@ -78,7 +78,7 @@ pub(all) enum SizeSpec {
 }
 
 ///|
-pub fn GridOption::default() -> GridOption {
+pub impl Default for GridOption with default() {
   // ECharts default: left='15%', right='10%', top=65, bottom=80
   // See echarts/src/coord/cartesian/GridModel.ts
   {
@@ -324,7 +324,7 @@ pub struct TitleOption {
 }
 
 ///|
-pub fn TitleOption::default() -> TitleOption {
+pub impl Default for TitleOption with default() {
   // ECharts default: left='center', top='auto'
   // See echarts/src/component/title/install.ts
   { text: "", subtext: "", left: "center", top: "auto" }
@@ -348,7 +348,7 @@ pub struct LegendOption {
 }
 
 ///|
-pub fn LegendOption::default() -> LegendOption {
+pub impl Default for LegendOption with default() {
   // ECharts default: left:"center", bottom:15 (tokens.size.m), orient:"horizontal"
   {
     show: true,
@@ -395,7 +395,7 @@ pub struct RadarOption {
 }
 
 ///|
-pub fn RadarOption::default() -> RadarOption {
+pub impl Default for RadarOption with default() {
   {
     indicator: [],
     center: ["50%", "50%"],
@@ -432,7 +432,7 @@ pub struct AriaOption {
 }
 
 ///|
-pub fn AriaOption::default() -> AriaOption {
+pub impl Default for AriaOption with default() {
   {
     enabled: false,
     label_enabled: true,
@@ -467,7 +467,7 @@ pub struct VisualMapOption {
 }
 
 ///|
-pub fn VisualMapOption::default() -> VisualMapOption {
+pub impl Default for VisualMapOption with default() {
   { min: 0.0, max: 100.0 }
 }
 
@@ -491,7 +491,7 @@ pub(all) struct ChartOption {
 ///|
 
 ///|
-pub fn ChartOption::default() -> ChartOption {
+pub impl Default for ChartOption with default() {
   {
     width: 800.0,
     height: 600.0,
