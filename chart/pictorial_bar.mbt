@@ -7,18 +7,12 @@ fn pictorial_symbol_color(
   series : @option.SeriesOption,
   series_index : Int,
 ) -> String {
-  match series.color {
-    Some(c) => c
-    None => @visual.palette_color(series_index)
-  }
+  series.color.unwrap_or(@visual.palette_color(series_index))
 }
 
 ///|
 fn pictorial_symbol_opacity(series : @option.SeriesOption) -> Double {
-  match series.item_opacity {
-    Some(opacity) => opacity
-    None => 1.0
-  }
+  series.item_opacity.unwrap_or(1.0)
 }
 
 ///|
@@ -28,17 +22,13 @@ fn pictorial_bar_repeat_times(
   unit_length : Double,
 ) -> Int {
   match series.symbol_repeat_count {
-    Some(count) => if count > 0 { count } else { 1 }
+    Some(count) => count.max(1)
     None =>
       match series.symbol_repeat {
         Some("true") | Some("fixed") => {
           let unit = if unit_length > 0.0 { unit_length } else { 1.0 }
           let times = (bar_length / unit).to_int()
-          if times > 0 {
-            times
-          } else {
-            1
-          }
+          times.max(1)
         }
         _ => 1
       }
@@ -75,10 +65,7 @@ fn pictorial_margin_px(series : @option.SeriesOption, unit : Double) -> Double {
 
 ///|
 fn has_end_gap(series : @option.SeriesOption) -> Bool {
-  match series.symbol_margin {
-    Some(margin) => margin.has_suffix("!")
-    None => false
-  }
+  series.symbol_margin.unwrap_or("").has_suffix("!")
 }
 
 ///|
@@ -92,10 +79,7 @@ fn parse_offset_component(value : String, reference : Double) -> Double {
     }
   } else {
     let parsed = try? @strconv.parse_double(value)
-    match parsed {
-      Ok(px) => px
-      Err(_) => 0.0
-    }
+    parsed.unwrap_or(0.0)
   }
 }
 
@@ -110,10 +94,7 @@ fn parse_symbol_size_component(value : String, reference : Double) -> Double {
     }
   } else {
     let parsed = try? @strconv.parse_double(value)
-    match parsed {
-      Ok(px) => px
-      Err(_) => reference
-    }
+    parsed.unwrap_or(reference)
   }
 }
 
@@ -196,11 +177,7 @@ fn pictorial_bounding_length(
     Some(@option.Pair(a, b)) => {
       let da = (coord.num_y(y_idx, a) - zero_y).abs()
       let db = (coord.num_y(y_idx, b) - zero_y).abs()
-      if da > db {
-        da
-      } else {
-        db
-      }
+      da.max(db)
     }
     None =>
       match series.symbol_repeat {
@@ -253,26 +230,29 @@ fn round_rect_path(
 
 ///|
 fn is_path_command(ch : Char) -> Bool {
-  ch == 'M' ||
-  ch == 'm' ||
-  ch == 'L' ||
-  ch == 'l' ||
-  ch == 'H' ||
-  ch == 'h' ||
-  ch == 'V' ||
-  ch == 'v' ||
-  ch == 'C' ||
-  ch == 'c' ||
-  ch == 'S' ||
-  ch == 's' ||
-  ch == 'Q' ||
-  ch == 'q' ||
-  ch == 'T' ||
-  ch == 't' ||
-  ch == 'A' ||
-  ch == 'a' ||
-  ch == 'Z' ||
-  ch == 'z'
+  match ch {
+    'M'
+    | 'm'
+    | 'L'
+    | 'l'
+    | 'H'
+    | 'h'
+    | 'V'
+    | 'v'
+    | 'C'
+    | 'c'
+    | 'S'
+    | 's'
+    | 'Q'
+    | 'q'
+    | 'T'
+    | 't'
+    | 'A'
+    | 'a'
+    | 'Z'
+    | 'z' => true
+    _ => false
+  }
 }
 
 ///|
@@ -335,9 +315,10 @@ fn parse_path_number(d : String, start : Int) -> (Double, Int)? {
       i = i + 1
     }
   }
-  match (try? @strconv.parse_double(d[i0:i].to_string())) {
-    Ok(value) => Some((value, i))
-    Err(_) => None
+  try @strconv.parse_double(d[i0:i].to_string()) catch {
+    _ => None
+  } noraise {
+    value => Some((value, i))
   }
 }
 
@@ -788,13 +769,8 @@ fn render_pictorial_bar_series(
   let elems : Array[@graphic.Element] = []
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
-  let color = pictorial_symbol_color(series, series_index)
-  let opacity = pictorial_symbol_opacity(series)
   let zero_y = value_axis_zero_y(coord, y_idx)
-  let symbol = match series.symbol {
-    Some(s) => s
-    None => "circle"
-  }
+  let symbol = series.symbol.unwrap_or("circle")
   if x_idx >= coord.x_scales.length() {
     return elems
   }
@@ -831,10 +807,7 @@ fn render_pictorial_bar_series(
         let item = series.data[di]
         let data_index = di
         di = di + 1
-        let item_symbol = match item.symbol {
-          Some(s) => s
-          None => symbol
-        }
+        let item_symbol = item.symbol.unwrap_or(symbol)
         let cat_px = if data_index < s.categories.length() {
           s.band_center(data_index)
         } else {
@@ -878,16 +851,12 @@ fn render_pictorial_bar_series(
         if symbol_repeat {
           let end_gap = has_end_gap(series)
           let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
-          let denom = if end_gap {
-            if repeat_times > 0 {
-              repeat_times
-            } else {
-              1
-            }
-          } else if repeat_times > 1 {
-            repeat_times - 1
-          } else {
-            1
+          let denom = match (end_gap, repeat_times) {
+            // (true, _..=0) => 1
+            // (false, _..=1) => 1
+            (_, _..=1) => 1
+            (true, _) => repeat_times
+            (false, _) => repeat_times - 1
           }
           let m_diff = bounding_length.abs() -
             repeat_times.to_double() * symbol_h
@@ -944,8 +913,8 @@ fn render_pictorial_bar_series(
                   symbol_y,
                   symbol_w,
                   visible_h,
-                  color,
-                  opacity,
+                  pictorial_symbol_color(series, series_index),
+                  series |> pictorial_symbol_opacity,
                 ),
               )
             None => ()
