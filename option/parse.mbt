@@ -325,10 +325,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
 ///|
 fn parse_data_item(j : Json) -> DataItem {
   match j {
-    Number(n, ..) => { value: DataValue::Num(n), name: None, children: [] }
-    Null => { value: DataValue::Null, name: None, children: [] }
-    True => { value: DataValue::Num(1.0), name: None, children: [] }
-    False => { value: DataValue::Num(0.0), name: None, children: [] }
+    Number(n, ..) => { value: DataValue::Num(n), name: None, symbol: None, children: [] }
+    Null => { value: DataValue::Null, name: None, symbol: None, children: [] }
+    True => { value: DataValue::Num(1.0), name: None, symbol: None, children: [] }
+    False => { value: DataValue::Num(0.0), name: None, symbol: None, children: [] }
     Array(arr) => {
       let nums = arr.map(fn(v) {
         match v {
@@ -336,7 +336,7 @@ fn parse_data_item(j : Json) -> DataItem {
           _ => 0.0
         }
       })
-      { value: DataValue::Vec(nums), name: None, children: [] }
+      { value: DataValue::Vec(nums), name: None, symbol: None, children: [] }
     }
     Object(_) => {
       let v = match j_field(j, "value") {
@@ -356,13 +356,17 @@ fn parse_data_item(j : Json) -> DataItem {
         Some(String(s)) => Some(s)
         _ => None
       }
+      let symbol = match j_field(j, "symbol") {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
       let children = match j_field(j, "children") {
         Some(Array(arr)) => arr.map(parse_data_item)
         _ => []
       }
-      { value: v, name, children }
+      { value: v, name, symbol, children }
     }
-    _ => { value: DataValue::Null, name: None, children: [] }
+    _ => { value: DataValue::Null, name: None, symbol: None, children: [] }
   }
 }
 

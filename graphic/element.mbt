@@ -320,6 +320,14 @@ pub fn Element::group(children : Array[Element]) -> Element {
 }
 
 ///|
+pub fn Element::group_transformed(
+  children : Array[Element],
+  transform : Matrix,
+) -> Element {
+  Group({ ..GroupData::new(children), transform: Some(transform) })
+}
+
+///|
 pub fn Element::rect(x : Double, y : Double, w : Double, h : Double) -> Element {
   Rect(RectData::new(x, y, w, h))
 }

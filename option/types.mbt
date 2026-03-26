@@ -125,6 +125,7 @@ pub enum DataValue {
 pub struct DataItem {
   value : DataValue
   name : String?
+  symbol : String?
   children : Array[DataItem]
 }
 
