@@ -91,7 +91,7 @@ fn filter_series_data_by_legend(
     }
     i = i + 1
   }
-  @option.SeriesOption::with_data(series, filtered)
+  { ..series, data: filtered }
 }
 
 ///|
@@ -111,7 +111,7 @@ fn filter_series_negative_values(
     }
     i = i + 1
   }
-  @option.SeriesOption::with_data(series, filtered)
+  { ..series, data: filtered }
 }
 
 ///|
@@ -140,7 +140,7 @@ fn apply_processor_to_option(
     next_series.push(next)
     i = i + 1
   }
-  @option.ChartOption::with_series(opt, next_series)
+  { ..opt, series: next_series }
 }
 
 ///|
