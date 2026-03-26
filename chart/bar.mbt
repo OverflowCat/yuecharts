@@ -56,6 +56,7 @@ pub fn render_bar_series(
         let value = match item.value {
           Num(n) => n
           Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
+          DateValue(_, n) => n
           Null => 0.0
         }
         let top_y = coord.num_y(y_idx, value)
@@ -85,6 +86,7 @@ pub fn render_bar_series(
             } else {
               (di.to_double(), 0.0)
             }
+          DateValue(_, n) => (di.to_double(), n)
           Null => (di.to_double(), 0.0)
         }
         let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5

@@ -345,9 +345,9 @@ E:\recharts\echarts\src
 │   │       └── textCoord.ts =>  [missing] Feature: geo label coord fixup
 │   │
 │   ├── calendar
-│   │   ├── Calendar.ts =>  [missing] Feature: calendar coordinate system
-│   │   ├── CalendarModel.ts =>  [missing] Feature: calendar model
-│   │   └── prepareCustom.ts =>  [missing] Feature: calendar custom adapter
+│   │   ├── Calendar.ts => coord/calendar.mbt [translated] Feature: calendar coordinate system
+│   │   ├── CalendarModel.ts => option/types.mbt, option/parse.mbt [partial] Feature: calendar model
+│   │   └── prepareCustom.ts => coord/calendar.mbt [translated] Feature: calendar custom adapter
 │   │
 │   └── matrix
 │       ├── Matrix.ts =>  [missing] Feature: matrix coordinate system
@@ -584,8 +584,8 @@ E:\recharts\echarts\src
 │   │   └── visualEncoding.ts =>  [missing] Feature: brush visual encoding
 │   │
 │   ├── calendar
-│   │   ├── install.ts =>  [missing] Feature: calendar install
-│   │   └── CalendarView.ts =>  [missing] Feature: calendar view
+│   │   ├── install.ts => component/install.mbt [partial] Feature: calendar install
+│   │   └── CalendarView.ts => component/calendar.mbt [translated] Feature: calendar view
 │   │
 │   ├── matrix
 │   │   ├── install.ts =>  [missing] Feature: matrix install
@@ -755,9 +755,9 @@ E:\recharts\echarts\src
 │   │
 │   ├── heatmap
 │   │   ├── HeatmapLayer.ts =>  [missing] Feature: canvas heatmap layer
-│   │   ├── HeatmapSeries.ts => chart/heatmap.mbt [partial] Feature: heatmap series model
-│   │   ├── HeatmapView.ts => chart/heatmap.mbt [translated] Feature: heatmap renderer
-│   │   └── install.ts => chart/heatmap.mbt [partial] Feature: heatmap install
+│   │   ├── HeatmapSeries.ts => chart/heatmap.mbt, option/types.mbt, option/parse.mbt [partial] Feature: heatmap series model incl. calendar coordinateSystem/data parsing
+│   │   ├── HeatmapView.ts => chart/heatmap.mbt [translated] Feature: heatmap renderer incl. calendar branch
+│   │   └── install.ts => chart/install.mbt, chart/heatmap.mbt [partial] Feature: heatmap install
 │   │
 │   ├── candlestick
 │   │   ├── candlestickLayout.ts => chart/candlestick.mbt [translated] Feature: candlestick layout

@@ -1,9 +1,7 @@
 // Corresponds to: echarts/src/component/calendar/CalendarView.ts
 
 ///|
-let weekday_short_names : Array[String] = [
-  "S", "M", "T", "W", "T", "F", "S",
-]
+let weekday_short_names : Array[String] = ["S", "M", "T", "W", "T", "F", "S"]
 
 ///|
 let month_abbr_names : Array[String] = [
@@ -59,9 +57,9 @@ fn render_day_rect(
   let sw = coord_sys.get_cell_width()
   let sh = coord_sys.get_cell_height()
   let item_style = calendar_model.item_style
-  let mut current_time = range_data.start.time
-  while current_time <= range_data.end.time {
-    let point = coord_sys.data_to_calendar_layout(current_time.to_string(), clamp=false).tl
+  let mut current = range_data.start.formated_date
+  while true {
+    let point = coord_sys.data_to_calendar_layout(current, clamp=false).tl
     elems.push(
       @graphic.Element::rect_fill_stroke(
         point.x,
@@ -73,7 +71,10 @@ fn render_day_rect(
         item_style.border_width,
       ),
     )
-    current_time = coord_sys.get_next_n_day(current_time.to_string(), 1).time
+    if current == range_data.end.formated_date {
+      break
+    }
+    current = coord_sys.get_next_n_day(current, 1).formated_date
   }
 }
 
@@ -102,9 +103,14 @@ fn render_lines(
       elems,
     )
     if i == 0 {
-      first_day = coord_sys.get_date_info(range_data.start.y + "-" + range_data.start.m)
+      first_day = coord_sys.get_date_info(
+        range_data.start.y + "-" + range_data.start.m,
+      )
     }
-    let next = next_month(to_int_or(first_day.y, 1970), to_int_or(first_day.m, 1))
+    let next = next_month(
+      to_int_or(first_day.y, 1970),
+      to_int_or(first_day.m, 1),
+    )
     first_day = coord_sys.get_date_info(format_date(next.0, next.1, 1))
     i += 1
   }
@@ -112,14 +118,22 @@ fn render_lines(
     state,
     calendar_model,
     coord_sys,
-    coord_sys.get_next_n_day(range_data.end.time.to_string(), 1).formated_date,
+    coord_sys.get_next_n_day(range_data.end.formated_date, 1).formated_date,
     orient,
     show,
     elems,
   )
   if show && state.tlpoints.length() > 0 {
-    draw_splitline(get_edges_points(state.tlpoints, line_width, orient), line_style, elems)
-    draw_splitline(get_edges_points(state.blpoints, line_width, orient), line_style, elems)
+    draw_splitline(
+      get_edges_points(state.tlpoints, line_width, orient),
+      line_style,
+      elems,
+    )
+    draw_splitline(
+      get_edges_points(state.blpoints, line_width, orient),
+      line_style,
+      elems,
+    )
   }
   state
 }
@@ -135,8 +149,12 @@ fn add_line_points(
   elems : Array[@graphic.Element],
 ) -> Unit {
   state.first_day_of_month.push(coord_sys.get_date_info(date))
-  state.first_day_points.push(coord_sys.data_to_calendar_layout(date, clamp=false).tl)
-  let points = get_line_points_of_one_week(calendar_model, coord_sys, date, orient)
+  state.first_day_points.push(
+    coord_sys.data_to_calendar_layout(date, clamp=false).tl,
+  )
+  let points = get_line_points_of_one_week(
+    calendar_model, coord_sys, date, orient,
+  )
   state.tlpoints.push(points[0])
   state.blpoints.push(points[points.length() - 1])
   if show {
@@ -190,19 +208,36 @@ fn get_line_points_of_one_week(
   orient : String,
 ) -> Array[@graphic.Point] {
   let parsed_date = coord_sys.get_date_info(date)
-  let points : Array[@graphic.Point] = []
+  let nan = 0.0 / 0.0
+  let slots : Array[@graphic.Point] = []
   let mut j = 0
   while j < 14 {
-    points.push(@graphic.Point::new(0.0, 0.0))
+    slots.push(@graphic.Point::new(nan, nan))
     j += 1
   }
   let mut i = 0
   while i < 7 {
-    let tmp_d = coord_sys.get_next_n_day(parsed_date.time.to_string(), i)
-    let point = coord_sys.data_to_calendar_layout(tmp_d.time.to_string(), clamp=false)
-    points[2 * tmp_d.day] = point.tl
-    points[2 * tmp_d.day + 1] = if orient == "horizontal" { point.bl } else { point.tr }
+    let tmp_d = coord_sys.get_next_n_day(parsed_date.formated_date, i)
+    let point = coord_sys.data_to_calendar_layout(
+      tmp_d.formated_date,
+      clamp=false,
+    )
+    slots[2 * tmp_d.day] = point.tl
+    slots[2 * tmp_d.day + 1] = if orient == "horizontal" {
+      point.bl
+    } else {
+      point.tr
+    }
     i += 1
+  }
+  let points : Array[@graphic.Point] = []
+  let mut k = 0
+  while k < slots.length() {
+    let point = slots[k]
+    if point.x == point.x && point.y == point.y {
+      points.push(point)
+    }
+    k += 1
   }
   points
 }
@@ -237,7 +272,9 @@ fn render_year_text(
   elems : Array[@graphic.Element],
 ) -> Unit {
   let year_label = calendar_model.year_label
-  if !year_label.show || line_state.tlpoints.length() == 0 || line_state.blpoints.length() == 0 {
+  if !year_label.show ||
+    line_state.tlpoints.length() == 0 ||
+    line_state.blpoints.length() == 0 {
     return
   }
   let margin = year_label.margin
@@ -251,10 +288,30 @@ fn render_year_text(
   let yc = (last_tl.y + first_bl.y) / 2.0
   let idx = if orient == "horizontal" { 0 } else { 1 }
   let pos_point = match pos {
-    "top" => if idx == 0 { @graphic.Point::new(xc, last_tl.y) } else { @graphic.Point::new(xc, first_bl.y) }
-    "bottom" => if idx == 0 { @graphic.Point::new(xc, first_bl.y) } else { @graphic.Point::new(xc, last_tl.y) }
-    "left" => if idx == 0 { @graphic.Point::new(first_bl.x, yc) } else { @graphic.Point::new(last_tl.x, yc) }
-    _ => if idx == 0 { @graphic.Point::new(last_tl.x, yc) } else { @graphic.Point::new(first_bl.x, yc) }
+    "top" =>
+      if idx == 0 {
+        @graphic.Point::new(xc, last_tl.y)
+      } else {
+        @graphic.Point::new(xc, first_bl.y)
+      }
+    "bottom" =>
+      if idx == 0 {
+        @graphic.Point::new(xc, first_bl.y)
+      } else {
+        @graphic.Point::new(xc, last_tl.y)
+      }
+    "left" =>
+      if idx == 0 {
+        @graphic.Point::new(first_bl.x, yc)
+      } else {
+        @graphic.Point::new(last_tl.x, yc)
+      }
+    _ =>
+      if idx == 0 {
+        @graphic.Point::new(last_tl.x, yc)
+      } else {
+        @graphic.Point::new(first_bl.x, yc)
+      }
   }
   let mut name = range_data.start.y
   if to_int_or(range_data.end.y, 0) > to_int_or(range_data.start.y, 0) {
@@ -282,46 +339,45 @@ fn year_text_element(
 ) -> @graphic.Element {
   let mut x = point.x
   let mut y = point.y
-  let mut baseline = @graphic.TextBaseline::Bottom
-  let mut rotation = 0.0
   match position {
-    "bottom" => {
-      y += margin
-      baseline = @graphic.TextBaseline::Hanging
-    }
-    "left" => {
-      x -= margin
-      rotation = 3.141592653589793 / 2.0
-      baseline = @graphic.TextBaseline::Bottom
-    }
-    "right" => {
-      x += margin
-      rotation = 3.141592653589793 / 2.0
-      baseline = @graphic.TextBaseline::Hanging
-    }
-    _ => {
-      y -= margin
-      baseline = @graphic.TextBaseline::Bottom
-    }
+    "bottom" => y += margin
+    "left" => x -= margin
+    "right" => x += margin
+    _ => y -= margin
   }
-  let text = @graphic.Element::text_custom(
-    x,
-    y,
-    content,
-    @graphic.TextAnchor::Middle,
-    baseline,
-    label.color,
-    label.font_size,
-    label.font_family,
-    label.font_weight,
-  )
-  if rotation == 0.0 {
-    text
-  } else {
-    let transform = @graphic.Matrix::translate(x, y)
-      .then(@graphic.Matrix::rotate(rotation))
-      .then(@graphic.Matrix::translate(-x, -y))
+  if position == "left" || position == "right" {
+    let inner_y = if position == "left" {
+      -label.font_size / 2.0
+    } else {
+      label.font_size / 2.0
+    }
+    let text = @graphic.Element::text_custom(
+      0.0,
+      inner_y,
+      content,
+      @graphic.TextAnchor::Middle,
+      @graphic.TextBaseline::Central,
+      label.color,
+      label.font_size,
+      label.font_family,
+      label.font_weight,
+    )
+    let transform = @graphic.Matrix::translate(x, y).then(
+      @graphic.Matrix::rotate(-3.141592653589793 / 2.0),
+    )
     @graphic.Element::group_transformed([text], transform)
+  } else {
+    @graphic.Element::text_custom(
+      x,
+      y,
+      content,
+      @graphic.TextAnchor::Middle,
+      @graphic.TextBaseline::Central,
+      label.color,
+      label.font_size,
+      label.font_family,
+      label.font_weight,
+    )
   }
 }
 
@@ -348,7 +404,11 @@ fn render_month_text(
   if pos == "start" {
     margin = -margin
   }
-  let term_points = if idx == 0 { line_state.tlpoints } else { line_state.blpoints }
+  let term_points = if idx == 0 {
+    line_state.tlpoints
+  } else {
+    line_state.blpoints
+  }
   let mut i = 0
   while i < term_points.length() - 1 {
     let mut point = term_points[i]
@@ -363,7 +423,11 @@ fn render_month_text(
       }
     }
     let month_idx = to_int_or(first_day.m, 1) - 1
-    let name = if month_idx >= 0 && month_idx < name_map.length() { name_map[month_idx] } else { first_day.m }
+    let name = if month_idx >= 0 && month_idx < name_map.length() {
+      name_map[month_idx]
+    } else {
+      first_day.m
+    }
     let yy = if first_day.y.length() >= 2 {
       first_day.y[first_day.y.length() - 2:first_day.y.length()].to_string()
     } else {
@@ -380,7 +444,11 @@ fn render_month_text(
       ],
       name,
     )
-    elems.push(month_text_element(month_label, content, point, is_center, orient, pos, margin))
+    elems.push(
+      month_text_element(
+        month_label, content, point, is_center, orient, pos, margin,
+      ),
+    )
     i += 1
   }
 }
@@ -398,19 +466,21 @@ fn month_text_element(
   let mut x = point.x
   let mut y = point.y
   let mut anchor = @graphic.TextAnchor::Start
-  let mut baseline = @graphic.TextBaseline::Hanging
+  let mut baseline = @graphic.TextBaseline::Central
   if orient == "horizontal" {
     y += margin
     if is_center {
       anchor = @graphic.TextAnchor::Middle
     }
     if position == "start" {
-      baseline = @graphic.TextBaseline::Bottom
+      y -= label.font_size / 2.0
+    } else {
+      y += label.font_size / 2.0
     }
   } else {
     x += margin
     if is_center {
-      baseline = @graphic.TextBaseline::Middle
+      baseline = @graphic.TextBaseline::Central
     }
     if position == "start" {
       anchor = @graphic.TextAnchor::End
@@ -450,20 +520,37 @@ fn render_week_text(
   let cell_size = [coord_sys.get_cell_width(), coord_sys.get_cell_height()]
   let mut margin = parse_percent(
     day_label.margin,
-    if cell_size[1] < cell_size[0] { cell_size[1] } else { cell_size[0] },
+    if cell_size[1] < cell_size[0] {
+      cell_size[1]
+    } else {
+      cell_size[0]
+    },
   )
-  let mut start = coord_sys.get_next_n_day(range_data.end.time.to_string(), 7 - range_data.lweek).time
+  let mut start = coord_sys.get_next_n_day(
+      range_data.end.formated_date,
+      7 - range_data.lweek,
+    ).formated_date
   if pos == "start" {
-    start = coord_sys.get_next_n_day(range_data.start.time.to_string(), -(7 + range_data.fweek)).time
+    start = coord_sys.get_next_n_day(
+        range_data.start.formated_date,
+        -(7 + range_data.fweek),
+      ).formated_date
     margin = -margin
   }
   let mut i = 0
   while i < 7 {
-    let tmp_d = coord_sys.get_next_n_day(start.to_string(), i)
-    let point = coord_sys.data_to_calendar_layout(tmp_d.time.to_string(), clamp=false).center
+    let tmp_d = coord_sys.get_next_n_day(start, i)
+    let point = coord_sys.data_to_calendar_layout(
+        tmp_d.formated_date,
+        clamp=false,
+      ).center
     let day = positive_mod(i + first_day_of_week, 7)
     let content = if day < name_map.length() { name_map[day] } else { "" }
-    elems.push(week_text_element(day_label, content, point, orient, pos, margin, cell_size))
+    elems.push(
+      week_text_element(
+        day_label, content, point, orient, pos, margin, cell_size,
+      ),
+    )
     i += 1
   }
 }
@@ -482,13 +569,21 @@ fn week_text_element(
   let mut y = point.y
   let is_start = position == "start"
   let mut anchor = @graphic.TextAnchor::Middle
-  let mut baseline = @graphic.TextBaseline::Middle
+  let mut baseline = @graphic.TextBaseline::Central
   if orient == "horizontal" {
     x = x + margin + (if is_start { 1.0 } else { -1.0 }) * cell_size[0] / 2.0
-    anchor = if is_start { @graphic.TextAnchor::End } else { @graphic.TextAnchor::Start }
+    anchor = if is_start {
+      @graphic.TextAnchor::End
+    } else {
+      @graphic.TextAnchor::Start
+    }
   } else {
     y = y + margin + (if is_start { 1.0 } else { -1.0 }) * cell_size[1] / 2.0
-    baseline = if is_start { @graphic.TextBaseline::Bottom } else { @graphic.TextBaseline::Top }
+    baseline = if is_start {
+      @graphic.TextBaseline::Central
+    } else {
+      @graphic.TextBaseline::Central
+    }
   }
   @graphic.Element::text_custom(
     x,

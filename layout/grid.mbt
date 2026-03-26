@@ -171,6 +171,19 @@ fn series_y_range(opt : @option.ChartOption, y_idx : Int) -> (Double, Double) {
             }
           }
         }
+        DateValue(_, n) =>
+          if first {
+            lo = n
+            hi = n
+            first = false
+          } else {
+            if n < lo {
+              lo = n
+            }
+            if n > hi {
+              hi = n
+            }
+          }
         Null => ()
       }
     }
@@ -205,6 +218,7 @@ fn series_x_range(opt : @option.ChartOption, x_idx : Int) -> (Double, Double) {
       let v_opt : Double? = match item.value {
         Num(n) => Some(n)
         Vec(arr) => if arr.length() > 0 { Some(arr[0]) } else { None }
+        DateValue(_, n) => Some(n)
         Null => None
       }
       match v_opt {

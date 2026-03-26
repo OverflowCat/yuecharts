@@ -168,6 +168,7 @@ pub fn render_gauge_series(
     match series.data[0].value {
       @option.Num(n) => n
       @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { min_v }
+      @option.DateValue(_, n) => n
       @option.Null => min_v
     }
   } else {

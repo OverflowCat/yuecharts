@@ -83,6 +83,27 @@ pub fn render_scatter_series(
             ),
           )
         }
+      DateValue(_, n) => {
+        let px = if x_idx < coord.x_scales.length() {
+          match coord.x_scales[x_idx] {
+            Ordinal(s) => s.band_center(di - 1)
+            Linear(s) =>
+              s.range_min +
+              (di - 1).to_double() * (s.range_max - s.range_min) / nd_f
+          }
+        } else {
+          coord.bbox.x
+        }
+        let py = coord.num_y(y_idx, n)
+        elems.push(
+          @graphic.Element::circle_colored(
+            px,
+            py,
+            series.symbol_size * 0.5,
+            color,
+          ),
+        )
+      }
     }
   }
   elems

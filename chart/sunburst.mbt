@@ -7,6 +7,7 @@ fn data_item_value(item : @option.DataItem) -> Double {
   let derived = match item.value {
     @option.Num(n) => n
     @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { 0.0 }
+    @option.DateValue(_, n) => n
     @option.Null => {
       let mut sum = 0.0
       let mut i = 0
@@ -35,6 +36,7 @@ fn complete_tree_value(item : @option.DataItem) -> Double {
   let own_value = match item.value {
     @option.Num(n) => n
     @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { child_sum }
+    @option.DateValue(_, n) => n
     @option.Null => child_sum
   }
   if own_value < 0.0 {

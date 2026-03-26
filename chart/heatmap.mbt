@@ -117,10 +117,52 @@ pub fn render_heatmap_series(
 }
 
 ///|
+fn render_calendar_heatmap_series(
+  series : @option.SeriesOption,
+  series_index : Int,
+  calendar : @coord.Calendar,
+  vm_min : Double,
+  vm_max : Double,
+) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  let _ = series_index
+  let v_span = if vm_max > vm_min { vm_max - vm_min } else { 1.0 }
+  let mut di = 0
+  while di < series.data.length() {
+    let item = series.data[di]
+    di += 1
+    match item.value {
+      DateValue(date, v) => {
+        let layout = calendar.data_to_layout(date)
+        if layout.x.is_nan() || layout.y.is_nan() {
+          ()
+        } else {
+          let t = (v - vm_min) / v_span
+          let t_clamped = if t < 0.0 { 0.0 } else if t > 1.0 { 1.0 } else { t }
+          let cell_color = visual_map_color(t_clamped)
+          elems.push(
+            @graphic.Element::rect_colored(
+              layout.x,
+              layout.y,
+              layout.width,
+              layout.height,
+              cell_color.to_svg(),
+            ),
+          )
+        }
+      }
+      _ => ()
+    }
+  }
+  elems
+}
+
+///|
 /// Render all heatmap series from a ChartOption to scene graph elements.
 pub fn render_heatmaps(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
+  calendar? : @coord.Calendar,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   // Determine visualMap range: use explicit visualMap.min/max if present,
@@ -158,6 +200,19 @@ pub fn render_heatmaps(
                     }
                   }
                 }
+                DateValue(_, v) =>
+                  if first {
+                    dmin = v
+                    dmax = v
+                    first = false
+                  } else {
+                    if v < dmin {
+                      dmin = v
+                    }
+                    if v > dmax {
+                      dmax = v
+                    }
+                  }
                 _ => ()
               }
             }
@@ -178,18 +233,22 @@ pub fn render_heatmaps(
     si += 1
     match series.series_type {
       Heatmap => {
-        let series_elems = render_heatmap_series(
-          series,
-          si - 1,
-          coord,
-          vm_min,
-          vm_max,
-        )
-        let mut ei = 0
-        while ei < series_elems.length() {
-          elems.push(series_elems[ei])
-          ei = ei + 1
+        let series_elems = if series.coordinate_system == Some("calendar") {
+          match calendar {
+            Some(calendar) =>
+              render_calendar_heatmap_series(
+                series,
+                si - 1,
+                calendar,
+                vm_min,
+                vm_max,
+              )
+            None => []
+          }
+        } else {
+          render_heatmap_series(series, si - 1, coord, vm_min, vm_max)
         }
+        elems.append(series_elems)
       }
       _ => ()
     }

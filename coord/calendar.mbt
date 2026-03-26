@@ -133,8 +133,14 @@ pub fn Calendar::build(opt : @option.ChartOption) -> Calendar? {
   let range = init_range_option(first_day_of_week, model.range)
   let range_info = get_range_info(first_day_of_week, range)
   let weeks = if range_info.weeks > 0 { range_info.weeks } else { 1 }
-  let cell_numbers = if orient == "horizontal" { (weeks, 7) } else { (7, weeks) }
-  let (layout_width, layout_height) = compute_calendar_size(model, opt, cell_numbers)
+  let cell_numbers = if orient == "horizontal" {
+    (weeks, 7)
+  } else {
+    (7, weeks)
+  }
+  let (layout_width, layout_height) = compute_calendar_size(
+    model, opt, cell_numbers,
+  )
   let x = compute_calendar_x(model, opt.width, layout_width)
   let y = compute_calendar_y(model, opt.height, layout_height)
   let rect = @graphic.BBox::new(x, y, layout_width, layout_height)
@@ -177,24 +183,34 @@ fn compute_calendar_size(
 }
 
 ///|
-fn compute_calendar_x(model : @option.CalendarOption, total_width : Double, layout_width : Double) -> Double {
+fn compute_calendar_x(
+  model : @option.CalendarOption,
+  total_width : Double,
+  layout_width : Double,
+) -> Double {
   match model.left {
     Some(spec) => resolve_size(spec, total_width)
     None =>
       match model.right {
-        Some(spec) => total_width - resolve_size(spec, total_width) - layout_width
+        Some(spec) =>
+          total_width - resolve_size(spec, total_width) - layout_width
         None => 80.0
       }
   }
 }
 
 ///|
-fn compute_calendar_y(model : @option.CalendarOption, total_height : Double, layout_height : Double) -> Double {
+fn compute_calendar_y(
+  model : @option.CalendarOption,
+  total_height : Double,
+  layout_height : Double,
+) -> Double {
   match model.top {
     Some(spec) => resolve_size(spec, total_height)
     None =>
       match model.bottom {
-        Some(spec) => total_height - resolve_size(spec, total_height) - layout_height
+        Some(spec) =>
+          total_height - resolve_size(spec, total_height) - layout_height
         None => 60.0
       }
   }
@@ -209,7 +225,11 @@ fn resolve_size(spec : @option.SizeSpec, total : Double) -> Double {
 }
 
 ///|
-fn resolve_size_opt(spec : @option.SizeSpec?, total : Double, fallback : Double) -> Double {
+fn resolve_size_opt(
+  spec : @option.SizeSpec?,
+  total : Double,
+  fallback : Double,
+) -> Double {
   match spec {
     Some(value) => resolve_size(value, total)
     None => fallback
@@ -217,24 +237,39 @@ fn resolve_size_opt(spec : @option.SizeSpec?, total : Double, fallback : Double)
 }
 
 ///|
-pub fn Calendar::get_date_info(self : Calendar, date : String) -> CalendarParsedDateInfo {
+pub fn Calendar::get_date_info(
+  self : Calendar,
+  date : String,
+) -> CalendarParsedDateInfo {
   get_date_info(self.first_day_of_week, date)
 }
 
 ///|
-pub fn Calendar::get_next_n_day(self : Calendar, date : String, n : Int) -> CalendarParsedDateInfo {
+pub fn Calendar::get_next_n_day(
+  self : Calendar,
+  date : String,
+  n : Int,
+) -> CalendarParsedDateInfo {
   get_next_n_day(self.first_day_of_week, date, n)
 }
 
 ///|
-pub fn Calendar::data_to_point(self : Calendar, date : String, clamp? : Bool = true) -> @graphic.Point {
+pub fn Calendar::data_to_point(
+  self : Calendar,
+  date : String,
+  clamp? : Bool = true,
+) -> @graphic.Point {
   let day_info = self.get_date_info(date)
   let range = self.range_info
-  if clamp && !(day_info.time >= range.start.time && day_info.time <= range.end.time) {
+  if clamp &&
+    !(day_info.time >= range.start.time && day_info.time <= range.end.time) {
     return @graphic.Point::new(0.0 / 0.0, 0.0 / 0.0)
   }
   let week = day_info.day
-  let nth_week = get_range_info(self.first_day_of_week, [range.start.formated_date, day_info.formated_date]).nth_week
+  let nth_week = get_range_info(self.first_day_of_week, [
+      range.start.formated_date,
+      day_info.formated_date,
+    ]).nth_week
   if self.orient == "vertical" {
     @graphic.Point::new(
       self.rect.x + week.to_double() * self.sw + self.sw / 2.0,
@@ -249,7 +284,11 @@ pub fn Calendar::data_to_point(self : Calendar, date : String, clamp? : Bool = t
 }
 
 ///|
-pub fn Calendar::data_to_calendar_layout(self : Calendar, date : String, clamp? : Bool = true) -> CalendarCellRect {
+pub fn Calendar::data_to_calendar_layout(
+  self : Calendar,
+  date : String,
+  clamp? : Bool = true,
+) -> CalendarCellRect {
   let point = self.data_to_point(date, clamp~)
   {
     center: point,
@@ -261,7 +300,10 @@ pub fn Calendar::data_to_calendar_layout(self : Calendar, date : String, clamp? 
 }
 
 ///|
-pub fn Calendar::point_to_date(self : Calendar, point : @graphic.Point) -> CalendarParsedDateInfo? {
+pub fn Calendar::point_to_date(
+  self : Calendar,
+  point : @graphic.Point,
+) -> CalendarParsedDateInfo? {
   let nth_x = ((point.x - self.rect.x) / self.sw).floor().to_int() + 1
   let nth_y = ((point.y - self.rect.y) / self.sh).floor().to_int() + 1
   let range = self.range_info.range
@@ -273,7 +315,10 @@ pub fn Calendar::point_to_date(self : Calendar, point : @graphic.Point) -> Calen
 }
 
 ///|
-pub fn Calendar::point_to_data(self : Calendar, point : @graphic.Point) -> String? {
+pub fn Calendar::point_to_data(
+  self : Calendar,
+  point : @graphic.Point,
+) -> String? {
   match self.point_to_date(point) {
     Some(date) => Some(date.formated_date)
     None => None
@@ -281,13 +326,25 @@ pub fn Calendar::point_to_data(self : Calendar, point : @graphic.Point) -> Strin
 }
 
 ///|
-pub fn Calendar::data_to_layout(self : Calendar, date : String, clamp? : Bool = true) -> @graphic.BBox {
+pub fn Calendar::data_to_layout(
+  self : Calendar,
+  date : String,
+  clamp? : Bool = true,
+) -> @graphic.BBox {
   let point = self.data_to_point(date, clamp~)
-  @graphic.BBox::new(point.x - self.sw / 2.0, point.y - self.sh / 2.0, self.sw, self.sh)
+  @graphic.BBox::new(
+    point.x - self.sw / 2.0,
+    point.y - self.sh / 2.0,
+    self.sw,
+    self.sh,
+  )
 }
 
 ///|
-fn init_range_option(first_day_of_week : Int, range : Array[String]) -> Array[String] {
+fn init_range_option(
+  first_day_of_week : Int,
+  range : Array[String],
+) -> Array[String] {
   let mut normalized_range = range
   if range.length() == 1 {
     let range_str = normalize_date_separators(range[0])
@@ -316,7 +373,10 @@ fn init_range_option(first_day_of_week : Int, range : Array[String]) -> Array[St
 }
 
 ///|
-fn get_range_info(first_day_of_week : Int, range : Array[String]) -> CalendarParsedDateRangeInfo {
+fn get_range_info(
+  first_day_of_week : Int,
+  range : Array[String],
+) -> CalendarParsedDateRangeInfo {
   let parsed_start = get_date_info(first_day_of_week, range[0])
   let parsed_end = get_date_info(first_day_of_week, range[1])
   let reversed = parsed_start.time > parsed_end.time
@@ -327,8 +387,16 @@ fn get_range_info(first_day_of_week : Int, range : Array[String]) -> CalendarPar
   let nth_week = if reversed { -weeks + 1 } else { weeks - 1 }
   {
     range: [start.formated_date, end.formated_date],
-    start: if reversed { parsed_start } else { parsed_start },
-    end: if reversed { parsed_end } else { parsed_end },
+    start: if reversed {
+      parsed_start
+    } else {
+      parsed_start
+    },
+    end: if reversed {
+      parsed_end
+    } else {
+      parsed_end
+    },
     all_day,
     weeks,
     nth_week,
@@ -338,9 +406,16 @@ fn get_range_info(first_day_of_week : Int, range : Array[String]) -> CalendarPar
 }
 
 ///|
-fn get_date_by_weeks_and_day(first_day_of_week : Int, nth_week : Int, day : Int, range : Array[String]) -> CalendarParsedDateInfo? {
+fn get_date_by_weeks_and_day(
+  first_day_of_week : Int,
+  nth_week : Int,
+  day : Int,
+  range : Array[String],
+) -> CalendarParsedDateInfo? {
   let range_info = get_range_info(first_day_of_week, range)
-  if nth_week > range_info.weeks || (nth_week == 0 && day < range_info.fweek) || (nth_week == range_info.weeks && day > range_info.lweek) {
+  if nth_week > range_info.weeks ||
+    (nth_week == 0 && day < range_info.fweek) ||
+    (nth_week == range_info.weeks && day > range_info.lweek) {
     return None
   }
   let nth_day = (nth_week - 1) * 7 - range_info.fweek + day
@@ -349,14 +424,21 @@ fn get_date_by_weeks_and_day(first_day_of_week : Int, nth_week : Int, day : Int,
 }
 
 ///|
-fn get_next_n_day(first_day_of_week : Int, date : String, n : Int) -> CalendarParsedDateInfo {
+fn get_next_n_day(
+  first_day_of_week : Int,
+  date : String,
+  n : Int,
+) -> CalendarParsedDateInfo {
   let info = get_date_info(first_day_of_week, date)
   let serial = info.time + n
   get_date_info(first_day_of_week, serial_to_date_string(serial))
 }
 
 ///|
-fn get_date_info(first_day_of_week : Int, date : String) -> CalendarParsedDateInfo {
+fn get_date_info(
+  first_day_of_week : Int,
+  date : String,
+) -> CalendarParsedDateInfo {
   let (y, m, d) = parse_date_string(date)
   let serial = days_from_civil(y, m, d)
   let weekday = positive_mod(serial + 4, 7)
@@ -406,7 +488,10 @@ fn is_month_range(value : String) -> Bool {
 ///|
 fn is_day_range(value : String) -> Bool {
   let parts = split_date_parts(value)
-  parts.length() == 3 && is_all_digits(parts[0]) && is_all_digits(parts[1]) && is_all_digits(parts[2])
+  parts.length() == 3 &&
+  is_all_digits(parts[0]) &&
+  is_all_digits(parts[1]) &&
+  is_all_digits(parts[2])
 }
 
 ///|
@@ -452,7 +537,11 @@ fn split_date_parts(value : String) -> Array[String] {
 
 ///|
 fn two_digit(value : Int) -> String {
-  if value < 10 { "0\{value}" } else { value.to_string() }
+  if value < 10 {
+    "0\{value}"
+  } else {
+    value.to_string()
+  }
 }
 
 ///|
@@ -468,13 +557,21 @@ fn serial_to_date_string(serial : Int) -> String {
 
 ///|
 fn next_month(y : Int, m : Int) -> (Int, Int) {
-  if m == 12 { (y + 1, 1) } else { (y, m + 1) }
+  if m == 12 {
+    (y + 1, 1)
+  } else {
+    (y, m + 1)
+  }
 }
 
 ///|
 fn positive_mod(value : Int, m : Int) -> Int {
   let r = value % m
-  if r < 0 { r + m } else { r }
+  if r < 0 {
+    r + m
+  } else {
+    r
+  }
 }
 
 ///|

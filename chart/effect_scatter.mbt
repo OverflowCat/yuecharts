@@ -59,6 +59,20 @@ fn effect_scatter_point(
       } else {
         None
       }
+    DateValue(_, n) => {
+      let px = if x_idx < coord.x_scales.length() {
+        match coord.x_scales[x_idx] {
+          Ordinal(s) => s.band_center(data_index)
+          Linear(s) =>
+            s.range_min +
+            data_index.to_double() * (s.range_max - s.range_min) / nd_f
+        }
+      } else {
+        coord.bbox.x
+      }
+      let py = coord.num_y(y_idx, n)
+      Some((px, py))
+    }
   }
 }
 

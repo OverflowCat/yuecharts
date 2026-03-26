@@ -57,6 +57,7 @@ fn data_value_labels(
       }
       labels.join(middle_separator)
     }
+    @option.DateValue(date, n) => "\{date}:\{n}"
     @option.Null => "null"
   }
 }

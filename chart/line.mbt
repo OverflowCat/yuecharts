@@ -28,6 +28,7 @@ pub fn render_line_series(
           let v = match item.value {
             Num(n) => n
             Vec(arr) => if arr.length() > 0 { arr[0] } else { 0.0 }
+            DateValue(_, n) => n
             Null => 0.0
           }
           s.data_to_pixel(v)
@@ -44,6 +45,7 @@ pub fn render_line_series(
         } else {
           coord.bbox.y + coord.bbox.height
         }
+      DateValue(_, n) => coord.num_y(y_idx, n)
       Null => coord.bbox.y + coord.bbox.height
     }
     points.push(@graphic.Point::new(px, py))

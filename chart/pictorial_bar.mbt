@@ -303,6 +303,7 @@ fn render_pictorial_bar_series(
         let value = match item.value {
           Num(n) => n
           Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
+          DateValue(_, n) => n
           Null => 0.0
         }
         let value_y = coord.num_y(y_idx, value)

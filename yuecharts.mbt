@@ -15,9 +15,12 @@ fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
       | @option.PictorialBar
       | @option.Scatter
       | @option.EffectScatter
-      | @option.Heatmap
       | @option.Candlestick
       | @option.Boxplot => return true
+      @option.Heatmap =>
+        if s.coordinate_system != Some("calendar") {
+          return true
+        }
       _ => ()
     }
   }

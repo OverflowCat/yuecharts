@@ -247,8 +247,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let name = j_string_opt(j, "name")
   let x_axis_index = j_int(j, "xAxisIndex", base.x_axis_index)
   let y_axis_index = j_int(j, "yAxisIndex", base.y_axis_index)
+  let coordinate_system = j_string_opt(j, "coordinateSystem")
+  let calendar_index = j_int(j, "calendarIndex", base.calendar_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
-  let smooth = j_bool(j, "smooth", base.smooth)
   let symbol_size_values = parse_symbol_size_values(j)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
   let symbol = j_string_or_number_as_string_opt(j, "symbol", base.symbol)
@@ -306,6 +307,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(_) => true
   }
   let stack = j_string_opt(j, "stack")
+  let smooth = j_bool(j, "smooth", base.smooth)
   let radius = j_stringish_array(j, "radius", base.radius)
   let center = j_stringish_array(j, "center", base.center)
   let min_angle = j_number(j, "minAngle", base.min_angle)
@@ -335,6 +337,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     bar_category_gap,
     x_axis_index,
     y_axis_index,
+    coordinate_system,
+    calendar_index,
     radar_index,
     stack,
     smooth,
@@ -368,21 +372,29 @@ fn parse_data_item(j : Json) -> DataItem {
       { value: DataValue::Num(1.0), name: None, symbol: None, children: [] }
     False =>
       { value: DataValue::Num(0.0), name: None, symbol: None, children: [] }
-    Array(arr) =>
-      {
-        value: DataValue::Vec(arr.map(json_number_or_zero)),
-        name: None,
-        symbol: None,
-        children: [],
-      }
+    Array(arr) => parse_data_array_item(arr)
     { "value": Number(n, ..), .. } => parse_data_object(j, DataValue::Num(n))
     { "value": Array(arr), .. } =>
-      parse_data_object(j, DataValue::Vec(arr.map(json_number_or_zero)))
+      parse_data_object(j, parse_data_array_value(arr))
     Object(_) => parse_data_object(j, DataValue::Null)
     _ => { value: DataValue::Null, name: None, symbol: None, children: [] }
   }
 }
 
+///|
+fn parse_data_array_item(arr : Array[Json]) -> DataItem {
+  { value: parse_data_array_value(arr), name: None, symbol: None, children: [] }
+}
+
+///|
+fn parse_data_array_value(arr : Array[Json]) -> DataValue {
+  match arr {
+    [String(date), Number(n, ..)] => DataValue::DateValue(date, n)
+    _ => DataValue::Vec(arr.map(json_number_or_zero))
+  }
+}
+
+///|
 // ---- JSON access helpers ----
 
 ///|

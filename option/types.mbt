@@ -114,9 +114,10 @@ pub(all) enum SeriesType {
 
 ///|
 /// Data value in a series: can be a number, an array, or null.
-pub enum DataValue {
+pub(all) enum DataValue {
   Num(Double)
   Vec(Array[Double])
+  DateValue(String, Double)
   Null
 }
 
@@ -159,6 +160,8 @@ pub(all) struct SeriesOption {
   bar_category_gap : String?
   x_axis_index : Int
   y_axis_index : Int
+  coordinate_system : String?
+  calendar_index : Int
   // For radar: index into ChartOption.radar[]
   radar_index : Int
   stack : String?
@@ -207,6 +210,8 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     bar_category_gap: None,
     x_axis_index: 0,
     y_axis_index: 0,
+    coordinate_system: None,
+    calendar_index: 0,
     radar_index: 0,
     stack: None,
     smooth: false,
@@ -583,7 +588,7 @@ pub impl Default for CalendarYearLabelOption with default() {
     position: None,
     margin: 30.0,
     formatter: None,
-    color: "#878b91",
+    color: "#86878c",
     font_size: 20.0,
     font_family: "sans-serif",
     font_weight: "bolder",
