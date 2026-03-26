@@ -258,158 +258,141 @@ fn render_pictorial_bar_series(
   if x_idx >= coord.x_scales.length() {
     return elems
   }
-  match coord.x_scales[x_idx] {
-    Ordinal(s) => {
-      let band_step = s.band_step()
-      let n = if total_bars > 0 { total_bars } else { 1 }
-      let default_category_gap_pct = if 35 - n * 4 > 15 {
-        35 - n * 4
-      } else {
-        15
+  guard coord.x_scales[x_idx] is Ordinal(s) else { elems }
+  let band_step = s.band_step()
+  let n = if total_bars > 0 { total_bars } else { 1 }
+  let default_category_gap_pct = if 35 - n * 4 > 15 { 35 - n * 4 } else { 15 }
+  let category_gap_str = match series.bar_category_gap {
+    Some(gap) => gap
+    None => "\{default_category_gap_pct}%"
+  }
+  let bar_gap_percent = match series.bar_gap {
+    Some(gap) => parse_percent_like(gap, 1.0)
+    None => -1.0
+  }
+  let category_gap = parse_percent_like(category_gap_str, band_step)
+  let bar_w = ((band_step - category_gap) /
+  (n.to_double() + (n - 1).to_double() * bar_gap_percent)).max(0.0)
+  let width_sum = if n > 0 {
+    n.to_double() * bar_w * (1.0 + bar_gap_percent) - bar_w * bar_gap_percent
+  } else {
+    0.0
+  }
+  let offset_base = -width_sum / 2.0
+  let nd = series.data.length()
+  let mut di = 0
+  while di < nd {
+    let item = series.data[di]
+    let data_index = di
+    di += 1
+    let item_symbol = item.symbol.unwrap_or(symbol)
+    let cat_px = if data_index < s.categories.length() {
+      s.band_center(data_index)
+    } else {
+      coord.bbox.x
+    }
+    let bar_x = cat_px +
+      offset_base +
+      bar_index.to_double() * bar_w * (1.0 + bar_gap_percent)
+    let value = match item.value {
+      Num(n) => n
+      Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
+      DateValue(_, n) => n
+      Null => 0.0
+    }
+    let value_y = coord.num_y(y_idx, value)
+    let actual_length = (zero_y - value_y).abs()
+    if actual_length <= 0.0 {
+      continue
+    }
+    let bounding_length = pictorial_bounding_length(
+      series, coord, y_idx, actual_length, zero_y,
+    )
+    let symbol_repeat = match series.symbol_repeat {
+      Some("true") | Some("fixed") | Some("number") => true
+      _ => false
+    }
+    let (symbol_w, base_symbol_h) = pictorial_symbol_size(
+      series, bar_w, bounding_length, symbol_repeat,
+    )
+    let repeat_times = if symbol_repeat {
+      pictorial_bar_repeat_times(series, bounding_length.abs(), base_symbol_h)
+    } else {
+      1
+    }
+    let mut symbol_h = if base_symbol_h > 1.0 { base_symbol_h } else { 1.0 }
+    let mut margin = pictorial_margin_px(series, symbol_h)
+    let mut unit = symbol_h + margin * 2.0
+    if symbol_repeat {
+      let end_gap = has_end_gap(series)
+      let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
+      let denom = match (end_gap, repeat_times) {
+        // (true, _..=0) => 1
+        // (false, _..=1) => 1
+        (_, _..=1) => 1
+        (true, _) => repeat_times
+        (false, _) => repeat_times - 1
       }
-      let category_gap_str = match series.bar_category_gap {
-        Some(gap) => gap
-        None => "\{default_category_gap_pct}%"
-      }
-      let bar_gap_percent = match series.bar_gap {
-        Some(gap) => parse_percent_like(gap, 1.0)
-        None => -1.0
-      }
-      let category_gap = parse_percent_like(category_gap_str, band_step)
-      let bar_w = ((band_step - category_gap) /
-      (n.to_double() + (n - 1).to_double() * bar_gap_percent)).max(0.0)
-      let width_sum = if n > 0 {
-        n.to_double() * bar_w * (1.0 + bar_gap_percent) -
-        bar_w * bar_gap_percent
-      } else {
-        0.0
-      }
-      let offset_base = -width_sum / 2.0
-      let nd = series.data.length()
-      let mut di = 0
-      while di < nd {
-        let item = series.data[di]
-        let data_index = di
-        di += 1
-        let item_symbol = item.symbol.unwrap_or(symbol)
-        let cat_px = if data_index < s.categories.length() {
-          s.band_center(data_index)
-        } else {
-          coord.bbox.x
-        }
-        let bar_x = cat_px +
-          offset_base +
-          bar_index.to_double() * bar_w * (1.0 + bar_gap_percent)
-        let value = match item.value {
-          Num(n) => n
-          Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
-          DateValue(_, n) => n
-          Null => 0.0
-        }
-        let value_y = coord.num_y(y_idx, value)
-        let actual_length = (zero_y - value_y).abs()
-        if actual_length <= 0.0 {
-          continue
-        }
-        let bounding_length = pictorial_bounding_length(
-          series, coord, y_idx, actual_length, zero_y,
+      let m_diff = bounding_length.abs() - repeat_times.to_double() * symbol_h
+      margin = m_diff / 2.0 / denom.to_double()
+      unit = symbol_h + margin * 2.0
+      if series.symbol_repeat != Some("fixed") &&
+        series.symbol_repeat_count is None {
+        let adjusted_times = to_int_times(
+          (actual_length.abs() + end_fix) / unit,
         )
-        let symbol_repeat = match series.symbol_repeat {
-          Some("true") | Some("fixed") | Some("number") => true
-          _ => false
-        }
-        let (symbol_w, base_symbol_h) = pictorial_symbol_size(
-          series, bar_w, bounding_length, symbol_repeat,
-        )
-        let repeat_times = if symbol_repeat {
-          pictorial_bar_repeat_times(
-            series,
-            bounding_length.abs(),
-            base_symbol_h,
-          )
-        } else {
-          1
-        }
-        let mut symbol_h = if base_symbol_h > 1.0 { base_symbol_h } else { 1.0 }
-        let mut margin = pictorial_margin_px(series, symbol_h)
-        let mut unit = symbol_h + margin * 2.0
-        if symbol_repeat {
-          let end_gap = has_end_gap(series)
-          let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
-          let denom = match (end_gap, repeat_times) {
-            // (true, _..=0) => 1
-            // (false, _..=1) => 1
-            (_, _..=1) => 1
-            (true, _) => repeat_times
-            (false, _) => repeat_times - 1
+        if adjusted_times > 0 {
+          let denom = if end_gap {
+            adjusted_times
+          } else if adjusted_times > 1 {
+            adjusted_times - 1
+          } else {
+            1
           }
           let m_diff = bounding_length.abs() -
-            repeat_times.to_double() * symbol_h
+            adjusted_times.to_double() * symbol_h
           margin = m_diff / 2.0 / denom.to_double()
           unit = symbol_h + margin * 2.0
-          if series.symbol_repeat != Some("fixed") &&
-            series.symbol_repeat_count is None {
-            let adjusted_times = to_int_times(
-              (actual_length.abs() + end_fix) / unit,
-            )
-            if adjusted_times > 0 {
-              let denom = if end_gap {
-                adjusted_times
-              } else if adjusted_times > 1 {
-                adjusted_times - 1
-              } else {
-                1
-              }
-              let m_diff = bounding_length.abs() -
-                adjusted_times.to_double() * symbol_h
-              margin = m_diff / 2.0 / denom.to_double()
-              unit = symbol_h + margin * 2.0
-            }
-          }
-        } else {
-          symbol_h = bounding_length.abs()
-          margin = 0.0
-          unit = symbol_h
-        }
-        let (offset_x, offset_y) = pictorial_symbol_offset(
-          series, symbol_w, symbol_h,
-        )
-        let mut ri = 0
-        while ri < repeat_times {
-          let slot_index = effective_repeat_slot(series, ri, repeat_times)
-          let slot_top = zero_y - (slot_index + 1).to_double() * unit
-          let raw_symbol_y = if repeat_times > 1 {
-            slot_top + margin / 2.0 + offset_y
-          } else {
-            single_symbol_y(series, zero_y, bounding_length, symbol_h) +
-            offset_y
-          }
-          let visible = if series.symbol_clip {
-            clipped_symbol_rect(zero_y, actual_length, raw_symbol_y, symbol_h)
-          } else {
-            Some((raw_symbol_y, symbol_h))
-          }
-          match visible {
-            Some((symbol_y, visible_h)) =>
-              elems.push(
-                @graphic.make_symbol(
-                  item_symbol,
-                  bar_x + offset_x,
-                  symbol_y,
-                  symbol_w,
-                  visible_h,
-                  pictorial_symbol_color(series, series_index),
-                  series |> pictorial_symbol_opacity,
-                ),
-              )
-            None => ()
-          }
-          ri += 1
         }
       }
+    } else {
+      symbol_h = bounding_length.abs()
+      margin = 0.0
+      unit = symbol_h
     }
-    Linear(_) => ()
+    let (offset_x, offset_y) = pictorial_symbol_offset(
+      series, symbol_w, symbol_h,
+    )
+    let mut ri = 0
+    while ri < repeat_times {
+      let slot_index = effective_repeat_slot(series, ri, repeat_times)
+      let slot_top = zero_y - (slot_index + 1).to_double() * unit
+      let raw_symbol_y = if repeat_times > 1 {
+        slot_top + margin / 2.0 + offset_y
+      } else {
+        single_symbol_y(series, zero_y, bounding_length, symbol_h) + offset_y
+      }
+      let visible = if series.symbol_clip {
+        clipped_symbol_rect(zero_y, actual_length, raw_symbol_y, symbol_h)
+      } else {
+        Some((raw_symbol_y, symbol_h))
+      }
+      if visible is Some((symbol_y, visible_h)) {
+        let symbol = @graphic.make_symbol(
+          item_symbol,
+          bar_x + offset_x,
+          symbol_y,
+          symbol_w,
+          visible_h,
+          pictorial_symbol_color(series, series_index),
+          series |> pictorial_symbol_opacity,
+        )
+        elems.push(symbol)
+      }
+      ri += 1
+    }
   }
+
   elems
 }
 
@@ -460,12 +443,7 @@ pub fn render_pictorial_bars(
     let series_elems = render_pictorial_bar_series(
       series, color_idx, coord, rank, total,
     )
-    let mut ei = 0
-    while ei < series_elems.length() {
-      elems.push(series_elems[ei])
-      ei = ei + 1
-    }
-    color_idx = color_idx + 1
+    elems.append(series_elems)
   }
   elems
 }

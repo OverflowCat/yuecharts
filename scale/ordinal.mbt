@@ -72,18 +72,14 @@ pub fn OrdinalScale::data_to_pixel(
   self : OrdinalScale,
   category : String,
 ) -> Double? {
-  match self.index_of(category) {
-    Some(i) => Some(self.band_center(i))
-    None => None
-  }
+  self.index_of(category).map(index => self.band_center(index))
 }
 
 ///|
 /// Generate tick labels with positions (at band centers).
 pub fn OrdinalScale::ticks(self : OrdinalScale) -> Array[Tick] {
-  let result = []
-  for i, cat in self.categories {
-    result.push({ value: self.band_center(i), label: cat })
-  }
-  result
+  self.categories
+  .iter()
+  .mapi((i, cat) => { value: self.band_center(i), label: cat })
+  .collect()
 }

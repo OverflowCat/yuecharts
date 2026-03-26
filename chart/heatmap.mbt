@@ -178,46 +178,41 @@ pub fn render_heatmaps(
       while si < opt.series.length() {
         let series = opt.series[si]
         si += 1
-        match series.series_type {
-          @option.Heatmap => {
-            let mut di = 0
-            while di < series.data.length() {
-              let item = series.data[di]
-              di += 1
-              match item.value {
-                Vec(arr) if arr.length() >= 3 => {
-                  let v = arr[2]
-                  if first {
-                    dmin = v
-                    dmax = v
-                    first = false
-                  } else {
-                    if v < dmin {
-                      dmin = v
-                    }
-                    if v > dmax {
-                      dmax = v
-                    }
-                  }
+        if @option.Heatmap != series.series_type {
+          continue
+        }
+        for item in series.data {
+          match item.value {
+            Vec(arr) if arr.length() >= 3 => {
+              let v = arr[2]
+              if first {
+                dmin = v
+                dmax = v
+                first = false
+              } else {
+                if v < dmin {
+                  dmin = v
                 }
-                DateValue(_, v) =>
-                  if first {
-                    dmin = v
-                    dmax = v
-                    first = false
-                  } else {
-                    if v < dmin {
-                      dmin = v
-                    }
-                    if v > dmax {
-                      dmax = v
-                    }
-                  }
-                _ => ()
+                if v > dmax {
+                  dmax = v
+                }
               }
             }
+            DateValue(_, v) =>
+              if first {
+                dmin = v
+                dmax = v
+                first = false
+              } else {
+                if v < dmin {
+                  dmin = v
+                }
+                if v > dmax {
+                  dmax = v
+                }
+              }
+            _ => ()
           }
-          _ => ()
         }
       }
       if first {
@@ -231,27 +226,25 @@ pub fn render_heatmaps(
   while si < opt.series.length() {
     let series = opt.series[si]
     si += 1
-    match series.series_type {
-      Heatmap => {
-        let series_elems = if series.coordinate_system == Some("calendar") {
-          match calendar {
-            Some(calendar) =>
-              render_calendar_heatmap_series(
-                series,
-                si - 1,
-                calendar,
-                vm_min,
-                vm_max,
-              )
-            None => []
-          }
-        } else {
-          render_heatmap_series(series, si - 1, coord, vm_min, vm_max)
-        }
-        elems.append(series_elems)
-      }
-      _ => ()
+    if @option.Heatmap != series.series_type {
+      continue
     }
+    let series_elems = if series.coordinate_system == Some("calendar") {
+      match calendar {
+        Some(calendar) =>
+          render_calendar_heatmap_series(
+            series,
+            si - 1,
+            calendar,
+            vm_min,
+            vm_max,
+          )
+        None => []
+      }
+    } else {
+      render_heatmap_series(series, si - 1, coord, vm_min, vm_max)
+    }
+    elems.append(series_elems)
   }
   elems
 }

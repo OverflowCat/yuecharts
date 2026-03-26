@@ -287,31 +287,11 @@ fn render_year_text(
   let xc = (last_tl.x + first_bl.x) / 2.0
   let yc = (last_tl.y + first_bl.y) / 2.0
   let idx = if orient == "horizontal" { 0 } else { 1 }
-  let pos_point = match pos {
-    "top" =>
-      if idx == 0 {
-        @graphic.Point::new(xc, last_tl.y)
-      } else {
-        @graphic.Point::new(xc, first_bl.y)
-      }
-    "bottom" =>
-      if idx == 0 {
-        @graphic.Point::new(xc, first_bl.y)
-      } else {
-        @graphic.Point::new(xc, last_tl.y)
-      }
-    "left" =>
-      if idx == 0 {
-        @graphic.Point::new(first_bl.x, yc)
-      } else {
-        @graphic.Point::new(last_tl.x, yc)
-      }
-    _ =>
-      if idx == 0 {
-        @graphic.Point::new(last_tl.x, yc)
-      } else {
-        @graphic.Point::new(first_bl.x, yc)
-      }
+  let pos_point : @graphic.Point = match pos {
+    "top" => { x: xc, y: (if idx == 0 { last_tl } else { first_bl }).y }
+    "bottom" => { x: xc, y: (if idx == 0 { first_bl } else { last_tl }).y }
+    "left" => { x: (if idx == 0 { first_bl } else { last_tl }).x, y: yc }
+    _ => { x: (if idx == 0 { last_tl } else { first_bl }).x, y: yc }
   }
   let mut name = range_data.start.y
   if to_int_or(range_data.end.y, 0) > to_int_or(range_data.start.y, 0) {
@@ -392,10 +372,7 @@ fn render_month_text(
   if !month_label.show {
     return
   }
-  let name_map = match month_label.name_map {
-    Some(value) => value
-    None => month_abbr_names
-  }
+  let name_map = month_label.name_map.unwrap_or(month_abbr_names)
   let mut margin = month_label.margin
   let pos = month_label.position
   let is_center = month_label.align == "center"
@@ -417,9 +394,9 @@ fn render_month_text(
       let first_day_point = line_state.first_day_points[i]
       let next_point = line_state.tlpoints[i + 1]
       point = if axis == 0 {
-        @graphic.Point::new((first_day_point.x + next_point.x) / 2.0, point.y)
+        { x: (first_day_point.x + next_point.x) / 2.0, y: point.y }
       } else {
-        @graphic.Point::new(point.x, (first_day_point.y + next_point.y) / 2.0)
+        { x: point.x, y: (first_day_point.y + next_point.y) / 2.0 }
       }
     }
     let month_idx = to_int_or(first_day.m, 1) - 1
@@ -473,9 +450,9 @@ fn month_text_element(
       anchor = @graphic.TextAnchor::Middle
     }
     if position == "start" {
-      y -= label.font_size / 2.0
+      y -= 1.0
     } else {
-      y += label.font_size / 2.0
+      y += 1.0
     }
   } else {
     x += margin
