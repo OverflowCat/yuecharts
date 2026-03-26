@@ -116,295 +116,189 @@ pub impl @core.ChartViewLike for GaugeChartView with render(_self, ctx) {
 fn register_chart(
   registry : @core.Registry,
   series_type : @option.SeriesType,
-  install_source : String,
-  model_source : String,
-  view_source : String,
-  layout_sources : Array[String],
-  visual_sources : Array[String],
-  processor_sources : Array[String],
-  stage_series_type : @option.SeriesType,
+  has_data_filter : Bool,
+  has_negative_filter : Bool,
   view : &@core.ChartViewLike,
 ) -> Unit {
-  registry.register_chart(
-    @core.ChartRegistration::new(
-      series_type, install_source, model_source, view_source, layout_sources, visual_sources,
-      processor_sources, view,
-    ),
-  )
-  let mut i = 0
-  while i < layout_sources.length() {
-    registry.register_layout(
-      @core.LayoutRegistration::new(
-        "layout",
-        layout_sources[i],
-        Some(stage_series_type),
-        2000,
-        None,
-      ),
-    )
-    i += 1
-  }
-  let mut j = 0
-  while j < visual_sources.length() {
-    registry.register_visual(
-      @core.VisualRegistration::new(
-        "visual",
-        visual_sources[j],
-        Some(stage_series_type),
-        3000,
-        None,
-      ),
-    )
-    j = j + 1
-  }
-  let mut k = 0
-  while k < processor_sources.length() {
-    let source = processor_sources[k]
-    let priority = if source.contains("dataSample.ts") { 5000 } else { 1000 }
-    let execution_key = if source.contains("negativeDataFilter.ts") {
-      Some("negative_data_filter")
-    } else if source.contains("dataFilter.ts") {
-      Some("data_filter")
-    } else {
-      None
-    }
+  registry.register_chart(@core.ChartRegistration::new(series_type, view))
+  if has_data_filter {
     registry.register_processor(
       @core.ProcessorRegistration::new(
-        "processor",
-        source,
-        Some(stage_series_type),
-        priority,
-        execution_key,
+        Some(series_type),
+        1000,
+        Some("data_filter"),
       ),
     )
-    k = k + 1
+  }
+  if has_negative_filter {
+    registry.register_processor(
+      @core.ProcessorRegistration::new(
+        Some(series_type),
+        1000,
+        Some("negative_data_filter"),
+      ),
+    )
   }
 }
 
 ///|
 pub fn install_bar(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Bar,
-    "echarts/src/chart/bar/install.ts",
-    "echarts/src/chart/bar/BarSeries.ts",
-    "echarts/src/chart/bar/BarView.ts",
-    ["echarts/src/layout/barGrid.ts", "echarts/src/layout/barPolar.ts"],
-    [],
-    ["echarts/src/processor/dataSample.ts"],
-    @option.SeriesType::Bar,
-    BarChartView::{  },
-  )
+  // echarts/src/chart/bar/install.ts
+  // echarts/src/chart/bar/BarSeries.ts
+  // echarts/src/chart/bar/BarView.ts
+  // layout: echarts/src/layout/barGrid.ts, echarts/src/layout/barPolar.ts
+  register_chart(registry, @option.SeriesType::Bar, false, false, BarChartView::{
+
+  })
 }
 
 ///|
 pub fn install_line(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Line,
-    "echarts/src/chart/line/install.ts",
-    "echarts/src/chart/line/LineSeries.ts",
-    "echarts/src/chart/line/LineView.ts",
-    ["echarts/src/layout/points.ts"],
-    ["echarts/src/chart/line/install.ts"],
-    ["echarts/src/processor/dataSample.ts"],
-    @option.SeriesType::Line,
-    LineChartView::{  },
-  )
+  // echarts/src/chart/line/install.ts
+  // echarts/src/chart/line/LineSeries.ts
+  // echarts/src/chart/line/LineView.ts
+  // layout: echarts/src/layout/points.ts
+  register_chart(registry, @option.SeriesType::Line, false, false, LineChartView::{
+
+  })
 }
 
 ///|
 pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::PictorialBar,
-    "echarts/src/chart/bar/installPictorialBar.ts",
-    "echarts/src/chart/bar/PictorialBarSeries.ts",
-    "echarts/src/chart/bar/PictorialBarView.ts",
-    ["echarts/src/layout/barGrid.ts"],
-    [],
-    [],
-    @option.SeriesType::PictorialBar,
-    PictorialBarChartView::{  },
-  )
+  // echarts/src/chart/bar/installPictorialBar.ts
+  // echarts/src/chart/bar/PictorialBarSeries.ts
+  // echarts/src/chart/bar/PictorialBarView.ts
+  // layout: echarts/src/layout/barGrid.ts
+  register_chart(registry, @option.SeriesType::PictorialBar, false, false, PictorialBarChartView::{
+
+  })
 }
 
 ///|
 pub fn install_scatter(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Scatter,
-    "echarts/src/chart/scatter/install.ts",
-    "echarts/src/chart/scatter/ScatterSeries.ts",
-    "echarts/src/chart/scatter/ScatterView.ts",
-    ["echarts/src/layout/points.ts"],
-    [],
-    [],
-    @option.SeriesType::Scatter,
-    ScatterChartView::{  },
-  )
+  // echarts/src/chart/scatter/install.ts
+  // echarts/src/chart/scatter/ScatterSeries.ts
+  // echarts/src/chart/scatter/ScatterView.ts
+  // layout: echarts/src/layout/points.ts
+  register_chart(registry, @option.SeriesType::Scatter, false, false, ScatterChartView::{
+
+  })
 }
 
 ///|
 pub fn install_effect_scatter(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::EffectScatter,
-    "echarts/src/chart/effectScatter/install.ts",
-    "echarts/src/chart/effectScatter/EffectScatterSeries.ts",
-    "echarts/src/chart/effectScatter/EffectScatterView.ts",
-    ["echarts/src/layout/points.ts"],
-    [],
-    [],
-    @option.SeriesType::EffectScatter,
-    EffectScatterChartView::{  },
-  )
+  // echarts/src/chart/effectScatter/install.ts
+  // echarts/src/chart/effectScatter/EffectScatterSeries.ts
+  // echarts/src/chart/effectScatter/EffectScatterView.ts
+  // layout: echarts/src/layout/points.ts
+  register_chart(registry, @option.SeriesType::EffectScatter, false, false, EffectScatterChartView::{
+
+  })
 }
 
 ///|
 pub fn install_pie(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Pie,
-    "echarts/src/chart/pie/install.ts",
-    "echarts/src/chart/pie/PieSeries.ts",
-    "echarts/src/chart/pie/PieView.ts",
-    ["echarts/src/chart/pie/pieLayout.ts"],
-    ["echarts/src/chart/pie/labelLayout.ts"],
-    [
-      "echarts/src/processor/dataFilter.ts", "echarts/src/processor/negativeDataFilter.ts",
-    ],
-    @option.SeriesType::Pie,
-    PieChartView::{  },
-  )
+  // echarts/src/chart/pie/install.ts
+  // echarts/src/chart/pie/PieSeries.ts
+  // echarts/src/chart/pie/PieView.ts
+  // layout: echarts/src/chart/pie/pieLayout.ts
+  // visual: echarts/src/chart/pie/labelLayout.ts
+  // processor: echarts/src/processor/dataFilter.ts, negativeDataFilter.ts
+  register_chart(registry, @option.SeriesType::Pie, true, true, PieChartView::{
+
+  })
 }
 
 ///|
 pub fn install_sunburst(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Sunburst,
-    "echarts/src/chart/sunburst/install.ts",
-    "echarts/src/chart/sunburst/SunburstSeries.ts",
-    "echarts/src/chart/sunburst/SunburstView.ts",
-    ["echarts/src/chart/sunburst/sunburstLayout.ts"],
-    ["echarts/src/chart/sunburst/sunburstVisual.ts"],
-    ["echarts/src/processor/dataFilter.ts"],
-    @option.SeriesType::Sunburst,
-    SunburstChartView::{  },
-  )
+  // echarts/src/chart/sunburst/install.ts
+  // echarts/src/chart/sunburst/SunburstSeries.ts
+  // echarts/src/chart/sunburst/SunburstView.ts
+  // layout: echarts/src/chart/sunburst/sunburstLayout.ts
+  // visual: echarts/src/chart/sunburst/sunburstVisual.ts
+  // processor: echarts/src/processor/dataFilter.ts
+  register_chart(registry, @option.SeriesType::Sunburst, true, false, SunburstChartView::{
+
+  })
 }
 
 ///|
 pub fn install_treemap(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Treemap,
-    "echarts/src/chart/treemap/install.ts",
-    "echarts/src/chart/treemap/TreemapSeries.ts",
-    "echarts/src/chart/treemap/TreemapView.ts",
-    ["echarts/src/chart/treemap/treemapLayout.ts"],
-    ["echarts/src/chart/treemap/treemapVisual.ts"],
-    [],
-    @option.SeriesType::Treemap,
-    TreemapChartView::{  },
-  )
+  // echarts/src/chart/treemap/install.ts
+  // echarts/src/chart/treemap/TreemapSeries.ts
+  // echarts/src/chart/treemap/TreemapView.ts
+  // layout: echarts/src/chart/treemap/treemapLayout.ts
+  // visual: echarts/src/chart/treemap/treemapVisual.ts
+  register_chart(registry, @option.SeriesType::Treemap, false, false, TreemapChartView::{
+
+  })
 }
 
 ///|
 pub fn install_radar(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Radar,
-    "echarts/src/chart/radar/install.ts",
-    "echarts/src/chart/radar/RadarSeries.ts",
-    "echarts/src/chart/radar/RadarView.ts",
-    ["echarts/src/chart/radar/radarLayout.ts"],
-    [],
-    ["echarts/src/processor/dataFilter.ts"],
-    @option.SeriesType::Radar,
-    RadarChartView::{  },
-  )
+  // echarts/src/chart/radar/install.ts
+  // echarts/src/chart/radar/RadarSeries.ts
+  // echarts/src/chart/radar/RadarView.ts
+  // layout: echarts/src/chart/radar/radarLayout.ts
+  // processor: echarts/src/processor/dataFilter.ts
+  register_chart(registry, @option.SeriesType::Radar, true, false, RadarChartView::{
+
+  })
 }
 
 ///|
 pub fn install_candlestick(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Candlestick,
-    "echarts/src/chart/candlestick/install.ts",
-    "echarts/src/chart/candlestick/CandlestickSeries.ts",
-    "echarts/src/chart/candlestick/CandlestickView.ts",
-    ["echarts/src/chart/candlestick/candlestickLayout.ts"],
-    ["echarts/src/chart/candlestick/candlestickVisual.ts"],
-    [],
-    @option.SeriesType::Candlestick,
-    CandlestickChartView::{  },
-  )
+  // echarts/src/chart/candlestick/install.ts
+  // echarts/src/chart/candlestick/CandlestickSeries.ts
+  // echarts/src/chart/candlestick/CandlestickView.ts
+  // layout: echarts/src/chart/candlestick/candlestickLayout.ts
+  // visual: echarts/src/chart/candlestick/candlestickVisual.ts
+  register_chart(registry, @option.SeriesType::Candlestick, false, false, CandlestickChartView::{
+
+  })
 }
 
 ///|
 pub fn install_heatmap(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Heatmap,
-    "echarts/src/chart/heatmap/install.ts",
-    "echarts/src/chart/heatmap/HeatmapSeries.ts",
-    "echarts/src/chart/heatmap/HeatmapView.ts",
-    [],
-    [],
-    [],
-    @option.SeriesType::Heatmap,
-    HeatmapChartView::{  },
-  )
+  // echarts/src/chart/heatmap/install.ts
+  // echarts/src/chart/heatmap/HeatmapSeries.ts
+  // echarts/src/chart/heatmap/HeatmapView.ts
+  register_chart(registry, @option.SeriesType::Heatmap, false, false, HeatmapChartView::{
+
+  })
 }
 
 ///|
 pub fn install_boxplot(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Boxplot,
-    "echarts/src/chart/boxplot/install.ts",
-    "echarts/src/chart/boxplot/BoxplotSeries.ts",
-    "echarts/src/chart/boxplot/BoxplotView.ts",
-    ["echarts/src/chart/boxplot/boxplotLayout.ts"],
-    [],
-    [],
-    @option.SeriesType::Boxplot,
-    BoxplotChartView::{  },
-  )
+  // echarts/src/chart/boxplot/install.ts
+  // echarts/src/chart/boxplot/BoxplotSeries.ts
+  // echarts/src/chart/boxplot/BoxplotView.ts
+  // layout: echarts/src/chart/boxplot/boxplotLayout.ts
+  register_chart(registry, @option.SeriesType::Boxplot, false, false, BoxplotChartView::{
+
+  })
 }
 
 ///|
 pub fn install_funnel(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Funnel,
-    "echarts/src/chart/funnel/install.ts",
-    "echarts/src/chart/funnel/FunnelSeries.ts",
-    "echarts/src/chart/funnel/FunnelView.ts",
-    ["echarts/src/chart/funnel/funnelLayout.ts"],
-    [],
-    ["echarts/src/processor/dataFilter.ts"],
-    @option.SeriesType::Funnel,
-    FunnelChartView::{  },
-  )
+  // echarts/src/chart/funnel/install.ts
+  // echarts/src/chart/funnel/FunnelSeries.ts
+  // echarts/src/chart/funnel/FunnelView.ts
+  // layout: echarts/src/chart/funnel/funnelLayout.ts
+  // processor: echarts/src/processor/dataFilter.ts
+  register_chart(registry, @option.SeriesType::Funnel, true, false, FunnelChartView::{
+
+  })
 }
 
 ///|
 pub fn install_gauge(registry : @core.Registry) -> Unit {
-  register_chart(
-    registry,
-    @option.SeriesType::Gauge,
-    "echarts/src/chart/gauge/install.ts",
-    "echarts/src/chart/gauge/GaugeSeries.ts",
-    "echarts/src/chart/gauge/GaugeView.ts",
-    [],
-    [],
-    [],
-    @option.SeriesType::Gauge,
-    GaugeChartView::{  },
-  )
+  // echarts/src/chart/gauge/install.ts
+  // echarts/src/chart/gauge/GaugeSeries.ts
+  // echarts/src/chart/gauge/GaugeView.ts
+  register_chart(registry, @option.SeriesType::Gauge, false, false, GaugeChartView::{
+
+  })
 }
 
 ///|

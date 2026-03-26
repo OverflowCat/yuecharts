@@ -363,7 +363,8 @@ fn render_registered_charts(
 /// Returns an error string with "ERROR: ..." prefix on failure.
 pub fn render(json_str : String) -> String {
   let opt = try @option.parse(json_str) catch {
-    err => return "ERROR: failed to parse JSON: \{err}"
+    // strip error details for WASM size
+    _err => return "ERROR: failed to parse JSON" // : \{err}"
   } noraise {
     res => res
   }

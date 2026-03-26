@@ -1,7 +1,7 @@
-moon build --target wasm-gc
+moon build --target wasm-gc --strip --release
 Copy-Item _build/wasm-gc/release/build/cmd/wasm/wasm.wasm cmd/wasm/wasm-gc.wasm
 
-moon build --target wasm
+moon build --target wasm --strip --release
 Copy-Item _build/wasm/release/build/cmd/wasm/wasm.wasm cmd/wasm/wasm.wasm
 
 Write-Host "Open http://localhost:8960 in your browser"

@@ -4,31 +4,16 @@
 
 ///|
 pub fn install_all(registry : @core.Registry) -> Unit {
+  // echarts/src/coord/cartesian/Grid.ts
   registry.register_layout(
-    @core.LayoutRegistration::new(
-      "layout-root",
-      "echarts/src/coord/cartesian/Grid.ts",
-      None,
-      100,
-      Some("build_cartesian"),
-    ),
+    @core.LayoutRegistration::new(None, 100, Some("build_cartesian")),
   )
+  // echarts/src/coord/calendar/Calendar.ts
   registry.register_layout(
-    @core.LayoutRegistration::new(
-      "layout-root",
-      "echarts/src/coord/calendar/Calendar.ts",
-      None,
-      110,
-      Some("build_calendar"),
-    ),
+    @core.LayoutRegistration::new(None, 110, Some("build_calendar")),
   )
+  // echarts/src/coord/polar/polarCreator.ts
   registry.register_layout(
-    @core.LayoutRegistration::new(
-      "layout-root",
-      "echarts/src/coord/polar/polarCreator.ts",
-      None,
-      105,
-      Some("build_polar"),
-    ),
+    @core.LayoutRegistration::new(None, 105, Some("build_polar")),
   )
 }

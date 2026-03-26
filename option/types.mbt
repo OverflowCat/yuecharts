@@ -476,7 +476,7 @@ pub impl Default for AriaOption with default() {
     enabled: false,
     label_enabled: true,
     description: None,
-    general_with_title: "This is a chart about \"{title}\"",
+    general_with_title: "This is a chart", // about \"{title}\"
     general_without_title: "This is a chart",
     series_max_count: 10,
     series_single_prefix: "",

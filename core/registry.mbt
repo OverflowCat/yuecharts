@@ -159,21 +159,11 @@ pub(all) enum ComponentRenderStage {
 ///|
 pub struct ChartRegistration {
   series_type : @option.SeriesType
-  install_source : String
-  model_source : String
-  view_source : String
-  layout_sources : Array[String]
-  visual_sources : Array[String]
-  processor_sources : Array[String]
   view : &ChartViewLike
 }
 
 ///|
 pub struct ComponentRegistration {
-  component_type : String
-  install_source : String
-  model_source : String
-  view_source : String
   render_stage : ComponentRenderStage
   requires_cartesian : Bool
   view : &ComponentViewLike
@@ -182,51 +172,22 @@ pub struct ComponentRegistration {
 ///|
 pub fn ChartRegistration::new(
   series_type : @option.SeriesType,
-  install_source : String,
-  model_source : String,
-  view_source : String,
-  layout_sources : Array[String],
-  visual_sources : Array[String],
-  processor_sources : Array[String],
   view : &ChartViewLike,
 ) -> ChartRegistration {
-  {
-    series_type,
-    install_source,
-    model_source,
-    view_source,
-    layout_sources,
-    visual_sources,
-    processor_sources,
-    view,
-  }
+  { series_type, view }
 }
 
 ///|
 pub fn ComponentRegistration::new(
-  component_type : String,
-  install_source : String,
-  model_source : String,
-  view_source : String,
   render_stage : ComponentRenderStage,
   requires_cartesian : Bool,
   view : &ComponentViewLike,
 ) -> ComponentRegistration {
-  {
-    component_type,
-    install_source,
-    model_source,
-    view_source,
-    render_stage,
-    requires_cartesian,
-    view,
-  }
+  { render_stage, requires_cartesian, view }
 }
 
 ///|
 pub struct LayoutRegistration {
-  stage_name : String
-  source_path : String
   series_type : @option.SeriesType?
   priority : Int
   execution_key : String?
@@ -234,8 +195,6 @@ pub struct LayoutRegistration {
 
 ///|
 pub struct VisualRegistration {
-  stage_name : String
-  source_path : String
   series_type : @option.SeriesType?
   priority : Int
   execution_key : String?
@@ -243,8 +202,6 @@ pub struct VisualRegistration {
 
 ///|
 pub struct ProcessorRegistration {
-  stage_name : String
-  source_path : String
   series_type : @option.SeriesType?
   priority : Int
   execution_key : String?
@@ -252,35 +209,29 @@ pub struct ProcessorRegistration {
 
 ///|
 pub fn LayoutRegistration::new(
-  stage_name : String,
-  source_path : String,
   series_type : @option.SeriesType?,
   priority : Int,
   execution_key : String?,
 ) -> LayoutRegistration {
-  { stage_name, source_path, series_type, priority, execution_key }
+  { series_type, priority, execution_key }
 }
 
 ///|
 pub fn VisualRegistration::new(
-  stage_name : String,
-  source_path : String,
   series_type : @option.SeriesType?,
   priority : Int,
   execution_key : String?,
 ) -> VisualRegistration {
-  { stage_name, source_path, series_type, priority, execution_key }
+  { series_type, priority, execution_key }
 }
 
 ///|
 pub fn ProcessorRegistration::new(
-  stage_name : String,
-  source_path : String,
   series_type : @option.SeriesType?,
   priority : Int,
   execution_key : String?,
 ) -> ProcessorRegistration {
-  { stage_name, source_path, series_type, priority, execution_key }
+  { series_type, priority, execution_key }
 }
 
 ///|

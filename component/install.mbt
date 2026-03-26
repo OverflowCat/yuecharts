@@ -54,103 +54,58 @@ pub impl @core.ComponentViewLike for CalendarComponentView with render(
 ///|
 fn register_component(
   registry : @core.Registry,
-  component_type : String,
-  install_source : String,
-  model_source : String,
-  view_source : String,
   render_stage : @core.ComponentRenderStage,
   requires_cartesian : Bool,
   view : &@core.ComponentViewLike,
 ) -> Unit {
   registry.register_component(
-    @core.ComponentRegistration::new(
-      component_type, install_source, model_source, view_source, render_stage, requires_cartesian,
-      view,
-    ),
+    @core.ComponentRegistration::new(render_stage, requires_cartesian, view),
   )
 }
 
 ///|
 pub fn install_grid_lines(registry : @core.Registry) -> Unit {
-  register_component(
-    registry,
-    "grid",
-    "echarts/src/component/grid/installSimple.ts",
-    "echarts/src/coord/cartesian/GridModel.ts",
-    "echarts/src/component/axis/axisSplitHelper.ts",
-    Background,
-    true,
-    GridLinesComponentView::{  },
-  )
+  // echarts/src/component/grid/installSimple.ts
+  // echarts/src/coord/cartesian/GridModel.ts
+  // echarts/src/component/axis/axisSplitHelper.ts
+  register_component(registry, Background, true, GridLinesComponentView::{  })
 }
 
 ///|
 pub fn install_axis(registry : @core.Registry) -> Unit {
-  register_component(
-    registry,
-    "axis",
-    "echarts/src/component/axis/install.ts",
-    "echarts/src/component/axis/AxisView.ts",
-    "echarts/src/component/axis/AxisView.ts",
-    Background,
-    false,
-    AxisComponentView::{  },
-  )
+  // echarts/src/component/axis/install.ts
+  // echarts/src/component/axis/AxisView.ts
+  register_component(registry, Background, false, AxisComponentView::{  })
 }
 
 ///|
 pub fn install_title(registry : @core.Registry) -> Unit {
-  register_component(
-    registry,
-    "title",
-    "echarts/src/component/title/install.ts",
-    "echarts/src/component/title/install.ts",
-    "echarts/src/component/title/install.ts",
-    Foreground,
-    false,
-    TitleComponentView::{  },
-  )
+  // echarts/src/component/title/install.ts
+  register_component(registry, Foreground, false, TitleComponentView::{  })
 }
 
 ///|
 pub fn install_legend(registry : @core.Registry) -> Unit {
-  register_component(
-    registry,
-    "legend",
-    "echarts/src/component/legend/install.ts",
-    "echarts/src/component/legend/LegendModel.ts",
-    "echarts/src/component/legend/LegendView.ts",
-    Foreground,
-    false,
-    LegendComponentView::{  },
-  )
+  // echarts/src/component/legend/install.ts
+  // echarts/src/component/legend/LegendModel.ts
+  // echarts/src/component/legend/LegendView.ts
+  register_component(registry, Foreground, false, LegendComponentView::{  })
 }
 
 ///|
 pub fn install_aria(registry : @core.Registry) -> Unit {
+  // echarts/src/visual/aria.ts
   registry.register_visual(
-    @core.VisualRegistration::new(
-      "visual-aria",
-      "echarts/src/visual/aria.ts",
-      None,
-      6000,
-      Some("aria_label"),
-    ),
+    @core.VisualRegistration::new(None, 6000, Some("aria_label")),
   )
 }
 
 ///|
 pub fn install_calendar(registry : @core.Registry) -> Unit {
-  register_component(
-    registry,
-    "calendar",
-    "echarts/src/component/calendar/install.ts",
-    "echarts/src/coord/calendar/CalendarModel.ts",
-    "echarts/src/component/calendar/CalendarView.ts",
-    Background,
-    false,
-    CalendarComponentView::{  },
-  )
+  // echarts/src/component/calendar/install.ts
+  // echarts/src/coord/calendar/CalendarModel.ts
+  // echarts/src/component/calendar/CalendarView.ts
+  register_component(registry, Background, false, CalendarComponentView::{  })
 }
 
 ///|
