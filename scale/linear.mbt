@@ -132,7 +132,7 @@ pub fn LinearScale::pixel_to_data(self : LinearScale, px : Double) -> Double {
   }
 }
 
-// ---- helpers ----
+///| ---- helpers ----
 
 ///|
 fn f64_pow10(exp : Int) -> Double {
@@ -163,6 +163,31 @@ fn int_pow10(exp : Int) -> Int {
 }
 
 ///|
+/// New syntax: https://www.moonbitlang.com/updates/2026/03/10/index#language-updates
+fn int_pow10_new(exp : Int) -> Int {
+  for _ in 0..<exp; res = 1 {
+    continue res * 10
+  } nobreak {
+    res
+  }
+}
+
+///|
+test "int_pow10_new matches int_pow10" {
+  let expected = [(0, 1), (1, 10), (2, 100), (3, 1000), (6, 1000000)]
+
+  for item in expected {
+    let (exp, value) = item
+    assert_eq(int_pow10(exp), value)
+    assert_eq(int_pow10_new(exp), value)
+  }
+
+  for exp in 0..<10 {
+    assert_eq(int_pow10_new(exp), int_pow10(exp))
+  }
+}
+
+///|
 /// Format a tick value based on the step size.
 fn format_tick(value : Double, step : Double) -> String {
   if step >= 1.0 {
@@ -180,7 +205,7 @@ fn format_double(value : Double, decimals : Int) -> String {
   if decimals <= 0 {
     value.round().to_int().to_string()
   } else {
-    let factor_int = int_pow10(decimals)
+    let factor_int = int_pow10_new(decimals)
     let factor = factor_int.to_double()
     let rounded = (value * factor).round().to_int()
     let whole = rounded / factor_int
@@ -202,4 +227,107 @@ fn pad_left(s : String, width : Int, pad : Char) -> String {
     buf.write_string(s)
     buf.to_string()
   }
+}
+
+///| ---- public number utilities (from echarts/src/util/number.ts) ----
+
+///|
+/// Get the decimal precision of a floating-point value by string inspection.
+/// Handles scientific notation (e.g. 3.4e-10 → 11).
+/// Corresponds to: `getPrecisionSafe` in echarts/src/util/number.ts
+pub fn get_precision_safe(val : Double) -> Int {
+  if val.is_nan() || val.is_inf() {
+    return 0
+  }
+  // Stringify and lowercase.
+  let s = val.to_string().to_lower()
+  // Find the exponent marker 'e'.
+  let e_idx : Int = match s.find("e") {
+    Some(i) => i
+    None => -1
+  }
+  let exp : Int = if e_idx >= 0 {
+    let slice = s[e_idx + 1:]
+    let res = try? @strconv.parse_int(slice)
+    match res {
+      Ok(n) => n
+      Err(_) => 0
+    }
+  } else {
+    0
+  }
+  let significand_len = if e_idx >= 0 { e_idx } else { s.length() }
+  // Convert to String before calling find to avoid StringView coercion issues.
+  let significand = s[0:significand_len].to_string()
+  let dot_idx : Int = match significand.find(".") {
+    Some(i) => i
+    None => -1
+  }
+  let decimal_len = if dot_idx < 0 { 0 } else { significand_len - 1 - dot_idx }
+  let result = decimal_len - exp
+  if result < 0 {
+    0
+  } else {
+    result
+  }
+}
+
+///|
+/// Linear mapping: maps `val` from domain [d0, d1] to range [r0, r1].
+/// When `clamp` is true the output is clamped to [r0, r1] (or [r1, r0]).
+/// When domain is zero-width, returns the midpoint of the range.
+/// Corresponds to: `linearMap` in echarts/src/util/number.ts
+pub fn linear_map(
+  val : Double,
+  d0 : Double,
+  d1 : Double,
+  r0 : Double,
+  r1 : Double,
+  clamp : Bool,
+) -> Double {
+  let sub_domain = d1 - d0
+  let sub_range = r1 - r0
+  if sub_domain == 0.0 {
+    return if sub_range == 0.0 { r0 } else { (r0 + r1) / 2.0 }
+  }
+  if clamp {
+    if sub_domain > 0.0 {
+      if val <= d0 {
+        return r0
+      } else if val >= d1 {
+        return r1
+      }
+    } else if val >= d0 {
+      return r0
+    } else if val <= d1 {
+      return r1
+    }
+  } else {
+    if val == d0 {
+      return r0
+    }
+    if val == d1 {
+      return r1
+    }
+  }
+  (val - d0) / sub_domain * sub_range + r0
+}
+
+///|
+/// Floating-point-safe addition: avoids accumulation of rounding errors.
+/// For NaN/Inf inputs the result follows IEEE 754 (a + b).
+/// Corresponds to: `addSafe` in echarts/src/util/number.ts
+pub fn add_safe(a : Double, b : Double) -> Double {
+  // For non-finite values, IEEE 754 semantics give the right result.
+  if a.is_nan() || b.is_nan() || a.is_inf() || b.is_inf() {
+    return a + b
+  }
+  let pa = get_precision_safe(a)
+  let pb = get_precision_safe(b)
+  let max_prec = if pa > pb { pa } else { pb }
+  if max_prec > 20 {
+    return a + b
+  }
+  let multiplier = f64_pow10(max_prec)
+  ((a * multiplier).round() + (b * multiplier).round()) / multiplier
 }
