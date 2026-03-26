@@ -34,6 +34,12 @@ pub struct CalendarCellRect {
 }
 
 ///|
+pub struct CalendarDataLayout {
+  rect : @graphic.BBox
+  content_rect : @graphic.BBox
+}
+
+///|
 pub struct CalendarPrepareRangeInfo {
   start : CalendarParsedDateInfo
   end : CalendarParsedDateInfo
@@ -330,14 +336,32 @@ pub fn Calendar::data_to_layout(
   self : Calendar,
   date : String,
   clamp? : Bool = true,
-) -> @graphic.BBox {
+) -> CalendarDataLayout {
   let point = self.data_to_point(date, clamp~)
-  @graphic.BBox::new(
+  let rect = @graphic.BBox::new(
     point.x - self.sw / 2.0,
     point.y - self.sh / 2.0,
     self.sw,
     self.sh,
   )
+  let inset = self.line_width / 2.0
+  let content_width = if rect.width - self.line_width > 0.0 {
+    rect.width - self.line_width
+  } else {
+    0.0
+  }
+  let content_height = if rect.height - self.line_width > 0.0 {
+    rect.height - self.line_width
+  } else {
+    0.0
+  }
+  let content_rect = @graphic.BBox::new(
+    rect.x + inset,
+    rect.y + inset,
+    content_width,
+    content_height,
+  )
+  { rect, content_rect }
 }
 
 ///|

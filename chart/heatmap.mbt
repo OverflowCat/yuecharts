@@ -134,7 +134,8 @@ fn render_calendar_heatmap_series(
     match item.value {
       DateValue(date, v) => {
         let layout = calendar.data_to_layout(date)
-        if layout.x.is_nan() || layout.y.is_nan() {
+        let shape = layout.content_rect
+        if shape.x.is_nan() || shape.y.is_nan() {
           ()
         } else {
           let t = (v - vm_min) / v_span
@@ -142,10 +143,10 @@ fn render_calendar_heatmap_series(
           let cell_color = visual_map_color(t_clamped)
           elems.push(
             @graphic.Element::rect_colored(
-              layout.x,
-              layout.y,
-              layout.width,
-              layout.height,
+              shape.x,
+              shape.y,
+              shape.width,
+              shape.height,
               cell_color.to_svg(),
             ),
           )

@@ -491,7 +491,7 @@ pub struct CalendarSplitLineOption {
 
 ///|
 pub impl Default for CalendarSplitLineOption with default() {
-  { show: true, color: "#54555a", width: 1.0 }
+  { show: true, color: "#000000", width: 1.0 }
 }
 
 ///|
@@ -503,7 +503,7 @@ pub struct CalendarItemStyleOption {
 
 ///|
 pub impl Default for CalendarItemStyleOption with default() {
-  { color: "#ffffff", border_width: 1.0, border_color: "#e8ebf0" }
+  { color: "#ffffff", border_width: 1.0, border_color: "#cccccc" }
 }
 
 ///|
@@ -528,7 +528,7 @@ pub impl Default for CalendarDayLabelOption with default() {
     position: "start",
     margin: "10",
     name_map: None,
-    color: "#54555a",
+    color: "#000000",
     font_size: 12.0,
     font_family: "sans-serif",
     font_weight: "normal",
@@ -560,7 +560,7 @@ pub impl Default for CalendarMonthLabelOption with default() {
     align: "center",
     formatter: None,
     name_map: None,
-    color: "#54555a",
+    color: "#000000",
     font_size: 12.0,
     font_family: "sans-serif",
     font_weight: "normal",
@@ -588,7 +588,7 @@ pub impl Default for CalendarYearLabelOption with default() {
     position: None,
     margin: 30.0,
     formatter: None,
-    color: "#86878c",
+    color: "#cccccc",
     font_size: 20.0,
     font_family: "sans-serif",
     font_weight: "bolder",
