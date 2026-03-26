@@ -3,21 +3,22 @@
  * 
  * Usage:
  *   node tools/echarts-render.js examples/bar.json
+ *   node tools/echarts-render.js examples/js/polar-line2.js
  *   Get-Content examples/bar.json | node tools/echarts-render.js
  *
- * Reads an ECharts option JSON (with optional top-level "width" and "height"
- * fields) from either a file argument or stdin, renders it via ECharts SSR
- * (SVG renderer, no DOM required), and writes the SVG to stdout.
+ * Reads an ECharts option file from either a file argument or stdin, renders it
+ * via ECharts SSR (SVG renderer, no DOM required), and writes the SVG to
+ * stdout.
  *
- * The input JSON should be a valid ECharts option object. Width/height default
- * to 600x400 if not specified in the JSON.
+ * File inputs may be JSON or JS. JS files are evaluated and the resulting
+ * top-level `option` value is used. Width/height default to 600x400 if not
+ * specified in the option object. Stdin remains JSON-only.
  */
 
 'use strict';
 
 const echarts = require('E:/recharts/echarts/dist/echarts.js');
-const fs = require('fs');
-const path = require('path');
+const { loadOptionFile, loadOptionText } = require('./option-loader');
 
 function renderOptionToSVG(optionJson) {
   const width = optionJson.width || 600;
@@ -46,34 +47,30 @@ function renderOptionToSVG(optionJson) {
 function main() {
   const args = process.argv.slice(2);
 
-  function processJson(jsonStr) {
-    let optionJson;
-    try {
-      optionJson = JSON.parse(jsonStr);
-    } catch (e) {
-      process.stderr.write('Error parsing JSON: ' + e.message + '\n');
-      process.exit(1);
-    }
+  function processOption(optionJson) {
     const svg = renderOptionToSVG(optionJson);
     process.stdout.write(svg + '\n');
   }
 
   if (args.length > 0) {
-    // File argument
-    const filePath = path.resolve(args[0]);
     try {
-      const jsonStr = fs.readFileSync(filePath, 'utf8');
-      processJson(jsonStr);
+      processOption(loadOptionFile(args[0]));
     } catch (e) {
-      process.stderr.write('Error reading file: ' + e.message + '\n');
+      process.stderr.write('Error loading option file: ' + e.message + '\n');
       process.exit(1);
     }
   } else {
-    // Read from stdin
     let data = '';
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', chunk => { data += chunk; });
-    process.stdin.on('end', () => { processJson(data); });
+    process.stdin.on('end', () => {
+      try {
+        processOption(loadOptionText(data, 'json'));
+      } catch (e) {
+        process.stderr.write('Error parsing JSON: ' + e.message + '\n');
+        process.exit(1);
+      }
+    });
   }
 }
 

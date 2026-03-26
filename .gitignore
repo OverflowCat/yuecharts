@@ -10,6 +10,7 @@ moon.mod.lock
 .moonagent/
 *.mi
 *.svg
+examples/*.jsgen.*
 
 # =========================
 # Documentation

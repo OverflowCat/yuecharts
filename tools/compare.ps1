@@ -3,14 +3,15 @@
     Compare MoonBit yuecharts SVG output against ECharts JS reference SVG.
 
 .DESCRIPTION
-    For each example JSON in the examples/ directory:
+    For each example option source in the examples/ directory:
       1. Renders via ECharts JS (tools/echarts-render.js) -> examples/<name>.ref.svg
       2. Renders via MoonBit  (moon run cmd/main)         -> examples/<name>.svg
     Then opens both in the browser/VS Code for visual inspection and reports
     basic structural differences (element count, viewBox, etc.).
 
 .PARAMETER Examples
-    Optional list of example names (without .json) to process. Defaults to all .json files.
+    Optional list of example names (without extension) to process. Defaults to
+    all examples/*.json plus examples/js/*.js.
 
 .PARAMETER Open
     If set, opens each SVG pair in VS Code after rendering.
@@ -33,8 +34,10 @@ Set-Location $root
 
 # Discover examples
 if ($Examples.Count -eq 0) {
-    $Examples = Get-ChildItem examples\*.json |
-                Select-Object -ExpandProperty BaseName
+    $Examples = @(
+        Get-ChildItem examples\*.json -File | Select-Object -ExpandProperty BaseName
+        Get-ChildItem examples\js\*.js -File -ErrorAction SilentlyContinue | Select-Object -ExpandProperty BaseName
+    ) | Sort-Object -Unique
 }
 
 Write-Host "=== yuecharts vs ECharts comparison ===" -ForegroundColor Cyan
@@ -45,20 +48,28 @@ $results = @()
 
 foreach ($name in $Examples) {
     $jsonFile = "examples\$name.json"
-    if (-not (Test-Path $jsonFile)) {
-        Write-Warning "Skipping '$name': $jsonFile not found"
+    $jsFile = "examples\js\$name.js"
+    $sourceFile = if (Test-Path $jsFile) { $jsFile } elseif (Test-Path $jsonFile) { $jsonFile } else { $null }
+    if ($null -eq $sourceFile) {
+        Write-Warning "Skipping '$name': examples\$name.json / examples\js\$name.js not found"
         continue
     }
 
-    $mbFile  = "examples\$name.svg"
-    $refFile = "examples\$name.ref.svg"
+    $suffix = if ($sourceFile.EndsWith('.js')) { ".jsgen" } else { "" }
+    $mbFile  = "examples\$name$suffix.svg"
+    $refFile = "examples\$name$suffix.ref.svg"
 
     Write-Host "-- $name" -ForegroundColor Yellow
 
     # --- MoonBit render ---
     Write-Host "   [MoonBit] moon run cmd/main --target native ..." -NoNewline
-    $mbSvg = Get-Content $jsonFile -Raw |
-             & moon run cmd/main --target native 2>&1
+    $mbSvg = if ($sourceFile.EndsWith('.js')) {
+        node tools/eval-option.js $sourceFile |
+            & moon run cmd/main --target native 2>&1
+    } else {
+        Get-Content $sourceFile -Encoding UTF8 |
+            & moon run cmd/main --target native 2>&1
+    }
     # moon prints a progress bar to stderr; strip ANSI / non-SVG lines
     $mbSvg = ($mbSvg | Where-Object { $_ -match '<' }) -join "`n"
     $mbSvg | Set-Content $mbFile -Encoding UTF8
@@ -66,7 +77,7 @@ foreach ($name in $Examples) {
 
     # --- JS render ---
     Write-Host "   [JS]     node tools/echarts-render.js ..." -NoNewline
-    $jsSvg = node tools/echarts-render.js $jsonFile 2>&1
+    $jsSvg = node tools/echarts-render.js $sourceFile 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Host " FAILED" -ForegroundColor Red
         Write-Warning ($jsSvg | Select-Object -First 5 | Out-String)
@@ -105,7 +116,7 @@ $results | Format-Table -AutoSize
 
 Write-Host ""
 Write-Host "SVG pairs saved in examples\:" -ForegroundColor Green
-Write-Host "  <name>.svg     <- MoonBit output"
-Write-Host "  <name>.ref.svg <- ECharts JS reference"
+Write-Host "  <name>.svg / <name>.ref.svg           <- JSON example outputs"
+Write-Host "  <name>.jsgen.svg / <name>.jsgen.ref.svg <- JS example outputs"
 Write-Host ""
 Write-Host "Open both files in a browser or VS Code SVG viewer for visual comparison."

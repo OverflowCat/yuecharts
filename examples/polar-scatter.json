@@ -1,0 +1,19 @@
+{
+  "width": 600,
+  "height": 400,
+  "title": { "text": "Polar Scatter" },
+  "angleAxis": {
+    "type": "category",
+    "data": ["A", "B", "C", "D", "E", "F", "G", "H"]
+  },
+  "radiusAxis": {},
+  "polar": {},
+  "series": [
+    {
+      "type": "scatter",
+      "coordinateSystem": "polar",
+      "symbolSize": 12,
+      "data": [20, 35, 50, 80, 65, 40, 55, 90]
+    }
+  ]
+}
