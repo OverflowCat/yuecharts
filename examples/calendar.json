@@ -1,0 +1,10 @@
+{
+  "width": 800,
+  "height": 260,
+  "calendar": {
+    "range": "2025-03",
+    "left": 80,
+    "top": 60,
+    "cellSize": [30, 24]
+  }
+}

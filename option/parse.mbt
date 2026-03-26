@@ -26,6 +26,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let grid = j_parse_one_or_many(j, "grid", parse_grid_option, [
     GridOption::default(),
   ])
+  let calendar = j_parse_one_or_many(j, "calendar", parse_calendar_option, [])
   let radar = j_parse_one_or_many(j, "radar", parse_radar_option, [])
   let series = j_parse_one_or_many(j, "series", parse_series_option, [])
   let visual_map = j_parse_optional(j, "visualMap", parse_visual_map)
@@ -37,6 +38,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     x_axis,
     y_axis,
     grid,
+    calendar,
     radar,
     series,
     background_color,
@@ -136,6 +138,27 @@ fn parse_grid_option(j : Json) -> GridOption {
 }
 
 ///|
+fn parse_calendar_option(j : Json) -> CalendarOption {
+  let base = CalendarOption::default()
+  {
+    left: parse_size_spec_opt(j, "left", base.left),
+    top: parse_size_spec_opt(j, "top", base.top),
+    right: parse_size_spec_opt(j, "right", base.right),
+    bottom: parse_size_spec_opt(j, "bottom", base.bottom),
+    width: parse_size_spec_opt(j, "width", base.width),
+    height: parse_size_spec_opt(j, "height", base.height),
+    cell_size: parse_calendar_cell_size(j, base.cell_size),
+    orient: j_string(j, "orient", base.orient),
+    range: parse_calendar_range(j, base.range),
+    split_line: parse_calendar_split_line(j),
+    item_style: parse_calendar_item_style(j),
+    day_label: parse_calendar_day_label(j),
+    month_label: parse_calendar_month_label(j),
+    year_label: parse_calendar_year_label(j),
+  }
+}
+
+///|
 fn parse_size_spec(j : Json, key : String, default_val : SizeSpec) -> SizeSpec {
   match j_field(j, key) {
     Some(Number(n, ..)) => SizeSpec::Px(n)
@@ -151,6 +174,33 @@ fn parse_size_spec(j : Json, key : String, default_val : SizeSpec) -> SizeSpec {
         let r = try? @strconv.parse_double(s)
         match r {
           Ok(px) => SizeSpec::Px(px)
+          Err(_) => default_val
+        }
+      }
+    _ => default_val
+  }
+}
+
+///|
+fn parse_size_spec_opt(
+  j : Json,
+  key : String,
+  default_val : SizeSpec?,
+) -> SizeSpec? {
+  match j_field(j, key) {
+    Some(Number(n, ..)) => Some(SizeSpec::Px(n))
+    Some(String(s)) =>
+      if s.has_suffix("%") {
+        let pct_str = s[:s.length() - 1]
+        let r = try? @strconv.parse_double(pct_str.to_string())
+        match r {
+          Ok(pct) => Some(SizeSpec::Pct(pct))
+          Err(_) => default_val
+        }
+      } else {
+        let r = try? @strconv.parse_double(s)
+        match r {
+          Ok(px) => Some(SizeSpec::Px(px))
           Err(_) => default_val
         }
       }
@@ -358,6 +408,142 @@ fn parse_radar_indicator(j : Json) -> RadarIndicator {
   let max = j_number_opt(j, "max")
   let min = j_number_opt(j, "min")
   { name, max, min }
+}
+
+///|
+fn parse_calendar_cell_size(
+  j : Json,
+  default_val : Array[CalendarCellSize],
+) -> Array[CalendarCellSize] {
+  match j_field(j, "cellSize") {
+    Some(value) =>
+      match value {
+        Number(n, ..) => [CalendarCellSize::Px(n), CalendarCellSize::Px(n)]
+        String("auto") => [CalendarCellSize::Auto, CalendarCellSize::Auto]
+        Array(arr) => {
+          let parsed : Array[CalendarCellSize] = []
+          let mut i = 0
+          while i < arr.length() && i < 2 {
+            parsed.push(parse_calendar_cell_size_item(arr[i]))
+            i += 1
+          }
+          if parsed.length() == 1 {
+            parsed.push(parsed[0])
+          }
+          if parsed.length() == 2 {
+            parsed
+          } else {
+            default_val
+          }
+        }
+        _ => default_val
+      }
+    None => default_val
+  }
+}
+
+///|
+fn parse_calendar_cell_size_item(j : Json) -> CalendarCellSize {
+  match j {
+    Number(n, ..) => CalendarCellSize::Px(n)
+    String("auto") => CalendarCellSize::Auto
+    _ => CalendarCellSize::Auto
+  }
+}
+
+///|
+fn parse_calendar_range(j : Json, default_val : Array[String]) -> Array[String] {
+  match j_field(j, "range") {
+    Some(String(s)) => [s]
+    Some(Number(n, ..)) => ["\{n.to_int()}"]
+    Some(Array(arr)) => arr.map(json_to_stringish_empty)
+    _ => default_val
+  }
+}
+
+///|
+fn parse_calendar_split_line(j : Json) -> CalendarSplitLineOption {
+  let base = CalendarSplitLineOption::default()
+  let split_line = j_field_or_self(j, "splitLine")
+  let line_style = j_field_or_self(split_line, "lineStyle")
+  {
+    show: j_bool(split_line, "show", base.show),
+    color: j_string(line_style, "color", base.color),
+    width: j_number(line_style, "width", base.width),
+  }
+}
+
+///|
+fn parse_calendar_item_style(j : Json) -> CalendarItemStyleOption {
+  let base = CalendarItemStyleOption::default()
+  let item_style = j_field_or_self(j, "itemStyle")
+  {
+    color: j_string(item_style, "color", base.color),
+    border_width: j_number(item_style, "borderWidth", base.border_width),
+    border_color: j_string(item_style, "borderColor", base.border_color),
+  }
+}
+
+///|
+fn parse_calendar_day_label(j : Json) -> CalendarDayLabelOption {
+  let base = CalendarDayLabelOption::default()
+  let label = j_field_or_self(j, "dayLabel")
+  {
+    show: j_bool(label, "show", base.show),
+    first_day: j_int(label, "firstDay", base.first_day),
+    position: j_string(label, "position", base.position),
+    margin: j_string_or_number(label, "margin", base.margin),
+    name_map: parse_name_map(label),
+    color: j_string(label, "color", base.color),
+    font_size: j_number(label, "fontSize", base.font_size),
+    font_family: j_string(label, "fontFamily", base.font_family),
+    font_weight: j_string(label, "fontWeight", base.font_weight),
+    silent: j_bool(label, "silent", base.silent),
+  }
+}
+
+///|
+fn parse_calendar_month_label(j : Json) -> CalendarMonthLabelOption {
+  let base = CalendarMonthLabelOption::default()
+  let label = j_field_or_self(j, "monthLabel")
+  {
+    show: j_bool(label, "show", base.show),
+    position: j_string(label, "position", base.position),
+    margin: j_number(label, "margin", base.margin),
+    align: j_string(label, "align", base.align),
+    formatter: j_string_opt(label, "formatter"),
+    name_map: parse_name_map(label),
+    color: j_string(label, "color", base.color),
+    font_size: j_number(label, "fontSize", base.font_size),
+    font_family: j_string(label, "fontFamily", base.font_family),
+    font_weight: j_string(label, "fontWeight", base.font_weight),
+    silent: j_bool(label, "silent", base.silent),
+  }
+}
+
+///|
+fn parse_calendar_year_label(j : Json) -> CalendarYearLabelOption {
+  let base = CalendarYearLabelOption::default()
+  let label = j_field_or_self(j, "yearLabel")
+  {
+    show: j_bool(label, "show", base.show),
+    position: j_string_opt(label, "position"),
+    margin: j_number(label, "margin", base.margin),
+    formatter: j_string_opt(label, "formatter"),
+    color: j_string(label, "color", base.color),
+    font_size: j_number(label, "fontSize", base.font_size),
+    font_family: j_string(label, "fontFamily", base.font_family),
+    font_weight: j_string(label, "fontWeight", base.font_weight),
+    silent: j_bool(label, "silent", base.silent),
+  }
+}
+
+///|
+fn parse_name_map(j : Json) -> Array[String]? {
+  match j_field(j, "nameMap") {
+    Some(Array(arr)) => Some(arr.map(json_to_stringish_empty))
+    _ => None
+  }
 }
 
 ///|

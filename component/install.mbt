@@ -2,6 +2,7 @@
 // and echarts/src/component/grid/installSimple.ts
 // and echarts/src/component/title/install.ts
 // and echarts/src/component/legend/install.ts
+// and echarts/src/component/calendar/install.ts
 
 ///|
 struct GridLinesComponentView {}
@@ -36,6 +37,17 @@ struct LegendComponentView {}
 ///|
 pub impl @core.ComponentViewLike for LegendComponentView with render(_self, ctx) {
   render_legend(ctx.raw_option)
+}
+
+///|
+struct CalendarComponentView {}
+
+///|
+pub impl @core.ComponentViewLike for CalendarComponentView with render(
+  _self,
+  ctx,
+) {
+  render_calendar(ctx.option, calendar?=ctx.calendar)
 }
 
 ///|
@@ -127,10 +139,25 @@ pub fn install_aria(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_calendar(registry : @core.Registry) -> Unit {
+  register_component(
+    registry,
+    "calendar",
+    "echarts/src/component/calendar/install.ts",
+    "echarts/src/coord/calendar/CalendarModel.ts",
+    "echarts/src/component/calendar/CalendarView.ts",
+    @core.ComponentRenderStage::background(),
+    false,
+    CalendarComponentView::{  },
+  )
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_grid_lines(registry)
   install_axis(registry)
   install_title(registry)
   install_legend(registry)
+  install_calendar(registry)
   install_aria(registry)
 }

@@ -261,6 +261,7 @@ fn run_registered_layouts(
   opt : @option.ChartOption,
 ) -> @core.RenderContext {
   let mut coord = @layout.build_cartesian(opt)
+  let mut calendar = @coord.Calendar::build(opt)
   let visited = new_flags(registry.layouts.length())
   let mut done = 0
   while done < registry.layouts.length() {
@@ -272,12 +273,13 @@ fn run_registered_layouts(
         let registration = registry.layouts[index]
         match registration.execution_key {
           Some("build_cartesian") => coord = @layout.build_cartesian(opt)
+          Some("build_calendar") => calendar = @coord.Calendar::build(opt)
           _ => ()
         }
       }
     }
   }
-  @core.RenderContext::new(raw_opt, opt, coord)
+  @core.RenderContext::new(raw_opt, opt, coord, calendar)
 }
 
 ///|

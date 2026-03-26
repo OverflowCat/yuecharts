@@ -86,6 +86,13 @@ pub fn Matrix::scale(sx : Double, sy : Double) -> Matrix {
 }
 
 ///|
+pub fn Matrix::rotate(rad : Double) -> Matrix {
+  let c = @math.cos(rad)
+  let s = @math.sin(rad)
+  { a: c, b: s, c: -s, d: c, e: 0.0, f: 0.0 }
+}
+
+///|
 /// Apply this matrix then other (this * other).
 pub fn Matrix::then(self : Matrix, other : Matrix) -> Matrix {
   {

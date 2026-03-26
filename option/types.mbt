@@ -472,6 +472,166 @@ pub impl Default for VisualMapOption with default() {
 }
 
 ///|
+pub enum CalendarCellSize {
+  Auto
+  Px(Double)
+}
+
+///|
+pub struct CalendarSplitLineOption {
+  show : Bool
+  color : String
+  width : Double
+}
+
+///|
+pub impl Default for CalendarSplitLineOption with default() {
+  { show: true, color: "#54555a", width: 1.0 }
+}
+
+///|
+pub struct CalendarItemStyleOption {
+  color : String
+  border_width : Double
+  border_color : String
+}
+
+///|
+pub impl Default for CalendarItemStyleOption with default() {
+  { color: "#ffffff", border_width: 1.0, border_color: "#e8ebf0" }
+}
+
+///|
+pub struct CalendarDayLabelOption {
+  show : Bool
+  first_day : Int
+  position : String
+  margin : String
+  name_map : Array[String]?
+  color : String
+  font_size : Double
+  font_family : String
+  font_weight : String
+  silent : Bool
+}
+
+///|
+pub impl Default for CalendarDayLabelOption with default() {
+  {
+    show: true,
+    first_day: 0,
+    position: "start",
+    margin: "10",
+    name_map: None,
+    color: "#54555a",
+    font_size: 12.0,
+    font_family: "sans-serif",
+    font_weight: "normal",
+    silent: false,
+  }
+}
+
+///|
+pub struct CalendarMonthLabelOption {
+  show : Bool
+  position : String
+  margin : Double
+  align : String
+  formatter : String?
+  name_map : Array[String]?
+  color : String
+  font_size : Double
+  font_family : String
+  font_weight : String
+  silent : Bool
+}
+
+///|
+pub impl Default for CalendarMonthLabelOption with default() {
+  {
+    show: true,
+    position: "start",
+    margin: 10.0,
+    align: "center",
+    formatter: None,
+    name_map: None,
+    color: "#54555a",
+    font_size: 12.0,
+    font_family: "sans-serif",
+    font_weight: "normal",
+    silent: false,
+  }
+}
+
+///|
+pub struct CalendarYearLabelOption {
+  show : Bool
+  position : String?
+  margin : Double
+  formatter : String?
+  color : String
+  font_size : Double
+  font_family : String
+  font_weight : String
+  silent : Bool
+}
+
+///|
+pub impl Default for CalendarYearLabelOption with default() {
+  {
+    show: true,
+    position: None,
+    margin: 30.0,
+    formatter: None,
+    color: "#878b91",
+    font_size: 20.0,
+    font_family: "sans-serif",
+    font_weight: "bolder",
+    silent: false,
+  }
+}
+
+///|
+/// Calendar coordinate component option.
+/// Corresponds to: echarts/src/coord/calendar/CalendarModel.ts
+pub struct CalendarOption {
+  left : SizeSpec?
+  top : SizeSpec?
+  right : SizeSpec?
+  bottom : SizeSpec?
+  width : SizeSpec?
+  height : SizeSpec?
+  cell_size : Array[CalendarCellSize]
+  orient : String
+  range : Array[String]
+  split_line : CalendarSplitLineOption
+  item_style : CalendarItemStyleOption
+  day_label : CalendarDayLabelOption
+  month_label : CalendarMonthLabelOption
+  year_label : CalendarYearLabelOption
+}
+
+///|
+pub impl Default for CalendarOption with default() {
+  {
+    left: Some(SizeSpec::Px(80.0)),
+    top: Some(SizeSpec::Px(60.0)),
+    right: None,
+    bottom: None,
+    width: None,
+    height: None,
+    cell_size: [CalendarCellSize::Px(20.0), CalendarCellSize::Px(20.0)],
+    orient: "horizontal",
+    range: [],
+    split_line: CalendarSplitLineOption::default(),
+    item_style: CalendarItemStyleOption::default(),
+    day_label: CalendarDayLabelOption::default(),
+    month_label: CalendarMonthLabelOption::default(),
+    year_label: CalendarYearLabelOption::default(),
+  }
+}
+
+///|
 /// Root chart option.
 pub(all) struct ChartOption {
   width : Double
@@ -481,6 +641,7 @@ pub(all) struct ChartOption {
   x_axis : Array[AxisOption]
   y_axis : Array[AxisOption]
   grid : Array[GridOption]
+  calendar : Array[CalendarOption]
   radar : Array[RadarOption]
   series : Array[SeriesOption]
   background_color : String?
@@ -500,6 +661,7 @@ pub impl Default for ChartOption with default() {
     x_axis: [],
     y_axis: [],
     grid: [GridOption::default()],
+    calendar: [],
     radar: [],
     series: [],
     background_color: None,

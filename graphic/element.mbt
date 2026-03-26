@@ -641,3 +641,73 @@ pub fn Element::polygon_fill_stroke(
     opacity,
   })
 }
+
+///|
+/// Rect with both fill and stroke colors.
+pub fn Element::rect_fill_stroke(
+  x : Double,
+  y : Double,
+  w : Double,
+  h : Double,
+  fill_color_str : String,
+  stroke_color_str : String,
+  stroke_width : Double,
+) -> Element {
+  let fill = Color::from_string(fill_color_str).unwrap_or(black)
+  let stroke_c = Color::from_string(stroke_color_str).unwrap_or(black)
+  Rect({
+    bbox: BBox::new(x, y, w, h),
+    rx: 0.0,
+    ry: 0.0,
+    fill: Some({ color: fill }),
+    stroke: Some({
+      color: stroke_c,
+      width: stroke_width,
+      dash: [],
+      line_cap: "butt",
+      line_join: "miter",
+    }),
+    opacity: 1.0,
+  })
+}
+
+///|
+/// Polyline with explicit stroke color/width/cap/join.
+pub fn Element::polyline_custom(
+  points : Array[Point],
+  color_str : String,
+  width : Double,
+  line_cap : String,
+  line_join : String,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  Polyline({
+    points,
+    stroke: { color, width, dash: [], line_cap, line_join },
+    fill: transparent,
+    opacity: 1.0,
+  })
+}
+
+///|
+/// Text element with explicit style fields.
+pub fn Element::text_custom(
+  x : Double,
+  y : Double,
+  content : String,
+  anchor : TextAnchor,
+  baseline : TextBaseline,
+  color_str : String,
+  font_size : Double,
+  font_family : String,
+  font_weight : String,
+) -> Element {
+  let fill = Color::from_string(color_str).unwrap_or(black)
+  Text({
+    x,
+    y,
+    content,
+    style: { fill, font_size, font_family, font_weight, anchor, baseline },
+    opacity: 1.0,
+  })
+}
