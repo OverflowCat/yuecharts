@@ -176,7 +176,7 @@ fn register_chart(
 pub fn install_bar(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_bar(),
+    @option.SeriesType::Bar,
     "echarts/src/chart/bar/install.ts",
     "echarts/src/chart/bar/BarSeries.ts",
     "echarts/src/chart/bar/BarView.ts",
@@ -192,7 +192,7 @@ pub fn install_bar(registry : @core.Registry) -> Unit {
 pub fn install_line(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_line(),
+    @option.SeriesType::Line,
     "echarts/src/chart/line/install.ts",
     "echarts/src/chart/line/LineSeries.ts",
     "echarts/src/chart/line/LineView.ts",
@@ -208,7 +208,7 @@ pub fn install_line(registry : @core.Registry) -> Unit {
 pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_pictorial_bar(),
+    @option.SeriesType::PictorialBar,
     "echarts/src/chart/bar/installPictorialBar.ts",
     "echarts/src/chart/bar/PictorialBarSeries.ts",
     "echarts/src/chart/bar/PictorialBarView.ts",
@@ -224,7 +224,7 @@ pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
 pub fn install_scatter(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_scatter(),
+    @option.SeriesType::Scatter,
     "echarts/src/chart/scatter/install.ts",
     "echarts/src/chart/scatter/ScatterSeries.ts",
     "echarts/src/chart/scatter/ScatterView.ts",
@@ -240,7 +240,7 @@ pub fn install_scatter(registry : @core.Registry) -> Unit {
 pub fn install_effect_scatter(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_effect_scatter(),
+    @option.SeriesType::EffectScatter,
     "echarts/src/chart/effectScatter/install.ts",
     "echarts/src/chart/effectScatter/EffectScatterSeries.ts",
     "echarts/src/chart/effectScatter/EffectScatterView.ts",
@@ -256,7 +256,7 @@ pub fn install_effect_scatter(registry : @core.Registry) -> Unit {
 pub fn install_pie(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_pie(),
+    @option.SeriesType::Pie,
     "echarts/src/chart/pie/install.ts",
     "echarts/src/chart/pie/PieSeries.ts",
     "echarts/src/chart/pie/PieView.ts",
@@ -272,7 +272,7 @@ pub fn install_pie(registry : @core.Registry) -> Unit {
 pub fn install_sunburst(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_sunburst(),
+    @option.SeriesType::Sunburst,
     "echarts/src/chart/sunburst/install.ts",
     "echarts/src/chart/sunburst/SunburstSeries.ts",
     "echarts/src/chart/sunburst/SunburstView.ts",
@@ -288,7 +288,7 @@ pub fn install_sunburst(registry : @core.Registry) -> Unit {
 pub fn install_treemap(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_treemap(),
+    @option.SeriesType::Treemap,
     "echarts/src/chart/treemap/install.ts",
     "echarts/src/chart/treemap/TreemapSeries.ts",
     "echarts/src/chart/treemap/TreemapView.ts",
@@ -304,7 +304,7 @@ pub fn install_treemap(registry : @core.Registry) -> Unit {
 pub fn install_radar(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_radar(),
+    @option.SeriesType::Radar,
     "echarts/src/chart/radar/install.ts",
     "echarts/src/chart/radar/RadarSeries.ts",
     "echarts/src/chart/radar/RadarView.ts",
@@ -320,7 +320,7 @@ pub fn install_radar(registry : @core.Registry) -> Unit {
 pub fn install_candlestick(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_candlestick(),
+    @option.SeriesType::Candlestick,
     "echarts/src/chart/candlestick/install.ts",
     "echarts/src/chart/candlestick/CandlestickSeries.ts",
     "echarts/src/chart/candlestick/CandlestickView.ts",
@@ -336,7 +336,7 @@ pub fn install_candlestick(registry : @core.Registry) -> Unit {
 pub fn install_heatmap(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_heatmap(),
+    @option.SeriesType::Heatmap,
     "echarts/src/chart/heatmap/install.ts",
     "echarts/src/chart/heatmap/HeatmapSeries.ts",
     "echarts/src/chart/heatmap/HeatmapView.ts",
@@ -352,7 +352,7 @@ pub fn install_heatmap(registry : @core.Registry) -> Unit {
 pub fn install_boxplot(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_boxplot(),
+    @option.SeriesType::Boxplot,
     "echarts/src/chart/boxplot/install.ts",
     "echarts/src/chart/boxplot/BoxplotSeries.ts",
     "echarts/src/chart/boxplot/BoxplotView.ts",
@@ -368,7 +368,7 @@ pub fn install_boxplot(registry : @core.Registry) -> Unit {
 pub fn install_funnel(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_funnel(),
+    @option.SeriesType::Funnel,
     "echarts/src/chart/funnel/install.ts",
     "echarts/src/chart/funnel/FunnelSeries.ts",
     "echarts/src/chart/funnel/FunnelView.ts",
@@ -384,7 +384,7 @@ pub fn install_funnel(registry : @core.Registry) -> Unit {
 pub fn install_gauge(registry : @core.Registry) -> Unit {
   register_chart(
     registry,
-    @option.series_type_gauge(),
+    @option.SeriesType::Gauge,
     "echarts/src/chart/gauge/install.ts",
     "echarts/src/chart/gauge/GaugeSeries.ts",
     "echarts/src/chart/gauge/GaugeView.ts",

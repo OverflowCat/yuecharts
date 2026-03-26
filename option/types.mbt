@@ -94,7 +94,8 @@ pub fn GridOption::default() -> GridOption {
 
 ///|
 /// Series type.
-pub enum SeriesType {
+pub(all) enum SeriesType {
+  // pub`(all)` enum to construct the "never constructed" variant outside of the current package
   Line
   Bar
   PictorialBar
@@ -142,6 +143,7 @@ pub struct SeriesOption {
   name : String?
   data : Array[DataItem]
   symbol : String?
+  symbol_size_values : Array[String]?
   symbol_repeat : String?
   symbol_repeat_count : Int?
   symbol_repeat_fixed : Bool
@@ -186,6 +188,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     name: None,
     data: [],
     symbol: None,
+    symbol_size_values: None,
     symbol_repeat: None,
     symbol_repeat_count: None,
     symbol_repeat_fixed: false,
@@ -298,76 +301,6 @@ pub fn SeriesOption::default_gauge() -> SeriesOption {
     radius: ["75%"],
     center: ["50%", "50%"],
   }
-}
-
-///|
-pub fn series_type_line() -> SeriesType {
-  Line
-}
-
-///|
-pub fn series_type_bar() -> SeriesType {
-  Bar
-}
-
-///|
-pub fn series_type_pictorial_bar() -> SeriesType {
-  PictorialBar
-}
-
-///|
-pub fn series_type_scatter() -> SeriesType {
-  Scatter
-}
-
-///|
-pub fn series_type_effect_scatter() -> SeriesType {
-  EffectScatter
-}
-
-///|
-pub fn series_type_pie() -> SeriesType {
-  Pie
-}
-
-///|
-pub fn series_type_sunburst() -> SeriesType {
-  Sunburst
-}
-
-///|
-pub fn series_type_treemap() -> SeriesType {
-  Treemap
-}
-
-///|
-pub fn series_type_radar() -> SeriesType {
-  Radar
-}
-
-///|
-pub fn series_type_candlestick() -> SeriesType {
-  Candlestick
-}
-
-///|
-pub fn series_type_heatmap() -> SeriesType {
-  Heatmap
-}
-
-///|
-pub fn series_type_boxplot() -> SeriesType {
-  Boxplot
-}
-
-///|
-pub fn series_type_funnel() -> SeriesType {
-  Funnel
-}
-
-///|
-pub fn series_type_gauge() -> SeriesType {
-  Gauge
 }
 
 ///|
