@@ -35,7 +35,7 @@ struct LegendComponentView {}
 
 ///|
 pub impl @core.ComponentViewLike for LegendComponentView with render(_self, ctx) {
-  render_legend(ctx.option)
+  render_legend(ctx.raw_option)
 }
 
 ///|

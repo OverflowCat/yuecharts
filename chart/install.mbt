@@ -159,13 +159,22 @@ fn register_chart(
   }
   let mut k = 0
   while k < processor_sources.length() {
+    let source = processor_sources[k]
+    let priority = if source.contains("dataSample.ts") { 5000 } else { 1000 }
+    let execution_key = if source.contains("negativeDataFilter.ts") {
+      Some("negative_data_filter")
+    } else if source.contains("dataFilter.ts") {
+      Some("data_filter")
+    } else {
+      None
+    }
     registry.register_processor(
       @core.ProcessorRegistration::new(
         "processor",
-        processor_sources[k],
+        source,
         Some(stage_series_type),
-        1000,
-        None,
+        priority,
+        execution_key,
       ),
     )
     k = k + 1
@@ -262,7 +271,9 @@ pub fn install_pie(registry : @core.Registry) -> Unit {
     "echarts/src/chart/pie/PieView.ts",
     ["echarts/src/chart/pie/pieLayout.ts"],
     ["echarts/src/chart/pie/labelLayout.ts"],
-    [],
+    [
+      "echarts/src/processor/dataFilter.ts", "echarts/src/processor/negativeDataFilter.ts",
+    ],
     @option.SeriesType::Pie,
     PieChartView::{  },
   )
@@ -278,7 +289,7 @@ pub fn install_sunburst(registry : @core.Registry) -> Unit {
     "echarts/src/chart/sunburst/SunburstView.ts",
     ["echarts/src/chart/sunburst/sunburstLayout.ts"],
     ["echarts/src/chart/sunburst/sunburstVisual.ts"],
-    [],
+    ["echarts/src/processor/dataFilter.ts"],
     @option.SeriesType::Sunburst,
     SunburstChartView::{  },
   )
@@ -310,7 +321,7 @@ pub fn install_radar(registry : @core.Registry) -> Unit {
     "echarts/src/chart/radar/RadarView.ts",
     ["echarts/src/chart/radar/radarLayout.ts"],
     [],
-    [],
+    ["echarts/src/processor/dataFilter.ts"],
     @option.SeriesType::Radar,
     RadarChartView::{  },
   )
@@ -374,7 +385,7 @@ pub fn install_funnel(registry : @core.Registry) -> Unit {
     "echarts/src/chart/funnel/FunnelView.ts",
     ["echarts/src/chart/funnel/funnelLayout.ts"],
     [],
-    [],
+    ["echarts/src/processor/dataFilter.ts"],
     @option.SeriesType::Funnel,
     FunnelChartView::{  },
   )

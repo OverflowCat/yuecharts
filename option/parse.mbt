@@ -65,6 +65,26 @@ fn parse_legend(j : Json) -> LegendOption {
     top: j_string(j, "top", base.top),
     bottom: j_string(j, "bottom", base.bottom),
     orient: j_string(j, "orient", base.orient),
+    selected: parse_legend_selected(j),
+  }
+}
+
+///|
+fn parse_legend_selected(j : Json) -> Array[LegendSelection] {
+  match j_field(j, "selected") {
+    Some(Object(map)) => {
+      let items : Array[LegendSelection] = []
+      for name, value in map {
+        let selected = match value {
+          True => true
+          False => false
+          _ => true
+        }
+        items.push({ name, selected })
+      }
+      items
+    }
+    _ => []
   }
 }
 

@@ -1,0 +1,19 @@
+{
+  "width": 800,
+  "height": 600,
+  "legend": {
+    "selected": {
+      "Bananas": false
+    }
+  },
+  "series": [
+    {
+      "type": "pie",
+      "data": [
+        { "value": 40, "name": "Apples" },
+        { "value": 20, "name": "Bananas" },
+        { "value": -5, "name": "Neg" }
+      ]
+    }
+  ]
+}

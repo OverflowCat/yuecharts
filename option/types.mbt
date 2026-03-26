@@ -231,6 +231,56 @@ pub fn SeriesOption::default_line() -> SeriesOption {
 }
 
 ///|
+
+///|
+pub fn SeriesOption::with_data(
+  self : SeriesOption,
+  data : Array[DataItem],
+) -> SeriesOption {
+  {
+    series_type: self.series_type,
+    name: self.name,
+    data,
+    symbol: self.symbol,
+    symbol_size_values: self.symbol_size_values,
+    symbol_repeat: self.symbol_repeat,
+    symbol_repeat_count: self.symbol_repeat_count,
+    symbol_repeat_fixed: self.symbol_repeat_fixed,
+    symbol_margin: self.symbol_margin,
+    symbol_clip: self.symbol_clip,
+    symbol_position: self.symbol_position,
+    symbol_rotate: self.symbol_rotate,
+    symbol_bounding_data: self.symbol_bounding_data,
+    symbol_offset: self.symbol_offset,
+    symbol_repeat_direction: self.symbol_repeat_direction,
+    bar_gap: self.bar_gap,
+    bar_category_gap: self.bar_category_gap,
+    x_axis_index: self.x_axis_index,
+    y_axis_index: self.y_axis_index,
+    radar_index: self.radar_index,
+    stack: self.stack,
+    smooth: self.smooth,
+    symbol_size: self.symbol_size,
+    color: self.color,
+    line_style_width: self.line_style_width,
+    item_style: self.item_style,
+    item_opacity: self.item_opacity,
+    area_style: self.area_style,
+    encode_x: self.encode_x,
+    encode_y: self.encode_y,
+    radius: self.radius,
+    center: self.center,
+    min_angle: self.min_angle,
+    clockwise: self.clockwise,
+    start_angle: self.start_angle,
+    end_angle: self.end_angle,
+    min_val: self.min_val,
+    max_val: self.max_val,
+    split_number: self.split_number,
+  }
+}
+
+///|
 pub fn SeriesOption::default_bar() -> SeriesOption {
   { ..SeriesOption::default_line(), series_type: SeriesType::Bar }
 }
@@ -329,6 +379,12 @@ pub fn TitleOption::default() -> TitleOption {
 }
 
 ///|
+pub struct LegendSelection {
+  name : String
+  selected : Bool
+}
+
+///|
 /// Legend component.
 pub struct LegendOption {
   show : Bool
@@ -336,12 +392,33 @@ pub struct LegendOption {
   top : String
   bottom : String
   orient : String // "horizontal" | "vertical"
+  selected : Array[LegendSelection]
 }
 
 ///|
 pub fn LegendOption::default() -> LegendOption {
   // ECharts default: left:"center", bottom:15 (tokens.size.m), orient:"horizontal"
-  { show: true, left: "center", top: "", bottom: "15", orient: "horizontal" }
+  {
+    show: true,
+    left: "center",
+    top: "",
+    bottom: "15",
+    orient: "horizontal",
+    selected: [],
+  }
+}
+
+///|
+pub fn LegendOption::is_selected(self : LegendOption, name : String) -> Bool {
+  let mut i = 0
+  while i < self.selected.length() {
+    let item = self.selected[i]
+    if item.name == name {
+      return item.selected
+    }
+    i = i + 1
+  }
+  true
 }
 
 ///|
@@ -457,6 +534,29 @@ pub struct ChartOption {
   background_color : String?
   aria : AriaOption?
   visual_map : VisualMapOption?
+}
+
+///|
+
+///|
+pub fn ChartOption::with_series(
+  self : ChartOption,
+  series : Array[SeriesOption],
+) -> ChartOption {
+  {
+    width: self.width,
+    height: self.height,
+    title: self.title,
+    legend: self.legend,
+    x_axis: self.x_axis,
+    y_axis: self.y_axis,
+    grid: self.grid,
+    radar: self.radar,
+    series,
+    background_color: self.background_color,
+    aria: self.aria,
+    visual_map: self.visual_map,
+  }
 }
 
 ///|

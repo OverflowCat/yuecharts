@@ -66,6 +66,84 @@ fn has_registered_series_type(
 }
 
 ///|
+fn is_legend_selected(opt : @option.ChartOption, name : String?) -> Bool {
+  match name {
+    Some(value) =>
+      match opt.legend {
+        Some(legend) => @option.LegendOption::is_selected(legend, value)
+        None => true
+      }
+    None => true
+  }
+}
+
+///|
+fn filter_series_data_by_legend(
+  opt : @option.ChartOption,
+  series : @option.SeriesOption,
+) -> @option.SeriesOption {
+  let filtered : Array[@option.DataItem] = []
+  let mut i = 0
+  while i < series.data.length() {
+    let item = series.data[i]
+    if is_legend_selected(opt, item.name) {
+      filtered.push(item)
+    }
+    i = i + 1
+  }
+  @option.SeriesOption::with_data(series, filtered)
+}
+
+///|
+fn filter_series_negative_values(
+  series : @option.SeriesOption,
+) -> @option.SeriesOption {
+  let filtered : Array[@option.DataItem] = []
+  let mut i = 0
+  while i < series.data.length() {
+    let item = series.data[i]
+    let keep = match item.value {
+      @option.Num(n) => n >= 0.0
+      _ => true
+    }
+    if keep {
+      filtered.push(item)
+    }
+    i = i + 1
+  }
+  @option.SeriesOption::with_data(series, filtered)
+}
+
+///|
+fn apply_processor_to_option(
+  opt : @option.ChartOption,
+  series_type : @option.SeriesType?,
+  execution_key : String?,
+) -> @option.ChartOption {
+  let next_series : Array[@option.SeriesOption] = []
+  let mut i = 0
+  while i < opt.series.length() {
+    let series = opt.series[i]
+    let matches_type = match series_type {
+      Some(target) => series.series_type == target
+      None => true
+    }
+    let next = if matches_type {
+      match execution_key {
+        Some("data_filter") => filter_series_data_by_legend(opt, series)
+        Some("negative_data_filter") => filter_series_negative_values(series)
+        _ => series
+      }
+    } else {
+      series
+    }
+    next_series.push(next)
+    i = i + 1
+  }
+  @option.ChartOption::with_series(opt, next_series)
+}
+
+///|
 fn new_flags(count : Int) -> Array[Bool] {
   let flags : Array[Bool] = []
   let mut i = 0
@@ -158,27 +236,32 @@ fn next_processor_index(
 fn run_registered_processors(
   registry : @core.Registry,
   opt : @option.ChartOption,
-) -> Unit {
+) -> @option.ChartOption {
   let visited = new_flags(registry.processors.length())
+  let mut current = opt
   let mut done = 0
   while done < registry.processors.length() {
-    match next_processor_index(registry, opt, visited) {
+    match next_processor_index(registry, current, visited) {
       None => done = registry.processors.length()
       Some(index) => {
         visited[index] = true
         done = done + 1
         let registration = registry.processors[index]
-        match registration.execution_key {
-          _ => ()
-        }
+        current = apply_processor_to_option(
+          current,
+          registration.series_type,
+          registration.execution_key,
+        )
       }
     }
   }
+  current
 }
 
 ///|
 fn run_registered_layouts(
   registry : @core.Registry,
+  raw_opt : @option.ChartOption,
   opt : @option.ChartOption,
 ) -> @core.RenderContext {
   let mut coord = @layout.build_cartesian(opt)
@@ -198,7 +281,7 @@ fn run_registered_layouts(
       }
     }
   }
-  @core.RenderContext::new(opt, coord)
+  @core.RenderContext::new(raw_opt, opt, coord)
 }
 
 ///|
@@ -287,11 +370,11 @@ pub fn render(json_str : String) -> String {
     res => res
   }
   let registry = build_registry()
-  run_registered_processors(registry, opt)
-  let ctx = run_registered_layouts(registry, opt)
-  let aria_label = run_registered_visuals(registry, opt)
+  let processed_opt = run_registered_processors(registry, opt)
+  let ctx = run_registered_layouts(registry, opt, processed_opt)
+  let aria_label = run_registered_visuals(registry, processed_opt)
   let elems : Array[@graphic.Element] = []
-  let has_cartesian = has_cartesian_series(opt)
+  let has_cartesian = has_cartesian_series(processed_opt)
   render_registered_components(
     elems,
     registry,
@@ -307,7 +390,7 @@ pub fn render(json_str : String) -> String {
     @core.ComponentRenderStage::foreground(),
     has_cartesian,
   )
-  let bg = match opt.background_color {
+  let bg = match processed_opt.background_color {
     Some(c) => @graphic.Color::from_hex(c)
     None => None
   }
@@ -316,5 +399,11 @@ pub fn render(json_str : String) -> String {
       Some(@svg.SvgAccessibility::new("img", Some(label), None, Some(label)))
     None => None
   }
-  @svg.paint(elems, opt.width, opt.height, bg, accessibility)
+  @svg.paint(
+    elems,
+    processed_opt.width,
+    processed_opt.height,
+    bg,
+    accessibility,
+  )
 }

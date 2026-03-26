@@ -4,16 +4,18 @@
 
 ///|
 pub struct RenderContext {
+  raw_option : @option.ChartOption
   option : @option.ChartOption
   coord : @coord.Cartesian2D
 }
 
 ///|
 pub fn RenderContext::new(
+  raw_option : @option.ChartOption,
   option : @option.ChartOption,
   coord : @coord.Cartesian2D,
 ) -> RenderContext {
-  { option, coord }
+  { raw_option, option, coord }
 }
 
 ///|

@@ -1,7 +1,8 @@
 // Corresponds to: echarts/src/component/legend/LegendView.ts
 //                  echarts/src/component/legend/LegendModel.ts
+//                  and echarts/src/processor/dataFilter.ts legend selection coupling.
 //
-// Plain horizontal legend: coloured icon rectangles followed by series names.
+// Plain horizontal legend: coloured icon rectangles followed by legend item names.
 //
 // Default values (from LegendModel.ts):
 //   left: "center", bottom: tokens.size.m (=15), orient: "horizontal"
@@ -14,9 +15,6 @@
 // ECharts default token color for legend labels: tokens.color.secondary = neutral70 ≈ #54555a
 
 ///|
-/// Parse a legend position value string to a pixel Double.
-/// Handles "", "auto", named values ("top","bottom","center","left","right"),
-/// and numeric strings like "15", "0".
 fn legend_parse_pos(s : String, fallback : Double) -> Double {
   if s == "" || s == "auto" {
     fallback
@@ -30,47 +28,70 @@ fn legend_parse_pos(s : String, fallback : Double) -> Double {
 }
 
 ///|
-/// Render the legend to scene graph elements.
-/// Returns an empty array if legend is not shown or no named series exist.
+fn append_data_legend_items(
+  items : Array[(String, String, Bool)],
+  lg : @option.LegendOption,
+  series : @option.SeriesOption,
+  series_index : Int,
+) -> Unit {
+  let mut i = 0
+  while i < series.data.length() {
+    let item = series.data[i]
+    let name = match item.name {
+      Some(n) => n
+      None => ""
+    }
+    if name != "" {
+      let color = @visual.palette_color(series_index + i)
+      let selected = @option.LegendOption::is_selected(lg, name)
+      items.push((color, name, selected))
+    }
+    i = i + 1
+  }
+}
+
+///|
 pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
-  // Only render if legend is set and show=true.
   let lg = match opt.legend {
     Some(l) if l.show => l
     _ => return []
   }
   let elems : Array[@graphic.Element] = []
-  // Collect (color, name) pairs for all named series.
-  let items : Array[(String, String)] = []
+  let items : Array[(String, String, Bool)] = []
   let mut ci = 0
   while ci < opt.series.length() {
     let s = opt.series[ci]
-    ci = ci + 1
-    match s.name {
-      Some(n) if n != "" => {
-        let color = match s.color {
-          Some(c) => c
-          None => @visual.palette_color(ci - 1)
+    match s.series_type {
+      @option.Pie | @option.Funnel | @option.Sunburst =>
+        append_data_legend_items(items, lg, s, ci)
+      _ =>
+        match s.name {
+          Some(n) if n != "" => {
+            let color = match s.color {
+              Some(c) => c
+              None => @visual.palette_color(ci)
+            }
+            let selected = @option.LegendOption::is_selected(lg, n)
+            items.push((color, n, selected))
+          }
+          _ => ()
         }
-        items.push((color, n))
-      }
-      _ => ()
     }
+    ci = ci + 1
   }
   if items.length() == 0 {
     return elems
   }
-  // Layout constants matching ECharts LegendModel defaults.
-  let item_w = 25.0 // itemWidth default = 25
-  let item_h = 14.0 // itemHeight default = 14
-  let icon_text_gap = 5.0 // textX = itemWidth + 5 in LegendView.ts
-  let item_gap = 8.0 // itemGap default = 8
-  let padding = 5.0 // padding default = 5
-  let char_w = 7.0 // approximate pixel width per character at font-size 12
-  // Compute total content width for centering.
+  let item_w = 25.0
+  let item_h = 14.0
+  let icon_text_gap = 5.0
+  let item_gap = 8.0
+  let padding = 5.0
+  let char_w = 7.0
   let mut total_w = 0.0
   let mut wi = 0
   while wi < items.length() {
-    let (_, name) = items[wi]
+    let (_, name, _) = items[wi]
     wi = wi + 1
     total_w = total_w +
       item_w +
@@ -80,20 +101,12 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
       total_w = total_w + item_gap
     }
   }
-  // Resolve horizontal start x (matching legend.left).
   let start_x = match lg.left {
     "center" => (opt.width - total_w) * 0.5
     "right" => opt.width - total_w - padding
     "left" => padding
-    _ => {
-      // Treat as numeric pixel value; fall back to left-aligned.
-      let v = legend_parse_pos(lg.left, padding)
-      v
-    }
+    _ => legend_parse_pos(lg.left, padding)
   }
-  // Resolve vertical icon centre-line (matching legend.top / legend.bottom).
-  // ECharts default: bottom = 15, placing group bottom at chart_height - 15.
-  // Group height = itemHeight + 2*padding; icon centre = group top + padding + itemHeight/2.
   let icon_cy = if lg.top != "" && lg.top != "auto" {
     match lg.top {
       "top" => padding + item_h * 0.5
@@ -105,7 +118,6 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
       }
     }
   } else {
-    // Use bottom (default = "15")
     let bottom_px = legend_parse_pos(lg.bottom, 15.0)
     opt.height - bottom_px - padding - item_h * 0.5
   }
@@ -113,13 +125,13 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let mut cx = start_x
   let mut ii = 0
   while ii < items.length() {
-    let (color, name) = items[ii]
+    let (color, name, selected) = items[ii]
     ii = ii + 1
-    // Coloured icon rectangle (itemWidth × itemHeight).
+    let icon_color = if selected { color } else { "#d7dbe3" }
+    let text_color = if selected { "#54555a" } else { "#a0a4ab" }
     elems.push(
-      @graphic.Element::rect_colored(cx, icon_top, item_w, item_h, color),
+      @graphic.Element::rect_colored(cx, icon_top, item_w, item_h, icon_color),
     )
-    // Label text: x = icon right + 5, y = icon centre, verticalAlign = middle.
     elems.push(
       @graphic.Element::text_colored(
         cx + item_w + icon_text_gap,
@@ -127,7 +139,7 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
         name,
         @graphic.TextAnchor::start(),
         @graphic.TextBaseline::middle(),
-        "#54555a", // tokens.color.secondary ≈ neutral70
+        text_color,
       ),
     )
     cx = cx +
