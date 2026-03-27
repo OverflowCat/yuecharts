@@ -55,9 +55,10 @@ fn render_element(
   buf : StringBuilder,
   elem : @graphic.Element,
   indent : String,
+  clip_counter : Ref[Int],
 ) -> Unit {
   match elem {
-    Group(g) => render_group(buf, g, indent)
+    Group(g) => render_group(buf, g, indent, clip_counter)
     Rect(r) => render_rect(buf, r, indent)
     Circle(c) => render_circle(buf, c, indent)
     Line(l) => render_line(buf, l, indent)
@@ -73,22 +74,52 @@ fn render_group(
   buf : StringBuilder,
   g : @graphic.GroupData,
   indent : String,
+  clip_counter : Ref[Int],
 ) -> Unit {
-  buf.write_string(indent)
-  buf.write_string("<g")
-  match g.transform {
-    Some(m) => buf.write_string(" transform=\"\{m}\"")
-    None => ()
-  }
-  if g.opacity < 1.0 {
-    buf.write_string(" opacity=\"\{g.opacity}\"")
-  }
-  buf.write_string(">\n")
   let next = indent + "  "
-  for child in g.children {
-    render_element(buf, child, next)
+  match g.clip_rect {
+    Some(cr) => {
+      let clip_id = "clip-\{clip_counter.val}"
+      clip_counter.val = clip_counter.val + 1
+      buf.write_string(indent)
+      buf.write_string("<clipPath id=\"\{clip_id}\">\n")
+      buf.write_string(next)
+      buf.write_string(
+        "<rect x=\"\{cr.x}\" y=\"\{cr.y}\" width=\"\{cr.width}\" height=\"\{cr.height}\"/>\n",
+      )
+      buf.write_string(indent + "</clipPath>\n")
+      buf.write_string(indent)
+      buf.write_string("<g clip-path=\"url(#\{clip_id})\"")
+      match g.transform {
+        Some(m) => buf.write_string(" transform=\"\{m}\"")
+        None => ()
+      }
+      if g.opacity < 1.0 {
+        buf.write_string(" opacity=\"\{g.opacity}\"")
+      }
+      buf.write_string(">\n")
+      for child in g.children {
+        render_element(buf, child, next, clip_counter)
+      }
+      buf.write_string(indent + "</g>\n")
+    }
+    None => {
+      buf.write_string(indent)
+      buf.write_string("<g")
+      match g.transform {
+        Some(m) => buf.write_string(" transform=\"\{m}\"")
+        None => ()
+      }
+      if g.opacity < 1.0 {
+        buf.write_string(" opacity=\"\{g.opacity}\"")
+      }
+      buf.write_string(">\n")
+      for child in g.children {
+        render_element(buf, child, next, clip_counter)
+      }
+      buf.write_string(indent + "</g>\n")
+    }
   }
-  buf.write_string(indent + "</g>\n")
 }
 
 ///|
@@ -322,8 +353,9 @@ pub fn paint(
       )
     None => ()
   }
+  let clip_counter : Ref[Int] = Ref::new(0)
   for elem in elements {
-    render_element(buf, elem, "  ")
+    render_element(buf, elem, "  ", clip_counter)
   }
   buf.write_string("</svg>")
   buf.to_string()

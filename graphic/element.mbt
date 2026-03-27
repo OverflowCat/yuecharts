@@ -279,6 +279,14 @@ pub fn Element::group_transformed(
 }
 
 ///|
+pub fn Element::group_clipped(
+  children : Array[Element],
+  clip_rect : BBox,
+) -> Element {
+  Group({ ..GroupData::new(children), clip_rect: Some(clip_rect) })
+}
+
+///|
 pub fn Element::rect(x : Double, y : Double, w : Double, h : Double) -> Element {
   Rect(RectData::new(x, y, w, h))
 }

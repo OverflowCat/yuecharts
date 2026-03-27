@@ -17,6 +17,14 @@ pub impl @core.ChartViewLike for LineChartView with render(_self, ctx) {
 }
 
 ///|
+struct ParallelChartView {}
+
+///|
+pub impl @core.ChartViewLike for ParallelChartView with render(_self, ctx) {
+  render_parallels(ctx.option, parallel=ctx.parallel)
+}
+
+///|
 struct LinesChartView {}
 
 ///|
@@ -175,6 +183,17 @@ pub fn install_line(registry : @core.Registry) -> Unit {
   // echarts/src/chart/line/LineView.ts
   // layout: echarts/src/layout/points.ts
   register_chart(registry, @option.SeriesType::Line, false, false, LineChartView::{
+
+  })
+}
+
+///|
+pub fn install_parallel(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/parallel/install.ts
+  // echarts/src/chart/parallel/ParallelSeries.ts
+  // echarts/src/chart/parallel/ParallelView.ts
+  // visual: echarts/src/chart/parallel/parallelVisual.ts
+  register_chart(registry, @option.SeriesType::Parallel, false, false, ParallelChartView::{
 
   })
 }
@@ -347,6 +366,7 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_boxplot(registry)
   install_pictorial_bar(registry)
   install_line(registry)
+  install_parallel(registry)
   install_map(registry)
   install_lines(registry)
   install_scatter(registry)

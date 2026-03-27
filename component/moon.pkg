@@ -6,4 +6,5 @@ import {
   "OverflowCat/yuecharts/coord" @coord,
   "OverflowCat/yuecharts/option" @option,
   "OverflowCat/yuecharts/visual" @visual,
+  "OverflowCat/yuecharts/scale" @scale,
 }

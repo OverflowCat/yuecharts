@@ -179,7 +179,9 @@ test "geo source manager loads resource with specialAreas and nameMap" {
     #|}
   let opt = @option.parse(json_str)
   let manager = GeoSourceManager::from_option(opt)
-  let loaded = manager.load("demo", [{ from_name: "rawInset", to_name: "Inset" }], "name").unwrap()
+  let loaded = manager
+    .load("demo", [{ from_name: "rawInset", to_name: "Inset" }], "name")
+    .unwrap()
   assert_eq(loaded.regions.length(), 1)
   let region = loaded.regions[0]
   assert_eq(region.name, "Inset")

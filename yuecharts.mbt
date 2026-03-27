@@ -270,6 +270,7 @@ fn run_registered_layouts(
 ) -> @core.RenderContext {
   let mut coord = @layout.build_cartesian(opt)
   let mut polar = @layout.build_polar(opt)
+  let mut parallel = @coord.Parallel::build(opt)
   let geo = @coord.Geo::build(opt)
   let mut calendar = @coord.Calendar::build(opt)
   let visited = new_flags(registry.layouts.length())
@@ -284,13 +285,14 @@ fn run_registered_layouts(
         match registration.execution_key {
           Some("build_cartesian") => coord = @layout.build_cartesian(opt)
           Some("build_polar") => polar = @layout.build_polar(opt)
+          Some("build_parallel") => parallel = @coord.Parallel::build(opt)
           Some("build_calendar") => calendar = @coord.Calendar::build(opt)
           _ => ()
         }
       }
     }
   }
-  @core.RenderContext::new(raw_opt, opt, coord, polar, geo, calendar)
+  @core.RenderContext::new(raw_opt, opt, coord, polar, parallel, geo, calendar)
 }
 
 ///|

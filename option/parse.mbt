@@ -39,6 +39,13 @@ fn parse_chart_option(j : Json) -> ChartOption {
     GridOption::default(),
   ])
   let polar = j_parse_one_or_many(j, "polar", parse_polar_option, [])
+  let parallel = j_parse_one_or_many(j, "parallel", parse_parallel_option, [])
+  let parallel_axis = j_parse_one_or_many(
+    j,
+    "parallelAxis",
+    parse_parallel_axis_option,
+    [],
+  )
   let geo = j_parse_one_or_many(j, "geo", parse_geo_option, [])
   let calendar = j_parse_one_or_many(j, "calendar", parse_calendar_option, [])
   let radar = j_parse_one_or_many(j, "radar", parse_radar_option, [])
@@ -56,6 +63,8 @@ fn parse_chart_option(j : Json) -> ChartOption {
     radius_axis,
     grid,
     polar,
+    parallel,
+    parallel_axis,
     geo,
     calendar,
     radar,
@@ -229,6 +238,47 @@ fn parse_geo_option(j : Json) -> GeoOption {
 }
 
 ///|
+fn parse_parallel_option(j : Json) -> ParallelOption {
+  let base = ParallelOption::default()
+  {
+    left: parse_size_spec(j, "left", base.left),
+    right: parse_size_spec(j, "right", base.right),
+    top: parse_size_spec(j, "top", base.top),
+    bottom: parse_size_spec(j, "bottom", base.bottom),
+    layout: j_string(j, "layout", base.layout),
+    axis_expandable: j_bool(j, "axisExpandable", base.axis_expandable),
+    axis_expand_center: match j_field(j, "axisExpandCenter") {
+      Some(Number(n, ..)) => Some(n.to_int())
+      _ => base.axis_expand_center
+    },
+    axis_expand_count: j_int(j, "axisExpandCount", base.axis_expand_count),
+    axis_expand_width: j_number(j, "axisExpandWidth", base.axis_expand_width),
+  }
+}
+
+///|
+fn parse_parallel_axis_option(j : Json) -> ParallelAxisOption {
+  let base = ParallelAxisOption::default()
+  {
+    axis_type: match j_string(j, "type", "") {
+      "category" => AxisType::Category
+      "time" => AxisType::Time
+      "log" => AxisType::Log
+      "value" => AxisType::Value
+      _ => base.axis_type
+    },
+    dim: j_int(j, "dim", base.dim),
+    parallel_index: j_int(j, "parallelIndex", base.parallel_index),
+    name: j_string_opt(j, "name"),
+    data: j_string_array_lossy(j, "data", base.data),
+    min: j_number_opt(j, "min"),
+    max: j_number_opt(j, "max"),
+    inverse: j_bool(j, "inverse", base.inverse),
+    show: j_bool(j, "show", base.show),
+  }
+}
+
+///|
 fn parse_geo_item_style_option(j : Json) -> GeoItemStyleOption {
   let base = GeoItemStyleOption::default()
   {
@@ -383,6 +433,7 @@ fn parse_size_spec_opt(
 fn parse_series_option(j : Json) -> SeriesOption {
   let series_type = match j_string(j, "type", "line") {
     "line" => SeriesType::Line
+    "parallel" => SeriesType::Parallel
     "lines" => SeriesType::Lines
     "bar" => SeriesType::Bar
     "pictorialBar" => SeriesType::PictorialBar
@@ -402,6 +453,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   }
   let base = match series_type {
     Line => SeriesOption::default_line()
+    Parallel => SeriesOption::default_parallel()
     Lines => SeriesOption::default_lines()
     Bar => SeriesOption::default_bar()
     PictorialBar => SeriesOption::default_pictorial_bar()
@@ -422,6 +474,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let name = j_string_opt(j, "name")
   let x_axis_index = j_int(j, "xAxisIndex", base.x_axis_index)
   let y_axis_index = j_int(j, "yAxisIndex", base.y_axis_index)
+  let parallel_index = j_int(j, "parallelIndex", base.parallel_index)
   let radius_axis_index = j_int(j, "radiusAxisIndex", base.radius_axis_index)
   let angle_axis_index = j_int(j, "angleAxisIndex", base.angle_axis_index)
   let polar_index = j_int(j, "polarIndex", base.polar_index)
@@ -503,6 +556,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let min_val = j_number(j, "min", base.min_val)
   let max_val = j_number(j, "max", base.max_val)
   let split_number = j_int(j, "splitNumber", base.split_number)
+  let active_opacity = j_number_opt(j, "activeOpacity")
+  let inactive_opacity = j_number_opt(j, "inactiveOpacity")
   {
     series_type,
     name,
@@ -523,6 +578,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     bar_category_gap,
     x_axis_index,
     y_axis_index,
+    parallel_index,
     radius_axis_index,
     angle_axis_index,
     polar_index,
@@ -554,6 +610,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     min_val,
     max_val,
     split_number,
+    active_opacity,
+    inactive_opacity,
   }
 }
 

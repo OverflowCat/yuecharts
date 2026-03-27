@@ -38,6 +38,35 @@ pub(all) struct AxisOption {
 }
 
 ///|
+/// Corresponds to: echarts/src/coord/parallel/AxisModel.ts
+pub(all) struct ParallelAxisOption {
+  axis_type : AxisType
+  dim : Int
+  parallel_index : Int
+  name : String?
+  data : Array[String]
+  min : Double?
+  max : Double?
+  inverse : Bool
+  show : Bool
+}
+
+///|
+pub fn ParallelAxisOption::default() -> ParallelAxisOption {
+  {
+    axis_type: AxisType::Value,
+    dim: 0,
+    parallel_index: 0,
+    name: None,
+    data: [],
+    min: None,
+    max: None,
+    inverse: false,
+    show: true,
+  }
+}
+
+///|
 pub fn AxisOption::default_x() -> AxisOption {
   {
     axis_type: AxisType::Category,
@@ -200,10 +229,40 @@ pub impl Default for GridOption with default() {
 }
 
 ///|
+/// Corresponds to: echarts/src/coord/parallel/ParallelModel.ts
+pub(all) struct ParallelOption {
+  left : SizeSpec
+  right : SizeSpec
+  top : SizeSpec
+  bottom : SizeSpec
+  layout : String
+  axis_expandable : Bool
+  axis_expand_center : Int?
+  axis_expand_count : Int
+  axis_expand_width : Double
+}
+
+///|
+pub impl Default for ParallelOption with default() {
+  {
+    left: SizeSpec::Px(80.0),
+    right: SizeSpec::Px(80.0),
+    top: SizeSpec::Px(60.0),
+    bottom: SizeSpec::Px(60.0),
+    layout: "horizontal",
+    axis_expandable: false,
+    axis_expand_center: None,
+    axis_expand_count: 0,
+    axis_expand_width: 50.0,
+  }
+}
+
+///|
 /// Series type.
 pub(all) enum SeriesType {
   // pub`(all)` enum to construct the "never constructed" variant outside of the current package
   Line
+  Parallel
   Lines
   Bar
   PictorialBar
@@ -272,6 +331,7 @@ pub(all) struct SeriesOption {
   bar_category_gap : String?
   x_axis_index : Int
   y_axis_index : Int
+  parallel_index : Int
   radius_axis_index : Int
   angle_axis_index : Int
   polar_index : Int
@@ -307,6 +367,8 @@ pub(all) struct SeriesOption {
   min_val : Double // data min, default 0
   max_val : Double // data max, default 100
   split_number : Int // tick divisions, default 10
+  active_opacity : Double?
+  inactive_opacity : Double?
 }
 
 ///|
@@ -331,6 +393,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     bar_category_gap: None,
     x_axis_index: 0,
     y_axis_index: 0,
+    parallel_index: 0,
     radius_axis_index: 0,
     angle_axis_index: 0,
     polar_index: 0,
@@ -362,6 +425,8 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     min_val: 0.0,
     max_val: 100.0,
     split_number: 10,
+    active_opacity: None,
+    inactive_opacity: None,
   }
 }
 
@@ -370,6 +435,20 @@ pub fn SeriesOption::default_line() -> SeriesOption {
 ///|
 pub fn SeriesOption::default_bar() -> SeriesOption {
   { ..SeriesOption::default_line(), series_type: SeriesType::Bar }
+}
+
+///|
+pub fn SeriesOption::default_parallel() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Parallel,
+    coordinate_system: Some("parallel"),
+    parallel_index: 0,
+    line_style_width: Some(1.0),
+    line_style_opacity: Some(0.45),
+    active_opacity: Some(1.0),
+    inactive_opacity: Some(0.05),
+  }
 }
 
 ///|
@@ -820,6 +899,8 @@ pub(all) struct ChartOption {
   radius_axis : Array[AxisOption]
   grid : Array[GridOption]
   polar : Array[PolarOption]
+  parallel : Array[ParallelOption]
+  parallel_axis : Array[ParallelAxisOption]
   geo : Array[GeoOption]
   calendar : Array[CalendarOption]
   radar : Array[RadarOption]
@@ -845,6 +926,8 @@ pub impl Default for ChartOption with default() {
     radius_axis: [],
     grid: [GridOption::default()],
     polar: [],
+    parallel: [],
+    parallel_axis: [],
     geo: [],
     calendar: [],
     radar: [],

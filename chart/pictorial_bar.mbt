@@ -189,24 +189,6 @@ fn pictorial_bounding_length(
 }
 
 ///|
-fn clipped_symbol_rect(
-  zero_y : Double,
-  actual_length : Double,
-  y : Double,
-  h : Double,
-) -> (Double, Double)? {
-  let clip_top = zero_y - actual_length
-  let clip_bottom = zero_y
-  let top = if y > clip_top { y } else { clip_top }
-  let bottom = if y + h < clip_bottom { y + h } else { clip_bottom }
-  if bottom <= top {
-    None
-  } else {
-    Some((top, bottom - top))
-  }
-}
-
-///|
 fn effective_repeat_slot(
   series : @option.SeriesOption,
   slot_index : Int,
@@ -315,7 +297,7 @@ fn render_pictorial_bar_series(
     let (symbol_w, base_symbol_h) = pictorial_symbol_size(
       series, bar_w, bounding_length, symbol_repeat,
     )
-    let repeat_times = if symbol_repeat {
+    let mut repeat_times = if symbol_repeat {
       pictorial_bar_repeat_times(series, bounding_length.abs(), base_symbol_h)
     } else {
       1
@@ -327,8 +309,6 @@ fn render_pictorial_bar_series(
       let end_gap = has_end_gap(series)
       let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
       let denom = match (end_gap, repeat_times) {
-        // (true, _..=0) => 1
-        // (false, _..=1) => 1
         (_, _..=1) => 1
         (true, _) => repeat_times
         (false, _) => repeat_times - 1
@@ -342,17 +322,18 @@ fn render_pictorial_bar_series(
           (actual_length.abs() + end_fix) / unit,
         )
         if adjusted_times > 0 {
-          let denom = if end_gap {
+          let denom2 = if end_gap {
             adjusted_times
           } else if adjusted_times > 1 {
             adjusted_times - 1
           } else {
             1
           }
-          let m_diff = bounding_length.abs() -
+          let m_diff2 = bounding_length.abs() -
             adjusted_times.to_double() * symbol_h
-          margin = m_diff / 2.0 / denom.to_double()
+          margin = m_diff2 / 2.0 / denom2.to_double()
           unit = symbol_h + margin * 2.0
+          repeat_times = adjusted_times
         }
       }
     } else {
@@ -363,6 +344,11 @@ fn render_pictorial_bar_series(
     let (offset_x, offset_y) = pictorial_symbol_offset(
       series, symbol_w, symbol_h,
     )
+    // When symbolClip is true, collect symbols into a sub-array and wrap
+    // with an SVG clipPath that clips to [zero_y - actual_length, zero_y].
+    // This matches ECharts' behavior: the symbol is drawn at full bounding
+    // height but visually clipped to the actual data value height.
+    let symbol_buf : Array[@graphic.Element] = []
     let mut ri = 0
     while ri < repeat_times {
       let slot_index = effective_repeat_slot(series, ri, repeat_times)
@@ -372,24 +358,34 @@ fn render_pictorial_bar_series(
       } else {
         single_symbol_y(series, zero_y, bounding_length, symbol_h) + offset_y
       }
-      let visible = if series.symbol_clip {
-        clipped_symbol_rect(zero_y, actual_length, raw_symbol_y, symbol_h)
-      } else {
-        Some((raw_symbol_y, symbol_h))
-      }
-      if visible is Some((symbol_y, visible_h)) {
-        let symbol = @graphic.make_symbol(
-          item_symbol,
-          bar_x + offset_x,
-          symbol_y,
-          symbol_w,
-          visible_h,
-          pictorial_symbol_color(series, series_index),
-          series |> pictorial_symbol_opacity,
-        )
-        elems.push(symbol)
-      }
+      let sym = @graphic.make_symbol(
+        item_symbol,
+        bar_x + offset_x,
+        raw_symbol_y,
+        symbol_w,
+        symbol_h,
+        pictorial_symbol_color(series, series_index),
+        series |> pictorial_symbol_opacity,
+      )
+      symbol_buf.push(sym)
       ri += 1
+    }
+    if symbol_buf.length() > 0 {
+      if series.symbol_clip {
+        // Use a wide clip rect that restricts only the Y axis to
+        // [zero_y - actual_length, zero_y], matching ECharts' clipPath approach.
+        let clip_rect = @graphic.BBox::new(
+          -10000.0,
+          zero_y - actual_length,
+          20000.0,
+          actual_length,
+        )
+        elems.push(@graphic.Element::group_clipped(symbol_buf, clip_rect))
+      } else {
+        for sym in symbol_buf {
+          elems.push(sym)
+        }
+      }
     }
   }
 

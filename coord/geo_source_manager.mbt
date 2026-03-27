@@ -111,10 +111,7 @@ pub fn GeoJsonResource::load(
     apply_geo_special_areas(parse_geo_json(self.geo_json), self.special_areas),
     name_map,
   )
-  {
-    regions,
-    bounding_rect: geo_regions_bounding_rect(regions),
-  }
+  { regions, bounding_rect: geo_regions_bounding_rect(regions) }
 }
 
 ///|

@@ -1,3 +1,17 @@
+## 2026-03-27 Geo Update
+
+- Added first-pass GeoJSON-backed `geo` plumbing across `option/types.mbt`, `option/parse.mbt`, `coord/geo.mbt`, `core/registry.mbt`, and `yuecharts.mbt`. The current subset covers inline `maps[].geoJSON`, `geo.map`, `geo.aspectScale`, `geo.label`, and region-center placement from `properties.cp` or polygon bbox center.
+- Added static `map`/`geo` rendering in `chart/map.mbt` and `component/geo.mbt`, wired through `chart/install.mbt` and `component/install.mbt`. Current output covers GeoJSON polygon rendering, region labels, basic borders, choropleth fill from `visualMap.inRange.color`, and scatter/effectScatter anchoring on `coordinateSystem: 'geo'` with `visualMap.inRange.symbolSize`.
+- Added `coord/geo_wbtest.mbt` plus top-level geo render tests in `yuecharts_test.mbt`, and updated `tools/echarts-render.js` so JS SSR now consumes the same top-level `maps[].geoJSON` registration payload via `echarts.registerMap(...)`.
+- Added first-pass `series.type = 'lines'` support in `chart/lines.mbt`, wired through `chart/install.mbt` and `option/*`; the current subset covers `data[i].coords`, `fromName/toName` region-center lookup, `polyline`, and series-level `lineStyle.width/color/opacity/curveness` on geo.
+- Added first-pass `geo.nameMap`, `geo.itemStyle`, and `geo.regions[].label/itemStyle` support across `option/*`, `coord/geo.mbt`, `component/geo.mbt`, and `chart/map.mbt`; current static output now respects renamed region names plus per-region label/border/fill overrides.
+- Added first-pass `specialAreas` and compressed GeoJSON decode support in `coord/geo.mbt` and `option/*`, translating the static subset of upstream `parseGeoJson.ts` / `Region.ts` behavior for `UTF8Encoding`, `UTF8Scale`, `encodeOffsets`, and region bbox-based inset transforms.
+- `coord/geo.mbt` now keeps polygon vs linestring geometries separately, preserves polygon interiors in parsed data, and uses line geometries when computing region bbox / fallback center.
+- Added [`coord/geo_source_manager.mbt`](/E:/yuecharts/coord/geo_source_manager.mbt) to land the current static subset of upstream `GeoJSONResource.ts` / `geoSourceManager.ts`; `Geo::build(...)` now loads map data through a resource manager instead of directly scanning `opt.map_registry`.
+- `examples/geo-choropleth-scatter.json` now embeds the Iceland GeoJSON asset inline so both MoonBit and JS SSR can render it directly from the same file.
+- `component/geo.mbt` and `chart/map.mbt` now render polygon geometries as compound SVG paths, so GeoJSON interiors/holes are preserved in static output rather than being flattened to exterior-only polygons.
+- Added comparison fixtures `examples/geo-specialareas.json`, `examples/geo-compressed.json`, and `examples/geo-hole.json`, plus static fixture `examples/geo-multiline.json`; MoonBit / JS SSR SVG outputs are written under `_tmp/`.
+- Current status remains `partial`: this translation does not yet cover SVG maps, projection providers, public `registerMap/getMap` runtime APIs on the top-level yuecharts module, region selection/hover state, `mapDataStatistic.ts`, or upstream series-order/zrender structure parity.
 # ECharts to yuecharts Port Map
 
 ## 2026-03-26 Update
@@ -16,6 +30,8 @@
 - `component/axis.mbt` now renders static polar angle/radius axes and split lines based on `AngleAxisView.ts` / `RadiusAxisView.ts`.
 - `chart/bar.mbt`, `chart/line.mbt`, `chart/scatter.mbt`, and `chart/effect_scatter.mbt` now accept polar render context; `examples/polar-bar.json`, `examples/polar-line.json`, and `examples/polar-scatter.json` were rendered against JS SSR references.
 - Current status is still `partial`: the static SVG output now exists and uses the polar coordinate model, but `barPolar.ts` / `LineView.ts` behavior is not yet 1:1 with upstream and the generated element structure still differs from ECharts SSR.
+- Added first-pass `parallel` support across `option/types.mbt`, `option/parse.mbt`, `coord/parallel.mbt`, `core/registry.mbt`, `layout/install.mbt`, `component/parallel.mbt`, `component/install.mbt`, `chart/parallel.mbt`, `chart/install.mbt`, and `yuecharts.mbt`. The current static subset covers `parallel`, `parallelAxis`, `series.type = "parallel"`, value-axis layout/ticks/labels, and polyline rendering for numeric dimensions; parallel axes now render in the foreground with horizontal axis names placed above the coordinate area, series polylines are clipped to the parallel bbox, and missing/null dimension values are skipped instead of fabricating fallback coordinates.
+
 ## Scope
 
 This file is a source-to-port map for the ECharts files that matter to the
@@ -85,6 +101,7 @@ E:\yuecharts
 │   ├── grid_lines.mbt
 │   ├── install.mbt
 │   ├── legend.mbt
+│   ├── parallel.mbt
 │   └── title.mbt
 ├── core
 │   ├── moon.pkg
@@ -134,6 +151,7 @@ E:\yuecharts
 │   ├── js
 │   │   └── polar-line2.js
 │   ├── polar-line2.jsgen.svg / .jsgen.ref.svg
+│   ├── parallel.json / .svg / .ref.svg
 │   ├── radar.json / .svg
 │   ├── scatter.json / .svg / .ref.svg
 │   ├── sunburst.json / .svg / .echarts.svg
@@ -333,12 +351,12 @@ E:\recharts\echarts\src
 │   │   └── prepareCustom.ts =>  [missing] Feature: singleAxis custom adapter
 │   │
 │   ├── parallel
-│   │   ├── AxisModel.ts =>  [missing] Feature: parallel axis model
-│   │   ├── Parallel.ts =>  [missing] Feature: parallel coordinate system
-│   │   ├── ParallelAxis.ts =>  [missing] Feature: parallel axis
-│   │   ├── parallelCreator.ts =>  [missing] Feature: parallel creator
-│   │   ├── ParallelModel.ts =>  [missing] Feature: parallel model
-│   │   └── parallelPreprocessor.ts =>  [missing] Feature: parallel option preprocessor
+│   │   ├── AxisModel.ts => option/types.mbt, option/parse.mbt, coord/parallel.mbt [partial] Feature: parallel axis model
+│   │   ├── Parallel.ts => coord/parallel.mbt [translated] Feature: parallel coordinate system
+│   │   ├── ParallelAxis.ts => coord/parallel.mbt [translated] Feature: parallel axis
+│   │   ├── parallelCreator.ts => layout/install.mbt, yuecharts.mbt [partial] Feature: parallel creator
+│   │   ├── ParallelModel.ts => option/types.mbt, option/parse.mbt, coord/parallel.mbt [partial] Feature: parallel model
+│   │   └── parallelPreprocessor.ts => option/parse.mbt [partial] Feature: parallel option preprocessor
 │   │
 │   ├── geo
 │   │   ├── Geo.ts =>  [missing] Feature: geo coordinate system
@@ -426,7 +444,7 @@ E:\recharts\echarts\src
 │   ├── markLine.ts =>  [missing] Feature: markLine component entry
 │   ├── markPoint.ts =>  [missing] Feature: markPoint component entry
 │   ├── matrix.ts =>  [missing] Feature: matrix component entry
-│   ├── parallel.ts =>  [missing] Feature: parallel component entry
+│   ├── parallel.ts => component/install.mbt, component/parallel.mbt [partial] Feature: parallel component entry
 │   ├── polar.ts => component/install.mbt, component/axis.mbt [partial] Feature: polar component entry
 │   ├── radar.ts => chart/radar.mbt [partial] Feature: radar component entry
 │   ├── singleAxis.ts =>  [missing] Feature: singleAxis component entry
@@ -466,7 +484,7 @@ E:\recharts\echarts\src
 │   │   ├── CartesianAxisView.ts => component/axis.mbt [partial] Feature: cartesian axis view
 │   │   ├── installBreak.ts =>  [missing] Feature: axis break install
 │   │   ├── parallelAxisAction.ts =>  [missing] Feature: parallel axis action
-│   │   ├── ParallelAxisView.ts =>  [missing] Feature: parallel axis view
+│   │   ├── ParallelAxisView.ts => component/parallel.mbt [partial] Feature: parallel axis view
 │   │   ├── RadiusAxisView.ts =>  [missing] Feature: radius axis view
 │   │   └── SingleAxisView.ts =>  [missing] Feature: single axis view
 │   │
@@ -572,8 +590,8 @@ E:\recharts\echarts\src
 │   │   └── TimelineView.ts =>  [missing] Feature: timeline view
 │   │
 │   ├── parallel
-│   │   ├── install.ts =>  [missing] Feature: parallel component install
-│   │   └── ParallelView.ts =>  [missing] Feature: parallel component view
+│   │   ├── install.ts => component/install.mbt [partial] Feature: parallel component install
+│   │   └── ParallelView.ts => component/parallel.mbt [partial] Feature: parallel component view
 │   │
 │   ├── geo
 │   │   ├── install.ts =>  [missing] Feature: geo component install
@@ -659,7 +677,7 @@ E:\recharts\echarts\src
 │   ├── line.ts => chart/line.mbt [partial] Feature: line chart entry
 │   ├── lines.ts => chart/lines.mbt [partial] Feature: lines chart entry
 │   ├── map.ts =>  [missing] Feature: map chart entry
-│   ├── parallel.ts =>  [missing] Feature: parallel chart entry
+│   ├── parallel.ts => chart/install.mbt, chart/parallel.mbt [partial] Feature: parallel chart entry
 │   ├── pictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar chart entry
 │   ├── pie.ts => chart/pie.mbt [partial] Feature: pie chart entry
 │   ├── radar.ts => chart/radar.mbt [partial] Feature: radar chart entry
@@ -837,10 +855,10 @@ E:\recharts\echarts\src
 │   │   └── ThemeRiverView.ts =>  [missing] Feature: themeRiver renderer
 │   │
 │   ├── parallel
-│   │   ├── install.ts =>  [missing] Feature: parallel chart install
-│   │   ├── ParallelSeries.ts =>  [missing] Feature: parallel series model
-│   │   ├── parallelVisual.ts =>  [missing] Feature: parallel visual
-│   │   └── ParallelView.ts =>  [missing] Feature: parallel chart renderer
+│   │   ├── install.ts => chart/install.mbt [partial] Feature: parallel chart install
+│   │   ├── ParallelSeries.ts => option/types.mbt, option/parse.mbt, chart/parallel.mbt [partial] Feature: parallel series model
+│   │   ├── parallelVisual.ts => chart/parallel.mbt [partial] Feature: parallel visual
+│   │   └── ParallelView.ts => chart/parallel.mbt [translated] Feature: parallel chart renderer
 │   │
 │   ├── lines
 │   │   ├── install.ts =>  [missing] Feature: lines install

@@ -26,6 +26,17 @@ pub impl @core.ComponentViewLike for AxisComponentView with render(_self, ctx) {
 }
 
 ///|
+struct ParallelComponentView {}
+
+///|
+pub impl @core.ComponentViewLike for ParallelComponentView with render(
+  _self,
+  ctx,
+) {
+  render_parallel_component(ctx.option, parallel=ctx.parallel)
+}
+
+///|
 struct GeoComponentView {}
 
 ///|
@@ -88,6 +99,16 @@ pub fn install_axis(registry : @core.Registry) -> Unit {
 }
 
 ///|
+
+///|
+pub fn install_parallel(registry : @core.Registry) -> Unit {
+  // echarts/src/component/parallel/install.ts
+  // echarts/src/component/parallel/ParallelView.ts
+  // echarts/src/component/axis/ParallelAxisView.ts
+  register_component(registry, Foreground, false, ParallelComponentView::{  })
+}
+
+///|
 pub fn install_geo(registry : @core.Registry) -> Unit {
   // echarts/src/component/geo/install.ts
   // echarts/src/component/helper/MapDraw.ts
@@ -129,6 +150,7 @@ pub fn install_calendar(registry : @core.Registry) -> Unit {
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_grid_lines(registry)
   install_axis(registry)
+  install_parallel(registry)
   install_geo(registry)
   install_title(registry)
   install_legend(registry)

@@ -12,6 +12,14 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   registry.register_layout(
     @core.LayoutRegistration::new(None, 110, Some("build_calendar")),
   )
+  // echarts/src/coord/parallel/parallelCreator.ts
+  registry.register_layout(
+    @core.LayoutRegistration::new(
+      Some(@option.SeriesType::Parallel),
+      108,
+      Some("build_parallel"),
+    ),
+  )
   // echarts/src/coord/polar/polarCreator.ts
   registry.register_layout(
     @core.LayoutRegistration::new(None, 105, Some("build_polar")),

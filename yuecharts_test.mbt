@@ -802,3 +802,63 @@ test "geo polygon interiors render as compound path" {
   assert_true(svg.contains(" ZM "))
   assert_true(!svg.contains("<polygon"))
 }
+
+///|
+test "parallel coordinates render axes and polylines" {
+  let json_str =
+    #|{
+    #|  "width": 420,
+    #|  "height": 280,
+    #|  "parallel": { "left": 50, "right": 50, "top": 30, "bottom": 30 },
+    #|  "parallelAxis": [
+    #|    { "dim": 0, "name": "A", "type": "value" },
+    #|    { "dim": 1, "name": "B", "type": "value" },
+    #|    { "dim": 2, "name": "C", "type": "value" }
+    #|  ],
+    #|  "series": [{
+    #|    "type": "parallel",
+    #|    "data": [[1, 2, 3], [2, 3, 1]]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(
+    svg.contains(
+      "<text x=\"50\" y=\"12\" fill=\"#54555a\" font-size=\"12\" text-anchor=\"middle\" dominant-baseline=\"hanging\">A</text>",
+    ),
+  )
+  assert_true(
+    svg.contains(
+      "<text x=\"210\" y=\"12\" fill=\"#54555a\" font-size=\"12\" text-anchor=\"middle\" dominant-baseline=\"hanging\">B</text>",
+    ),
+  )
+  assert_true(
+    svg.contains(
+      "<text x=\"370\" y=\"12\" fill=\"#54555a\" font-size=\"12\" text-anchor=\"middle\" dominant-baseline=\"hanging\">C</text>",
+    ),
+  )
+  assert_true(svg.contains("stroke=\"#5070dd\""))
+  assert_true(count_substring(svg, "<polyline points=") >= 2)
+}
+
+///|
+test "parallel skips missing values and clips series group" {
+  let json_str =
+    #|{
+    #|  "width": 420,
+    #|  "height": 280,
+    #|  "parallel": { "left": 50, "right": 50, "top": 30, "bottom": 30 },
+    #|  "parallelAxis": [
+    #|    { "dim": 0, "name": "A", "type": "value" },
+    #|    { "dim": 1, "name": "B", "type": "value" },
+    #|    { "dim": 2, "name": "C", "type": "value" }
+    #|  ],
+    #|  "series": [{
+    #|    "type": "parallel",
+    #|    "data": [[1, 2, 3], [2, 3], null]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_eq(count_substring(svg, "<clipPath id=\"clip-"), 1)
+  assert_eq(count_substring(svg, "<polyline points="), 2)
+  assert_true(svg.contains("<polyline points=\"50,30 210,30\""))
+}
