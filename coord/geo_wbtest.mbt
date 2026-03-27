@@ -157,3 +157,62 @@ test "geo preserves polygon interiors" {
     _ => assert_true(false)
   }
 }
+
+///|
+test "geo source manager loads resource with specialAreas and nameMap" {
+  let json_str =
+    #|{
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "rawInset", "cp": [25, 5] },
+    #|        "geometry": { "type": "Polygon", "coordinates": [[[20,0],[30,0],[30,10],[20,10],[20,0]]] }
+    #|      }]
+    #|    },
+    #|    "specialAreas": {
+    #|      "rawInset": { "left": 4, "top": 12, "width": 4, "height": 4 }
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let manager = GeoSourceManager::from_option(opt)
+  let loaded = manager.load("demo", [{ from_name: "rawInset", to_name: "Inset" }], "name").unwrap()
+  assert_eq(loaded.regions.length(), 1)
+  let region = loaded.regions[0]
+  assert_eq(region.name, "Inset")
+  assert_eq(region.data_bbox.x, 4.0)
+  assert_eq(region.data_bbox.y, 12.0)
+  assert_eq(region.data_bbox.width, 4.0)
+  assert_eq(region.data_bbox.height, 4.0)
+  assert_eq(loaded.bounding_rect.x, 4.0)
+  assert_eq(loaded.bounding_rect.y, 12.0)
+}
+
+///|
+test "geo source manager get_map_for_user returns original registration" {
+  let json_str =
+    #|{
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": []
+    #|    },
+    #|    "specialAreas": {
+    #|      "Inset": { "left": 4, "top": 12, "width": 4, "height": 4 }
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let manager = GeoSourceManager::from_option(opt)
+  let map_for_user = manager.get_map_for_user("demo").unwrap()
+  match map_for_user.geo_json {
+    { "type": String("FeatureCollection"), .. } => assert_true(true)
+    _ => assert_true(false)
+  }
+  assert_eq(map_for_user.special_areas.length(), 1)
+  assert_eq(map_for_user.special_areas[0].name, "Inset")
+}

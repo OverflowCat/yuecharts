@@ -51,8 +51,10 @@ pub fn Geo::build(opt : @option.ChartOption) -> Geo? {
   if geo_opt.map == "" {
     return None
   }
-  let map_entry = find_registered_map(opt.map_registry, geo_opt.map)
-  map_entry.map_or(None, entry => build_geo_from_json(opt, geo_opt, entry))
+  let source_manager = GeoSourceManager::from_option(opt)
+  source_manager
+  .load(geo_opt.map, geo_opt.name_map, "name")
+  .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
 }
 
 ///|
@@ -145,36 +147,13 @@ pub fn GeoRegion::screen_center(self : GeoRegion, geo : Geo) -> @graphic.Point {
 }
 
 ///|
-fn find_registered_map(
-  maps : Array[@option.MapRegistryOption],
-  name : String,
-) -> @option.MapRegistryOption? {
-  let mut i = 0
-  while i < maps.length() {
-    let item = maps[i]
-    if item.name == name {
-      return Some(item)
-    }
-    i += 1
-  }
-  None
-}
-
-///|
-fn build_geo_from_json(
+fn build_geo_from_loaded(
   opt : @option.ChartOption,
   geo_opt : @option.GeoOption,
-  map_entry : @option.MapRegistryOption,
+  loaded : GeoLoadedResource,
 ) -> Geo? {
-  let json = match map_entry.geo_json {
-    Some(value) => value
-    None => return None
-  }
   let aspect_scale = geo_opt.aspect_scale.unwrap_or(0.75)
-  let regions = apply_geo_name_map(
-    apply_geo_special_areas(parse_geo_json(json), map_entry.special_areas),
-    geo_opt.name_map,
-  )
+  let regions = loaded.regions
   if regions.length() == 0 {
     return None
   }
