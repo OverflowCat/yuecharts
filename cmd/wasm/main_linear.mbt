@@ -17,8 +17,3 @@ pub fn do_render() -> Unit {
   }
   println(@lib.render(buf.to_string()))
 }
-
-///|
-fn main {
-  ()
-}

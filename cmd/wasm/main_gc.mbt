@@ -5,8 +5,3 @@
 pub fn render(json_str : String) -> String {
   @lib.render(json_str)
 }
-
-///|
-fn main {
-  ()
-}
