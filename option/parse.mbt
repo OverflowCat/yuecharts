@@ -39,10 +39,12 @@ fn parse_chart_option(j : Json) -> ChartOption {
     GridOption::default(),
   ])
   let polar = j_parse_one_or_many(j, "polar", parse_polar_option, [])
+  let geo = j_parse_one_or_many(j, "geo", parse_geo_option, [])
   let calendar = j_parse_one_or_many(j, "calendar", parse_calendar_option, [])
   let radar = j_parse_one_or_many(j, "radar", parse_radar_option, [])
   let series = j_parse_one_or_many(j, "series", parse_series_option, [])
-  let visual_map = j_parse_optional(j, "visualMap", parse_visual_map)
+  let map_registry = j_parse_one_or_many(j, "maps", parse_map_registry_option, [])
+  let visual_map = j_parse_one_or_many(j, "visualMap", parse_visual_map, [])
   {
     width,
     height,
@@ -54,9 +56,11 @@ fn parse_chart_option(j : Json) -> ChartOption {
     radius_axis,
     grid,
     polar,
+    geo,
     calendar,
     radar,
     series,
+    map_registry,
     background_color,
     aria,
     visual_map,
@@ -211,6 +215,100 @@ fn parse_polar_option(j : Json) -> PolarOption {
 }
 
 ///|
+fn parse_geo_option(j : Json) -> GeoOption {
+  let base = GeoOption::default()
+  {
+    map: j_string(j, "map", base.map),
+    roam: j_bool(j, "roam", base.roam),
+    aspect_scale: j_number_opt(j, "aspectScale"),
+    label: parse_geo_label_option(j_field_or_self(j, "label")),
+    item_style: parse_geo_item_style_option(j_field_or_self(j, "itemStyle")),
+    name_map: parse_geo_name_map(j),
+    regions: j_parse_array(j, "regions", parse_geo_region_option, []),
+  }
+}
+
+///|
+fn parse_geo_item_style_option(j : Json) -> GeoItemStyleOption {
+  let base = GeoItemStyleOption::default()
+  {
+    area_color: j_string_opt(j, "areaColor"),
+    border_color: j_string(j, "borderColor", base.border_color),
+    border_width: j_number(j, "borderWidth", base.border_width),
+  }
+}
+
+///|
+fn parse_geo_region_option(j : Json) -> GeoRegionOption {
+  {
+    name: j_string(j, "name", ""),
+    label: match j_field(j, "label") {
+      Some(value) => Some(parse_geo_label_option(value))
+      None => None
+    },
+    item_style: match j_field(j, "itemStyle") {
+      Some(value) => Some(parse_geo_item_style_option(value))
+      None => None
+    },
+  }
+}
+
+///|
+fn parse_geo_name_map(j : Json) -> Array[GeoNameMapEntry] {
+  match j_field(j, "nameMap") {
+    Some(Object(map)) => {
+      let entries : Array[GeoNameMapEntry] = []
+      for from_name, to_json in map {
+        match to_json {
+          String(to_name) => entries.push({ from_name, to_name })
+          _ => ()
+        }
+      }
+      entries
+    }
+    _ => []
+  }
+}
+
+///|
+fn parse_geo_label_option(j : Json) -> GeoLabelOption {
+  let base = GeoLabelOption::default()
+  {
+    show: j_bool(j, "show", base.show),
+    color: j_string(j, "color", base.color),
+  }
+}
+
+///|
+fn parse_map_registry_option(j : Json) -> MapRegistryOption {
+  {
+    name: j_string(j, "name", ""),
+    geo_json: j_field(j, "geoJSON"),
+    special_areas: parse_map_special_areas(j),
+  }
+}
+
+///|
+fn parse_map_special_areas(j : Json) -> Array[MapSpecialAreaOption] {
+  match j_field(j, "specialAreas") {
+    Some(Object(map)) => {
+      let result : Array[MapSpecialAreaOption] = []
+      for name, value in map {
+        result.push({
+          name,
+          left: j_number(value, "left", 0.0),
+          top: j_number(value, "top", 0.0),
+          width: j_number(value, "width", 0.0),
+          height: j_number(value, "height", 0.0),
+        })
+      }
+      result
+    }
+    _ => []
+  }
+}
+
+///|
 fn parse_calendar_option(j : Json) -> CalendarOption {
   let base = CalendarOption::default()
   {
@@ -285,6 +383,7 @@ fn parse_size_spec_opt(
 fn parse_series_option(j : Json) -> SeriesOption {
   let series_type = match j_string(j, "type", "line") {
     "line" => SeriesType::Line
+    "lines" => SeriesType::Lines
     "bar" => SeriesType::Bar
     "pictorialBar" => SeriesType::PictorialBar
     "scatter" => SeriesType::Scatter
@@ -298,10 +397,12 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "boxplot" => SeriesType::Boxplot
     "funnel" => SeriesType::Funnel
     "gauge" => SeriesType::Gauge
+    "map" => SeriesType::Map
     _ => SeriesType::Line
   }
   let base = match series_type {
     Line => SeriesOption::default_line()
+    Lines => SeriesOption::default_lines()
     Bar => SeriesOption::default_bar()
     PictorialBar => SeriesOption::default_pictorial_bar()
     Scatter => SeriesOption::default_scatter()
@@ -310,6 +411,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Sunburst => SeriesOption::default_sunburst()
     Treemap => SeriesOption::default_treemap()
     Gauge => SeriesOption::default_gauge()
+    Map => SeriesOption::default_map()
     _ => SeriesOption::default_line()
   }
   // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
@@ -325,7 +427,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let polar_index = j_int(j, "polarIndex", base.polar_index)
   let coordinate_system = j_string_opt(j, "coordinateSystem")
   let calendar_index = j_int(j, "calendarIndex", base.calendar_index)
+  let geo_index = j_int(j, "geoIndex", base.geo_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
+  let map_name = j_string_opt(j, "map")
   let symbol_size_values = parse_symbol_size_values(j)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
   let symbol = j_string_or_number_as_string_opt(j, "symbol", base.symbol)
@@ -384,6 +488,12 @@ fn parse_series_option(j : Json) -> SeriesOption {
   }
   let stack = j_string_opt(j, "stack")
   let smooth = j_bool(j, "smooth", base.smooth)
+  let polyline = j_bool(j, "polyline", base.polyline)
+  let line_style = j_field_or_self(j, "lineStyle")
+  let line_style_color = j_string_opt(line_style, "color")
+  let line_style_width = j_number_opt(line_style, "width")
+  let line_style_opacity = j_number_opt(line_style, "opacity")
+  let line_style_curveness = j_number_opt(line_style, "curveness")
   let radius = j_stringish_array(j, "radius", base.radius)
   let center = j_stringish_array(j, "center", base.center)
   let min_angle = j_number(j, "minAngle", base.min_angle)
@@ -418,12 +528,18 @@ fn parse_series_option(j : Json) -> SeriesOption {
     polar_index,
     coordinate_system,
     calendar_index,
+    geo_index,
     radar_index,
+    map_name,
     stack,
     smooth,
+    polyline,
     symbol_size,
     color,
-    line_style_width: None,
+    line_style_color,
+    line_style_width,
+    line_style_opacity,
+    line_style_curveness,
     item_style,
     item_opacity,
     area_style,
@@ -445,24 +561,74 @@ fn parse_series_option(j : Json) -> SeriesOption {
 fn parse_data_item(j : Json) -> DataItem {
   match j {
     Number(n, ..) =>
-      { value: DataValue::Num(n), name: None, symbol: None, children: [] }
-    Null => { value: DataValue::Null, name: None, symbol: None, children: [] }
+      {
+        value: DataValue::Num(n),
+        name: None,
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
+    Null =>
+      {
+        value: DataValue::Null,
+        name: None,
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
     True =>
-      { value: DataValue::Num(1.0), name: None, symbol: None, children: [] }
+      {
+        value: DataValue::Num(1.0),
+        name: None,
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
     False =>
-      { value: DataValue::Num(0.0), name: None, symbol: None, children: [] }
+      {
+        value: DataValue::Num(0.0),
+        name: None,
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
     Array(arr) => parse_data_array_item(arr)
     { "value": Number(n, ..), .. } => parse_data_object(j, DataValue::Num(n))
     { "value": Array(arr), .. } =>
       parse_data_object(j, parse_data_array_value(arr))
     Object(_) => parse_data_object(j, DataValue::Null)
-    _ => { value: DataValue::Null, name: None, symbol: None, children: [] }
+    _ =>
+      {
+        value: DataValue::Null,
+        name: None,
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
   }
 }
 
 ///|
 fn parse_data_array_item(arr : Array[Json]) -> DataItem {
-  { value: parse_data_array_value(arr), name: None, symbol: None, children: [] }
+  {
+    value: parse_data_array_value(arr),
+    name: None,
+    symbol: None,
+    coords: None,
+    from_name: None,
+    to_name: None,
+    children: [],
+  }
 }
 
 ///|
@@ -470,6 +636,38 @@ fn parse_data_array_value(arr : Array[Json]) -> DataValue {
   match arr {
     [String(date), Number(n, ..)] => DataValue::DateValue(date, n)
     _ => DataValue::Vec(arr.map(json_number_or_zero))
+  }
+}
+
+///|
+fn parse_data_coords(j : Json) -> Array[Array[Double]]? {
+  match j_field(j, "coords") {
+    Some(Array(coords_arr)) => {
+      let coords : Array[Array[Double]] = []
+      let mut i = 0
+      while i < coords_arr.length() {
+        match coords_arr[i] {
+          Array(pair) => {
+            let coord : Array[Double] = []
+            let mut j = 0
+            while j < pair.length() {
+              match pair[j] {
+                Number(n, ..) => coord.push(n)
+                _ => ()
+              }
+              j += 1
+            }
+            if coord.length() >= 2 {
+              coords.push(coord)
+            }
+          }
+          _ => ()
+        }
+        i += 1
+      }
+      Some(coords)
+    }
+    _ => None
   }
 }
 
@@ -775,7 +973,39 @@ fn parse_symbol_offset(j : Json) -> Array[String]? {
 ///|
 fn parse_visual_map(j : Json) -> VisualMapOption {
   let base = VisualMapOption::default()
-  { min: j_number(j, "min", base.min), max: j_number(j, "max", base.max) }
+  {
+    min: j_number(j, "min", base.min),
+    max: j_number(j, "max", base.max),
+    series_index: j_int(j, "seriesIndex", base.series_index),
+    dimension: j_int(j, "dimension", base.dimension),
+    in_range: parse_visual_map_in_range(j_field_or_self(j, "inRange")),
+  }
+}
+
+///|
+fn parse_visual_map_in_range(j : Json) -> VisualMapInRange {
+  let base = VisualMapInRange::default()
+  {
+    color: j_stringish_array(j, "color", base.color),
+    symbol_size: parse_number_pair(j_field(j, "symbolSize")),
+  }
+}
+
+///|
+fn parse_number_pair(j : Json?) -> Array[Double] {
+  match j {
+    Some(Array(arr)) => {
+      let result : Array[Double] = []
+      let mut i = 0
+      while i < arr.length() && i < 2 {
+        result.push(json_number_or_zero(arr[i]))
+        i += 1
+      }
+      result
+    }
+    Some(Number(n, ..)) => [n, n]
+    _ => []
+  }
 }
 
 ///|
@@ -917,8 +1147,11 @@ fn pair_symbol_bounding_data(arr : Array[Json]) -> SymbolBoundingData? {
 fn parse_data_object(j : Json, value : DataValue) -> DataItem {
   let name = j_string_opt(j, "name")
   let symbol = j_string_opt(j, "symbol")
+  let coords = parse_data_coords(j)
+  let from_name = j_string_opt(j, "fromName")
+  let to_name = j_string_opt(j, "toName")
   let children = j_parse_array(j, "children", parse_data_item, [])
-  { value, name, symbol, children }
+  { value, name, symbol, coords, from_name, to_name, children }
 }
 
 ///|

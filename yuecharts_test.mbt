@@ -418,3 +418,387 @@ test "pie legend selection and negative filter affect rendered slices" {
   assert_true(svg.contains(">Bananas</text>"))
   assert_true(!svg.contains("#b6d634"))
 }
+
+///|
+test "geo map and scatter render with visual map" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#555555" }
+    #|  },
+    #|  "visualMap": [
+    #|    {
+    #|      "seriesIndex": 0,
+    #|      "min": 0,
+    #|      "max": 100,
+    #|      "dimension": 2,
+    #|      "inRange": { "symbolSize": [5, 30] }
+    #|    },
+    #|    {
+    #|      "seriesIndex": 1,
+    #|      "min": 0,
+    #|      "max": 100,
+    #|      "dimension": 0,
+    #|      "inRange": { "color": ["#deebf7", "#3182bd"] }
+    #|    }
+    #|  ],
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Beta", "cp": [15, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[10,0],[20,0],[20,10],[10,10],[10,0]]] }
+    #|        }
+    #|      ]
+    #|    }
+    #|  }],
+    #|  "series": [
+    #|    {
+    #|      "type": "scatter",
+    #|      "coordinateSystem": "geo",
+    #|      "data": [[2, 2, 0], [18, 8, 100]]
+    #|    },
+    #|    {
+    #|      "type": "map",
+    #|      "geoIndex": 0,
+    #|      "map": "",
+    #|      "data": [{ "name": "Alpha", "value": 0 }, { "name": "Beta", "value": 100 }]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("<path d=\"M "))
+  assert_true(svg.contains(">Alpha</text>"))
+  assert_true(svg.contains(">Beta</text>"))
+  assert_true(svg.contains("fill=\"#deebf7\""))
+  assert_true(svg.contains("fill=\"#3182bd\""))
+  assert_true(svg.contains("r=\"2.5\""))
+  assert_true(svg.contains("r=\"15\""))
+}
+
+///|
+test "effect scatter supports geo coordinate system" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 160,
+    #|  "geo": { "map": "demo", "aspectScale": 1 },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Only", "cp": [5, 5] },
+    #|        "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "effectScatter",
+    #|    "coordinateSystem": "geo",
+    #|    "symbolSize": 12,
+    #|    "data": [[5, 5, 1]]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("opacity=\"0.33333333333333337\""))
+  assert_true(svg.contains("opacity=\"0.6666666666666667\""))
+}
+
+///|
+test "lines series supports geo named regions and polyline" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 220,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#555555" }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Alpha", "cp": [3, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[6,0],[6,10],[0,10],[0,0]]] }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Beta", "cp": [10, 7] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[6,2],[14,2],[14,12],[6,12],[6,2]]] }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Gamma", "cp": [17, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[14,0],[20,0],[20,10],[14,10],[14,0]]] }
+    #|        }
+    #|      ]
+    #|    }
+    #|  }],
+    #|  "series": [
+    #|    {
+    #|      "type": "map",
+    #|      "geoIndex": 0,
+    #|      "data": [
+    #|        { "name": "Alpha", "value": 1 },
+    #|        { "name": "Beta", "value": 2 },
+    #|        { "name": "Gamma", "value": 3 }
+    #|      ]
+    #|    },
+    #|    {
+    #|      "type": "lines",
+    #|      "coordinateSystem": "geo",
+    #|      "lineStyle": { "width": 2, "curveness": 0.25 },
+    #|      "data": [{ "fromName": "Alpha", "toName": "Gamma" }]
+    #|    },
+    #|    {
+    #|      "type": "lines",
+    #|      "coordinateSystem": "geo",
+    #|      "polyline": true,
+    #|      "lineStyle": { "width": 1.5, "opacity": 0.8, "color": "#ff6b6b" },
+    #|      "data": [{ "coords": [[2,2],[10,11],[18,2]] }]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Alpha</text>"))
+  assert_true(svg.contains(">Gamma</text>"))
+  assert_true(svg.contains("<path d=\"M "))
+  assert_true(svg.contains(" Q "))
+  assert_true(svg.contains("stroke-width=\"2\""))
+  assert_true(svg.contains("<polyline points=\""))
+  assert_true(svg.contains("stroke=\"#ff6b6b\""))
+  assert_true(svg.contains("opacity=\"0.8\""))
+}
+
+///|
+test "geo nameMap and regions override labels and style" {
+  let json_str =
+    #|{
+    #|  "width": 280,
+    #|  "height": 180,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "nameMap": { "rawA": "Alpha", "rawB": "Bravo" },
+    #|    "label": { "show": true, "color": "#666666" },
+    #|    "itemStyle": { "areaColor": "#f0f0f0", "borderColor": "#999999", "borderWidth": 1 },
+    #|    "regions": [
+    #|      {
+    #|        "name": "Alpha",
+    #|        "label": { "show": true, "color": "#aa0000" },
+    #|        "itemStyle": { "areaColor": "#ffd166", "borderColor": "#003366", "borderWidth": 3 }
+    #|      },
+    #|      {
+    #|        "name": "Bravo",
+    #|        "label": { "show": false }
+    #|      }
+    #|    ]
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "rawA", "cp": [5, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "rawB", "cp": [15, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[10,0],[20,0],[20,10],[10,10],[10,0]]] }
+    #|        }
+    #|      ]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "geoIndex": 0,
+    #|    "data": [{ "name": "Alpha", "value": 1 }, { "name": "Bravo", "value": 2 }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Alpha</text>"))
+  assert_true(!svg.contains(">Bravo</text>"))
+  assert_true(svg.contains("fill=\"#ffd166\""))
+  assert_true(svg.contains("stroke=\"#003366\""))
+  assert_true(svg.contains("stroke-width=\"3\""))
+  assert_true(svg.contains("fill=\"#f0f0f0\""))
+  assert_true(svg.contains("stroke=\"#999999\""))
+}
+
+///|
+test "geo specialAreas reposition region before viewport fit" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 200,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#444444" }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Main", "cp": [5, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Inset", "cp": [25, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[20,0],[30,0],[30,10],[20,10],[20,0]]] }
+    #|        }
+    #|      ]
+    #|    },
+    #|    "specialAreas": {
+    #|      "Inset": { "left": 4, "top": 12, "width": 4, "height": 4 }
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "data": [{ "name": "Main", "value": 1 }, { "name": "Inset", "value": 2 }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Main</text>"))
+  assert_true(svg.contains(">Inset</text>"))
+  assert_true(svg.contains("M 110 180 L 210 180 L 210 80"))
+  assert_true(svg.contains("M 150 60 L 190 60 L 190 20"))
+}
+
+///|
+test "geo compressed geojson renders map region" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 160,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#444444" }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "UTF8Encoding": true,
+    #|      "UTF8Scale": 1,
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Compressed", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "encodeOffsets": [[0, 0]],
+    #|          "coordinates": ["@@T@@TS@@S"]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "data": [{ "name": "Compressed", "value": 1 }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("<path d=\"M "))
+  assert_true(svg.contains(">Compressed</text>"))
+}
+
+///|
+test "geo multiline region contributes label but not polygon fill" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 160,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#444444" }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Route" },
+    #|        "geometry": {
+    #|          "type": "MultiLineString",
+    #|          "coordinates": [
+    #|            [[0, 0], [10, 0], [10, 5]],
+    #|            [[2, 8], [8, 12]]
+    #|          ]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Route</text>"))
+  assert_true(!svg.contains("<polygon"))
+}
+
+///|
+test "geo polygon interiors render as compound path" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 160,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#444444" }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Donut", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [
+    #|            [[0,0],[10,0],[10,10],[0,10],[0,0]],
+    #|            [[3,3],[3,7],[7,7],[7,3],[3,3]]
+    #|          ]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "data": [{ "name": "Donut", "value": 1 }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Donut</text>"))
+  assert_true(svg.contains("<path d=\"M "))
+  assert_true(svg.contains(" ZM "))
+  assert_true(!svg.contains("<polygon"))
+}

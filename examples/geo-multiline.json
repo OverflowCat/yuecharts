@@ -1,0 +1,26 @@
+{
+  "width": 220,
+  "height": 160,
+  "geo": {
+    "map": "demo",
+    "aspectScale": 1,
+    "label": { "show": true, "color": "#444444" }
+  },
+  "maps": [{
+    "name": "demo",
+    "geoJSON": {
+      "type": "FeatureCollection",
+      "features": [{
+        "type": "Feature",
+        "properties": { "name": "Route" },
+        "geometry": {
+          "type": "MultiLineString",
+          "coordinates": [
+            [[0, 0], [10, 0], [10, 5]],
+            [[2, 8], [8, 12]]
+          ]
+        }
+      }]
+    }
+  }]
+}

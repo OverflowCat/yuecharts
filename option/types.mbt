@@ -87,6 +87,85 @@ pub impl Default for PolarOption with default() {
 }
 
 ///|
+/// Corresponds to: echarts/src/coord/geo/GeoModel.ts
+pub(all) struct GeoLabelOption {
+  show : Bool
+  color : String
+}
+
+///|
+pub impl Default for GeoLabelOption with default() {
+  { show: false, color: "#54555a" }
+}
+
+///|
+/// Corresponds to: echarts/src/coord/geo/GeoModel.ts
+pub(all) struct GeoNameMapEntry {
+  from_name : String
+  to_name : String
+}
+
+///|
+pub(all) struct GeoItemStyleOption {
+  area_color : String?
+  border_color : String
+  border_width : Double
+}
+
+///|
+pub impl Default for GeoItemStyleOption with default() {
+  { area_color: None, border_color: "#8f98a3", border_width: 0.5 }
+}
+
+///|
+pub(all) struct GeoRegionOption {
+  name : String
+  label : GeoLabelOption?
+  item_style : GeoItemStyleOption?
+}
+
+///|
+pub(all) struct GeoOption {
+  map : String
+  roam : Bool
+  aspect_scale : Double?
+  label : GeoLabelOption
+  item_style : GeoItemStyleOption
+  name_map : Array[GeoNameMapEntry]
+  regions : Array[GeoRegionOption]
+}
+
+///|
+pub impl Default for GeoOption with default() {
+  {
+    map: "",
+    roam: false,
+    aspect_scale: None,
+    label: GeoLabelOption::default(),
+    item_style: GeoItemStyleOption::default(),
+    name_map: [],
+    regions: [],
+  }
+}
+
+///|
+/// Static map registration for stdin/JSON rendering.
+pub(all) struct MapSpecialAreaOption {
+  name : String
+  left : Double
+  top : Double
+  width : Double
+  height : Double
+}
+
+///|
+pub(all) struct MapRegistryOption {
+  name : String
+  geo_json : Json?
+  special_areas : Array[MapSpecialAreaOption]
+}
+
+///|
 /// Grid layout specification.
 pub(all) struct GridOption {
   left : SizeSpec
@@ -125,6 +204,7 @@ pub impl Default for GridOption with default() {
 pub(all) enum SeriesType {
   // pub`(all)` enum to construct the "never constructed" variant outside of the current package
   Line
+  Lines
   Bar
   PictorialBar
   Scatter
@@ -138,6 +218,7 @@ pub(all) enum SeriesType {
   Boxplot
   Funnel
   Gauge
+  Map
 } derive(Eq)
 
 ///|
@@ -155,6 +236,9 @@ pub struct DataItem {
   value : DataValue
   name : String?
   symbol : String?
+  coords : Array[Array[Double]]?
+  from_name : String?
+  to_name : String?
   children : Array[DataItem]
 }
 
@@ -193,13 +277,19 @@ pub(all) struct SeriesOption {
   polar_index : Int
   coordinate_system : String?
   calendar_index : Int
+  geo_index : Int
   // For radar: index into ChartOption.radar[]
   radar_index : Int
+  map_name : String?
   stack : String?
   smooth : Bool
+  polyline : Bool
   symbol_size : Double
   color : String?
+  line_style_color : String?
   line_style_width : Double?
+  line_style_opacity : Double?
+  line_style_curveness : Double?
   item_style : String? // color override
   item_opacity : Double?
   area_style : Bool
@@ -246,12 +336,18 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     polar_index: 0,
     coordinate_system: None,
     calendar_index: 0,
+    geo_index: 0,
     radar_index: 0,
+    map_name: None,
     stack: None,
     smooth: false,
+    polyline: false,
     symbol_size: 4.0,
     color: None,
+    line_style_color: None,
     line_style_width: None,
+    line_style_opacity: None,
+    line_style_curveness: None,
     item_style: None,
     item_opacity: None,
     area_style: false,
@@ -274,6 +370,18 @@ pub fn SeriesOption::default_line() -> SeriesOption {
 ///|
 pub fn SeriesOption::default_bar() -> SeriesOption {
   { ..SeriesOption::default_line(), series_type: SeriesType::Bar }
+}
+
+///|
+pub fn SeriesOption::default_lines() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Lines,
+    coordinate_system: Some("geo"),
+    polyline: false,
+    symbol: Some("none"),
+    symbol_size_values: Some(["10", "10"]),
+  }
 }
 
 ///|
@@ -350,6 +458,15 @@ pub fn SeriesOption::default_gauge() -> SeriesOption {
     series_type: SeriesType::Gauge,
     radius: ["75%"],
     center: ["50%", "50%"],
+  }
+}
+
+///|
+pub fn SeriesOption::default_map() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Map,
+    coordinate_system: Some("geo"),
   }
 }
 
@@ -476,7 +593,7 @@ pub impl Default for AriaOption with default() {
     enabled: false,
     label_enabled: true,
     description: None,
-    general_with_title: "This is a chart", // about \"{title}\"
+    general_with_title: "This is a chart about \"{title}\".",
     general_without_title: "This is a chart",
     series_max_count: 10,
     series_single_prefix: "",
@@ -498,16 +615,36 @@ pub impl Default for AriaOption with default() {
 }
 
 ///|
+pub struct VisualMapInRange {
+  color : Array[String]
+  symbol_size : Array[Double]
+}
+
+///|
+pub impl Default for VisualMapInRange with default() {
+  { color: [], symbol_size: [] }
+}
+
+///|
 pub struct VisualMapOption {
   /// Minimum value of the mapped range.
   min : Double
   /// Maximum value of the mapped range.
   max : Double
+  series_index : Int
+  dimension : Int
+  in_range : VisualMapInRange
 }
 
 ///|
 pub impl Default for VisualMapOption with default() {
-  { min: 0.0, max: 100.0 }
+  {
+    min: 0.0,
+    max: 100.0,
+    series_index: 0,
+    dimension: 0,
+    in_range: VisualMapInRange::default(),
+  }
 }
 
 ///|
@@ -683,12 +820,14 @@ pub(all) struct ChartOption {
   radius_axis : Array[AxisOption]
   grid : Array[GridOption]
   polar : Array[PolarOption]
+  geo : Array[GeoOption]
   calendar : Array[CalendarOption]
   radar : Array[RadarOption]
   series : Array[SeriesOption]
+  map_registry : Array[MapRegistryOption]
   background_color : String?
   aria : AriaOption?
-  visual_map : VisualMapOption?
+  visual_map : Array[VisualMapOption]
 }
 
 ///|
@@ -706,11 +845,13 @@ pub impl Default for ChartOption with default() {
     radius_axis: [],
     grid: [GridOption::default()],
     polar: [],
+    geo: [],
     calendar: [],
     radar: [],
     series: [],
+    map_registry: [],
     background_color: None,
     aria: None,
-    visual_map: None,
+    visual_map: [],
   }
 }

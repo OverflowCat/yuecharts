@@ -1,0 +1,35 @@
+{
+  "width": 320,
+  "height": 200,
+  "geo": {
+    "map": "demo",
+    "aspectScale": 1,
+    "label": { "show": true, "color": "#444444" }
+  },
+  "maps": [{
+    "name": "demo",
+    "geoJSON": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": { "name": "Main", "cp": [5, 5] },
+          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+        },
+        {
+          "type": "Feature",
+          "properties": { "name": "Inset", "cp": [25, 5] },
+          "geometry": { "type": "Polygon", "coordinates": [[[20,0],[30,0],[30,10],[20,10],[20,0]]] }
+        }
+      ]
+    },
+    "specialAreas": {
+      "Inset": { "left": 4, "top": 12, "width": 4, "height": 4 }
+    }
+  }],
+  "series": [{
+    "type": "map",
+    "map": "demo",
+    "data": [{ "name": "Main", "value": 1 }, { "name": "Inset", "value": 2 }]
+  }]
+}

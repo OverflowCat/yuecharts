@@ -17,6 +17,14 @@ pub impl @core.ChartViewLike for LineChartView with render(_self, ctx) {
 }
 
 ///|
+struct LinesChartView {}
+
+///|
+pub impl @core.ChartViewLike for LinesChartView with render(_self, ctx) {
+  render_lines_chart(ctx.option, ctx.coord, polar=ctx.polar, geo=ctx.geo)
+}
+
+///|
 struct PictorialBarChartView {}
 
 ///|
@@ -25,11 +33,19 @@ pub impl @core.ChartViewLike for PictorialBarChartView with render(_self, ctx) {
 }
 
 ///|
+struct MapChartView {}
+
+///|
+pub impl @core.ChartViewLike for MapChartView with render(_self, ctx) {
+  render_maps(ctx.option, geo=ctx.geo)
+}
+
+///|
 struct ScatterChartView {}
 
 ///|
 pub impl @core.ChartViewLike for ScatterChartView with render(_self, ctx) {
-  render_scatters(ctx.option, ctx.coord, polar=ctx.polar)
+  render_scatters(ctx.option, ctx.coord, polar=ctx.polar, geo=ctx.geo)
 }
 
 ///|
@@ -37,7 +53,7 @@ struct EffectScatterChartView {}
 
 ///|
 pub impl @core.ChartViewLike for EffectScatterChartView with render(_self, ctx) {
-  render_effect_scatters(ctx.option, ctx.coord, polar=ctx.polar)
+  render_effect_scatters(ctx.option, ctx.coord, polar=ctx.polar, geo=ctx.geo)
 }
 
 ///|
@@ -164,12 +180,34 @@ pub fn install_line(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_lines(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/lines/install.ts
+  // echarts/src/chart/lines/LinesSeries.ts
+  // echarts/src/chart/lines/LinesView.ts
+  // layout: echarts/src/chart/lines/linesLayout.ts
+  register_chart(registry, @option.SeriesType::Lines, false, false, LinesChartView::{
+
+  })
+}
+
+///|
 pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
   // echarts/src/chart/bar/installPictorialBar.ts
   // echarts/src/chart/bar/PictorialBarSeries.ts
   // echarts/src/chart/bar/PictorialBarView.ts
   // layout: echarts/src/layout/barGrid.ts
   register_chart(registry, @option.SeriesType::PictorialBar, false, false, PictorialBarChartView::{
+
+  })
+}
+
+///|
+pub fn install_map(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/map/install.ts
+  // echarts/src/chart/map/MapSeries.ts
+  // echarts/src/chart/map/MapView.ts
+  // visual: echarts/src/chart/map/mapDataStatistic.ts
+  register_chart(registry, @option.SeriesType::Map, false, false, MapChartView::{
 
   })
 }
@@ -309,6 +347,8 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_boxplot(registry)
   install_pictorial_bar(registry)
   install_line(registry)
+  install_map(registry)
+  install_lines(registry)
   install_scatter(registry)
   install_effect_scatter(registry)
   install_pie(registry)

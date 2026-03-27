@@ -1,0 +1,44 @@
+{
+  "width": 280,
+  "height": 180,
+  "geo": {
+    "map": "demo",
+    "nameMap": { "rawA": "Alpha", "rawB": "Bravo" },
+    "label": { "show": true, "color": "#666666" },
+    "itemStyle": { "areaColor": "#f0f0f0", "borderColor": "#999999", "borderWidth": 1 },
+    "regions": [
+      {
+        "name": "Alpha",
+        "label": { "show": true, "color": "#aa0000" },
+        "itemStyle": { "areaColor": "#ffd166", "borderColor": "#003366", "borderWidth": 3 }
+      },
+      {
+        "name": "Bravo",
+        "label": { "show": false }
+      }
+    ]
+  },
+  "maps": [{
+    "name": "demo",
+    "geoJSON": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": { "name": "rawA", "cp": [5, 5] },
+          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+        },
+        {
+          "type": "Feature",
+          "properties": { "name": "rawB", "cp": [15, 5] },
+          "geometry": { "type": "Polygon", "coordinates": [[[10,0],[20,0],[20,10],[10,10],[10,0]]] }
+        }
+      ]
+    }
+  }],
+  "series": [{
+    "type": "map",
+    "geoIndex": 0,
+    "data": [{ "name": "Alpha", "value": 1 }, { "name": "Bravo", "value": 2 }]
+  }]
+}

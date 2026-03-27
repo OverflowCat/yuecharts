@@ -12,12 +12,14 @@ fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
     match s.series_type {
       @option.Bar
       | @option.Line
+      | @option.Lines
       | @option.PictorialBar
       | @option.Scatter
       | @option.EffectScatter
       | @option.Candlestick
       | @option.Boxplot =>
-        if s.coordinate_system != Some("polar") {
+        if s.coordinate_system != Some("polar") &&
+          s.coordinate_system != Some("geo") {
           return true
         }
       @option.Heatmap =>
@@ -268,6 +270,7 @@ fn run_registered_layouts(
 ) -> @core.RenderContext {
   let mut coord = @layout.build_cartesian(opt)
   let mut polar = @layout.build_polar(opt)
+  let geo = @coord.Geo::build(opt)
   let mut calendar = @coord.Calendar::build(opt)
   let visited = new_flags(registry.layouts.length())
   let mut done = 0
@@ -287,7 +290,7 @@ fn run_registered_layouts(
       }
     }
   }
-  @core.RenderContext::new(raw_opt, opt, coord, polar, calendar)
+  @core.RenderContext::new(raw_opt, opt, coord, polar, geo, calendar)
 }
 
 ///|

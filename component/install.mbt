@@ -4,6 +4,7 @@
 // and echarts/src/component/legend/install.ts
 // and echarts/src/component/calendar/install.ts
 // and echarts/src/component/polar/install.ts
+// and echarts/src/component/geo/install.ts
 
 ///|
 struct GridLinesComponentView {}
@@ -22,6 +23,14 @@ struct AxisComponentView {}
 ///|
 pub impl @core.ComponentViewLike for AxisComponentView with render(_self, ctx) {
   render_axes(ctx.option, ctx.coord, polar=ctx.polar)
+}
+
+///|
+struct GeoComponentView {}
+
+///|
+pub impl @core.ComponentViewLike for GeoComponentView with render(_self, ctx) {
+  render_geo_component(ctx.option, geo=ctx.geo)
 }
 
 ///|
@@ -79,6 +88,14 @@ pub fn install_axis(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_geo(registry : @core.Registry) -> Unit {
+  // echarts/src/component/geo/install.ts
+  // echarts/src/component/helper/MapDraw.ts
+  // echarts/src/component/helper/geoGraphic.ts
+  register_component(registry, Background, false, GeoComponentView::{  })
+}
+
+///|
 pub fn install_title(registry : @core.Registry) -> Unit {
   // echarts/src/component/title/install.ts
   register_component(registry, Foreground, false, TitleComponentView::{  })
@@ -112,6 +129,7 @@ pub fn install_calendar(registry : @core.Registry) -> Unit {
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_grid_lines(registry)
   install_axis(registry)
+  install_geo(registry)
   install_title(registry)
   install_legend(registry)
   install_calendar(registry)

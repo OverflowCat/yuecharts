@@ -1,0 +1,31 @@
+{
+  "width": 220,
+  "height": 160,
+  "geo": {
+    "map": "demo",
+    "aspectScale": 1,
+    "label": { "show": true, "color": "#444444" }
+  },
+  "maps": [{
+    "name": "demo",
+    "geoJSON": {
+      "type": "FeatureCollection",
+      "UTF8Encoding": true,
+      "UTF8Scale": 1,
+      "features": [{
+        "type": "Feature",
+        "properties": { "name": "Compressed", "cp": [5, 5] },
+        "geometry": {
+          "type": "Polygon",
+          "encodeOffsets": [[0, 0]],
+          "coordinates": ["@@T@@TS@@S"]
+        }
+      }]
+    }
+  }],
+  "series": [{
+    "type": "map",
+    "map": "demo",
+    "data": [{ "name": "Compressed", "value": 1 }]
+  }]
+}

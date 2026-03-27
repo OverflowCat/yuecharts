@@ -1,6 +1,6 @@
 /**
  * ECharts SSR CLI renderer.
- * 
+ *
  * Usage:
  *   node tools/echarts-render.js examples/bar.json
  *   node tools/echarts-render.js examples/js/polar-line2.js
@@ -20,14 +20,27 @@
 const echarts = require('E:/recharts/echarts/dist/echarts.js');
 const { loadOptionFile, loadOptionText } = require('./option-loader');
 
+function registerMaps(optionJson) {
+  const maps = Array.isArray(optionJson.maps) ? optionJson.maps : [];
+  for (const mapEntry of maps) {
+    if (!mapEntry || typeof mapEntry.name !== 'string' || !mapEntry.geoJSON) {
+      continue;
+    }
+    echarts.registerMap(mapEntry.name, mapEntry.geoJSON, mapEntry.specialAreas || undefined);
+  }
+}
+
 function renderOptionToSVG(optionJson) {
   const width = optionJson.width || 600;
   const height = optionJson.height || 400;
+
+  registerMaps(optionJson);
 
   // Clone option without yuecharts-specific top-level fields
   const option = Object.assign({}, optionJson);
   delete option.width;
   delete option.height;
+  delete option.maps;
 
   const chart = echarts.init(null, null, {
     renderer: 'svg',

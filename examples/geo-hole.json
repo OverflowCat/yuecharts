@@ -1,0 +1,31 @@
+{
+  "width": 220,
+  "height": 160,
+  "geo": {
+    "map": "demo",
+    "aspectScale": 1,
+    "label": { "show": true, "color": "#444444" }
+  },
+  "maps": [{
+    "name": "demo",
+    "geoJSON": {
+      "type": "FeatureCollection",
+      "features": [{
+        "type": "Feature",
+        "properties": { "name": "Donut", "cp": [5, 5] },
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [[0,0],[10,0],[10,10],[0,10],[0,0]],
+            [[3,3],[3,7],[7,7],[7,3],[3,3]]
+          ]
+        }
+      }]
+    }
+  }],
+  "series": [{
+    "type": "map",
+    "map": "demo",
+    "data": [{ "name": "Donut", "value": 1 }]
+  }]
+}

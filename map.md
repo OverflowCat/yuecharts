@@ -68,6 +68,7 @@ E:\yuecharts
 │   ├── heatmap.mbt
 │   ├── install.mbt
 │   ├── line.mbt
+│   ├── lines.mbt
 │   ├── pictorial_bar.mbt
 │   ├── pie.mbt
 │   ├── radar.mbt
@@ -656,7 +657,7 @@ E:\recharts\echarts\src
 │   ├── graph.ts =>  [missing] Feature: graph chart entry
 │   ├── heatmap.ts => chart/heatmap.mbt [partial] Feature: heatmap chart entry
 │   ├── line.ts => chart/line.mbt [partial] Feature: line chart entry
-│   ├── lines.ts =>  [missing] Feature: lines chart entry
+│   ├── lines.ts => chart/lines.mbt [partial] Feature: lines chart entry
 │   ├── map.ts =>  [missing] Feature: map chart entry
 │   ├── parallel.ts =>  [missing] Feature: parallel chart entry
 │   ├── pictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar chart entry

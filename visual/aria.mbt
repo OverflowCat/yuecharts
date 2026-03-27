@@ -5,6 +5,7 @@
 fn series_type_name(series_type : @option.SeriesType) -> String {
   match series_type {
     @option.Line => "Line chart"
+    @option.Lines => "Lines"
     @option.Bar => "Bar chart"
     @option.PictorialBar => "Pictorial bar"
     @option.Scatter => "Scatter plot"
@@ -18,6 +19,7 @@ fn series_type_name(series_type : @option.SeriesType) -> String {
     @option.Boxplot => "Boxplot"
     @option.Funnel => "Funnel chart"
     @option.Gauge => "Gauge"
+    @option.Map => "Map"
   }
 }
 

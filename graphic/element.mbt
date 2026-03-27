@@ -711,3 +711,41 @@ pub fn Element::text_custom(
     opacity: 1.0,
   })
 }
+
+///|
+/// Polyline with explicit stroke color/width/cap/join and element opacity.
+pub fn Element::polyline_custom_opacity(
+  points : Array[Point],
+  color_str : String,
+  width : Double,
+  line_cap : String,
+  line_join : String,
+  opacity : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  Polyline({
+    points,
+    stroke: { color, width, dash: [], line_cap, line_join },
+    fill: transparent,
+    opacity,
+  })
+}
+
+///|
+/// Path stroked with explicit stroke color/width/cap/join and element opacity.
+pub fn Element::path_stroke_custom(
+  d : String,
+  color_str : String,
+  width : Double,
+  line_cap : String,
+  line_join : String,
+  opacity : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  Path({
+    d,
+    fill: None,
+    stroke: Some({ color, width, dash: [], line_cap, line_join }),
+    opacity,
+  })
+}

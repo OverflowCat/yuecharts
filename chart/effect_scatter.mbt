@@ -31,22 +31,33 @@ fn render_effect_ripple(
 
 ///|
 pub fn render_effect_scatter_series(
+  opt : @option.ChartOption,
   series : @option.SeriesOption,
   series_index : Int,
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
+  geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let color = match series.color {
+  let default_color = match series.color {
     Some(c) => c
     None => @visual.palette_color(series_index)
   }
-  let symbol_radius = series.symbol_size * 0.5
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
-    match scatter_point(series, di, item, coord, polar~) {
+    match scatter_point(series, di, item, coord, polar~, geo~) {
       Some(point) => {
+        let color = geo_visual_map_color(opt, series_index, item).unwrap_or(
+          default_color,
+        )
+        let symbol_radius = geo_visual_map_symbol_size(
+            opt,
+            series_index,
+            item,
+            series.symbol_size,
+          ) *
+          0.5
         render_effect_ripple(elems, point.x, point.y, color, symbol_radius)
         elems.push(
           @graphic.Element::circle_colored(
@@ -69,32 +80,31 @@ pub fn render_effect_scatters(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
+  geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut si = 0
-  let mut color_idx = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
-      EffectScatter => ()
-      _ => {
-        color_idx = color_idx + 1
-        continue
+      EffectScatter => {
+        let series_elems = render_effect_scatter_series(
+          opt,
+          series,
+          si,
+          coord,
+          polar~,
+          geo~,
+        )
+        let mut ei = 0
+        while ei < series_elems.length() {
+          elems.push(series_elems[ei])
+          ei += 1
+        }
       }
+      _ => ()
     }
-    let series_elems = render_effect_scatter_series(
-      series,
-      color_idx,
-      coord,
-      polar~,
-    )
-    let mut ei = 0
-    while ei < series_elems.length() {
-      elems.push(series_elems[ei])
-      ei += 1
-    }
-    color_idx = color_idx + 1
+    si += 1
   }
   elems
 }

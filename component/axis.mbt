@@ -10,6 +10,35 @@ let axis_line_color : String = "#54555a"
 let polar_axis_split_line_color : String = "#dbdee4"
 
 ///|
+fn has_cartesian_axis_series(opt : @option.ChartOption) -> Bool {
+  let mut i = 0
+  while i < opt.series.length() {
+    let series = opt.series[i]
+    match series.series_type {
+      @option.Bar
+      | @option.Line
+      | @option.Lines
+      | @option.PictorialBar
+      | @option.Scatter
+      | @option.EffectScatter
+      | @option.Candlestick
+      | @option.Boxplot =>
+        if series.coordinate_system != Some("polar") &&
+          series.coordinate_system != Some("geo") {
+          return true
+        }
+      @option.Heatmap =>
+        if series.coordinate_system != Some("calendar") {
+          return true
+        }
+      _ => ()
+    }
+    i += 1
+  }
+  false
+}
+
+///|
 fn r4(v : Double) -> String {
   ((v * 10000.0).round() / 10000.0).to_string()
 }
@@ -58,15 +87,17 @@ pub fn render_axes(
   polar? : @coord.Polar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut i = 0
-  while i < opt.x_axis.length() {
-    render_x_axis(opt.x_axis[i], coord, i, elems)
-    i += 1
-  }
-  let mut j = 0
-  while j < opt.y_axis.length() {
-    render_y_axis(opt.y_axis[j], coord, j, elems)
-    j += 1
+  if has_cartesian_axis_series(opt) {
+    let mut i = 0
+    while i < opt.x_axis.length() {
+      render_x_axis(opt.x_axis[i], coord, i, elems)
+      i += 1
+    }
+    let mut j = 0
+    while j < opt.y_axis.length() {
+      render_y_axis(opt.y_axis[j], coord, j, elems)
+      j += 1
+    }
   }
   match polar {
     Some(p) => render_polar_axes(p, elems)
