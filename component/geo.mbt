@@ -25,10 +25,9 @@ fn geo_region_border_color(
 ) -> String {
   match region_opt {
     Some(region) =>
-      match region.item_style {
-        Some(item_style) => item_style.border_color
-        None => geo_opt.item_style.border_color
-      }
+      region.item_style
+      .map(style => style.border_color)
+      .unwrap_or(geo_opt.item_style.border_color)
     None => geo_opt.item_style.border_color
   }
 }
@@ -40,10 +39,9 @@ fn geo_region_border_width(
 ) -> Double {
   match region_opt {
     Some(region) =>
-      match region.item_style {
-        Some(item_style) => item_style.border_width
-        None => geo_opt.item_style.border_width
-      }
+      region.item_style
+      .map(style => style.border_width)
+      .unwrap_or(geo_opt.item_style.border_width)
     None => geo_opt.item_style.border_width
   }
 }
@@ -55,10 +53,7 @@ fn geo_region_label_show(
 ) -> Bool {
   match region_opt {
     Some(region) =>
-      match region.label {
-        Some(label) => label.show
-        None => geo_opt.label.show
-      }
+      region.label.map(label => label.show).unwrap_or(geo_opt.label.show)
     None => geo_opt.label.show
   }
 }
@@ -70,10 +65,7 @@ fn geo_region_label_color(
 ) -> String {
   match region_opt {
     Some(region) =>
-      match region.label {
-        Some(label) => label.color
-        None => geo_opt.label.color
-      }
+      region.label.map(label => label.color).unwrap_or(geo_opt.label.color)
     None => geo_opt.label.color
   }
 }
@@ -121,10 +113,7 @@ pub fn render_geo_component(
   opt : @option.ChartOption,
   geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
-  let geo = match geo {
-    Some(value) => value
-    None => return []
-  }
+  guard geo is Some(geo) else { [] }
   let elems : Array[@graphic.Element] = []
   let geo_opt = if opt.geo.length() > 0 {
     opt.geo[0]

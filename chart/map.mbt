@@ -10,11 +10,7 @@ let map_default_fill = "#f3f5f8"
 
 ///|
 fn map_series_uses_geo(series : @option.SeriesOption) -> Bool {
-  match series.coordinate_system {
-    Some("geo") => true
-    None => true
-    _ => false
-  }
+  series.coordinate_system.unwrap_or("geo") == "geo"
 }
 
 ///|
@@ -66,16 +62,13 @@ fn map_region_fill(
   region_name : String,
   item : @option.DataItem?,
 ) -> String {
+  let fallback = map_region_fill_fallback(opt, geo_opt, series_index, item)
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
-      match region.item_style {
-        Some(item_style) =>
-          item_style.area_color.unwrap_or(
-            map_region_fill_fallback(opt, geo_opt, series_index, item),
-          )
-        None => map_region_fill_fallback(opt, geo_opt, series_index, item)
-      }
-    None => map_region_fill_fallback(opt, geo_opt, series_index, item)
+      region.item_style
+      .map(style => style.area_color.unwrap_or(fallback))
+      .unwrap_or(fallback)
+    None => fallback
   }
 }
 
@@ -102,10 +95,9 @@ fn map_region_stroke_color(
 ) -> String {
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
-      match region.item_style {
-        Some(item_style) => item_style.border_color
-        None => geo_opt.item_style.border_color
-      }
+      region.item_style
+      .map(style => style.border_color)
+      .unwrap_or(geo_opt.item_style.border_color)
     None => geo_opt.item_style.border_color
   }
 }
@@ -117,10 +109,9 @@ fn map_region_stroke_width(
 ) -> Double {
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
-      match region.item_style {
-        Some(item_style) => item_style.border_width
-        None => geo_opt.item_style.border_width
-      }
+      region.item_style
+      .map(style => style.border_width)
+      .unwrap_or(geo_opt.item_style.border_width)
     None => geo_opt.item_style.border_width
   }
 }
@@ -168,10 +159,7 @@ pub fn render_maps(
   opt : @option.ChartOption,
   geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
-  let geo = match geo {
-    Some(value) => value
-    None => return []
-  }
+  guard geo is Some(geo) else { [] }
   let elems : Array[@graphic.Element] = []
   let geo_opt = map_geo_option(opt)
   let mut series_index = 0

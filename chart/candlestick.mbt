@@ -60,7 +60,7 @@ pub fn render_candlestick_series(
         // Body: from min(open_y, close_y) to max(open_y, close_y)
         let body_top = if open_y < close_y { open_y } else { close_y }
         let body_bot = if open_y > close_y { open_y } else { close_y }
-        let body_h = body_bot - body_top
+        let body_h = (body_bot - body_top).max(1.0)
         let color = if close_v >= open_v {
           candle_color_up
         } else {
@@ -72,11 +72,7 @@ pub fn render_candlestick_series(
             cx - candle_w * 0.5,
             body_top,
             candle_w,
-            if body_h < 1.0 {
-              1.0
-            } else {
-              body_h
-            },
+            body_h,
             color,
           ),
         )
@@ -111,17 +107,10 @@ pub fn render_candlesticks(
   while si < opt.series.length() {
     let series = opt.series[si]
     si += 1
-    match series.series_type {
-      Candlestick => {
-        let series_elems = render_candlestick_series(series, si - 1, coord)
-        let mut ei = 0
-        while ei < series_elems.length() {
-          elems.push(series_elems[ei])
-          ei = ei + 1
-        }
-      }
-      _ => ()
+    if series.series_type != Candlestick {
+      continue
     }
+    elems.append(render_candlestick_series(series, si - 1, coord))
   }
   elems
 }

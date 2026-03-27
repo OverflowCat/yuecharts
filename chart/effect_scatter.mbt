@@ -39,10 +39,9 @@ pub fn render_effect_scatter_series(
   geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let default_color = match series.color {
-    Some(c) => c
-    None => @visual.palette_color(series_index)
-  }
+  let default_color = series.color.unwrap_or(
+    @visual.palette_color(series_index),
+  )
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
@@ -86,24 +85,13 @@ pub fn render_effect_scatters(
   let mut si = 0
   while si < opt.series.length() {
     let series = opt.series[si]
-    match series.series_type {
-      EffectScatter => {
-        let series_elems = render_effect_scatter_series(
-          opt,
-          series,
-          si,
-          coord,
-          polar~,
-          geo~,
-        )
-        let mut ei = 0
-        while ei < series_elems.length() {
-          elems.push(series_elems[ei])
-          ei += 1
-        }
-      }
-      _ => ()
+    if series.series_type != EffectScatter {
+      si += 1
+      continue
     }
+    elems.append(
+      render_effect_scatter_series(opt, series, si, coord, polar~, geo~),
+    )
     si += 1
   }
   elems

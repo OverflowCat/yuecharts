@@ -20,10 +20,7 @@ fn legend_parse_pos(s : String, fallback : Double) -> Double {
     fallback
   } else {
     let r = try? @strconv.parse_double(s)
-    match r {
-      Ok(v) => v
-      Err(_) => fallback
-    }
+    r.unwrap_or(fallback)
   }
 }
 
@@ -37,10 +34,7 @@ fn append_data_legend_items(
   let mut i = 0
   while i < series.data.length() {
     let item = series.data[i]
-    let name = match item.name {
-      Some(n) => n
-      None => ""
-    }
+    let name = item.name.unwrap_or("")
     if name != "" {
       let color = @visual.palette_color(series_index + i)
       let selected = @option.LegendOption::is_selected(lg, name)
@@ -67,10 +61,7 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
       _ =>
         match s.name {
           Some(n) if n != "" => {
-            let color = match s.color {
-              Some(c) => c
-              None => @visual.palette_color(ci)
-            }
+            let color = s.color.unwrap_or(@visual.palette_color(ci))
             let selected = @option.LegendOption::is_selected(lg, n)
             items.push((color, n, selected))
           }

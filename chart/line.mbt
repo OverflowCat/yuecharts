@@ -55,10 +55,7 @@ pub fn render_line_series(
   let elems : Array[@graphic.Element] = []
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
-  let color = match series.color {
-    Some(c) => c
-    None => @visual.palette_color(series_index)
-  }
+  let color = series.color.unwrap_or(@visual.palette_color(series_index))
   let points : Array[@graphic.Point] = []
   let nd = series.data.length()
   let mut di = 0
@@ -161,12 +158,7 @@ pub fn render_lines(
         continue
       }
     }
-    let series_elems = render_line_series(series, color_idx, coord, polar~)
-    let mut ei = 0
-    while ei < series_elems.length() {
-      elems.push(series_elems[ei])
-      ei += 1
-    }
+    elems.append(render_line_series(series, color_idx, coord, polar~))
     color_idx += 1
   }
   elems

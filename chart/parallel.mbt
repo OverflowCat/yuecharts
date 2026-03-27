@@ -9,14 +9,9 @@ pub fn render_parallel_series(
   parallel : @coord.Parallel,
 ) -> Array[@graphic.Element] {
   let line_elems : Array[@graphic.Element] = []
-  let color = match series.line_style_color {
-    Some(value) => value
-    None =>
-      match series.color {
-        Some(value) => value
-        None => @visual.palette_color(series_index)
-      }
-  }
+  let color = series.line_style_color.unwrap_or(
+    series.color.unwrap_or(@visual.palette_color(series_index)),
+  )
   let width = series.line_style_width.unwrap_or(1.0)
   let opacity = series.line_style_opacity.unwrap_or(0.45)
   let mut i = 0
@@ -45,27 +40,18 @@ pub fn render_parallels(
   parallel? : @coord.Parallel? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  match parallel {
-    None => elems
-    Some(coord) => {
-      let mut si = 0
-      let mut color_index = 0
-      while si < opt.series.length() {
-        let series = opt.series[si]
-        if series.series_type == @option.SeriesType::Parallel {
-          let series_elems = render_parallel_series(series, color_index, coord)
-          let mut ei = 0
-          while ei < series_elems.length() {
-            elems.push(series_elems[ei])
-            ei += 1
-          }
-        }
-        si += 1
-        color_index += 1
-      }
-      elems
+  guard parallel is Some(coord) else { elems }
+  let mut si = 0
+  let mut color_index = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    if series.series_type == @option.SeriesType::Parallel {
+      elems.append(render_parallel_series(series, color_index, coord))
     }
+    si += 1
+    color_index += 1
   }
+  elems
 }
 
 ///|

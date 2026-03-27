@@ -26,13 +26,7 @@ pub fn render_calendar(
   opt : @option.ChartOption,
   calendar? : @coord.Calendar,
 ) -> Array[@graphic.Element] {
-  let calendar = match calendar {
-    Some(value) => value
-    None => return []
-  }
-  if opt.calendar.length() == 0 {
-    return []
-  }
+  guard calendar is Some(calendar) && opt.calendar.length() > 0 else { [] }
   let calendar_model = opt.calendar[0]
   let range_data = calendar.get_range_info()
   let orient = calendar.get_orient()
@@ -172,13 +166,13 @@ fn get_edges_points(
   let last = points[points.length() - 1]
   if orient == "horizontal" {
     [
-      @graphic.Point::new(first.x - line_width / 2.0, first.y),
-      @graphic.Point::new(last.x + line_width / 2.0, last.y),
+      { x: first.x - line_width / 2.0, y: first.y },
+      { x: last.x + line_width / 2.0, y: last.y },
     ]
   } else {
     [
-      @graphic.Point::new(first.x, first.y - line_width / 2.0),
-      @graphic.Point::new(last.x, last.y + line_width / 2.0),
+      { x: first.x, y: first.y - line_width / 2.0 },
+      { x: last.x, y: last.y + line_width / 2.0 },
     ]
   }
 }

@@ -13,10 +13,7 @@ pub fn render_boxplot_series(
   let elems : Array[@graphic.Element] = []
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
-  let color = match series.color {
-    Some(c) => c
-    None => @visual.palette_color(series_index)
-  }
+  let color = series.color.unwrap_or(@visual.palette_color(series_index))
   let box_w = if x_idx < coord.x_scales.length() {
     match coord.x_scales[x_idx] {
       Ordinal(s) => s.band_width() * 0.5
@@ -148,12 +145,7 @@ pub fn render_boxplots(
         continue
       }
     }
-    let series_elems = render_boxplot_series(series, color_idx, coord)
-    let mut ei = 0
-    while ei < series_elems.length() {
-      elems.push(series_elems[ei])
-      ei = ei + 1
-    }
+    elems.append(render_boxplot_series(series, color_idx, coord))
     color_idx = color_idx + 1
   }
   elems
