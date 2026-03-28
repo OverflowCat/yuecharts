@@ -556,6 +556,16 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let min_val = j_number(j, "min", base.min_val)
   let max_val = j_number(j, "max", base.max_val)
   let split_number = j_int(j, "splitNumber", base.split_number)
+  let map_value_calculation = match j_string(
+    j,
+    "mapValueCalculation",
+    "sum",
+  ) {
+    "average" => MapValueCalculationType::Average
+    "min" => MapValueCalculationType::Min
+    "max" => MapValueCalculationType::Max
+    _ => MapValueCalculationType::Sum
+  }
   let active_opacity = j_number_opt(j, "activeOpacity")
   let inactive_opacity = j_number_opt(j, "inactiveOpacity")
   {
@@ -610,6 +620,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     min_val,
     max_val,
     split_number,
+    map_value_calculation,
     active_opacity,
     inactive_opacity,
   }

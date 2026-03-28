@@ -225,10 +225,17 @@ pub fn install_map(registry : @core.Registry) -> Unit {
   // echarts/src/chart/map/install.ts
   // echarts/src/chart/map/MapSeries.ts
   // echarts/src/chart/map/MapView.ts
-  // visual: echarts/src/chart/map/mapDataStatistic.ts
+  // processor: echarts/src/chart/map/mapDataStatistic.ts
   register_chart(registry, @option.SeriesType::Map, false, false, MapChartView::{
 
   })
+  registry.register_processor(
+    @core.ProcessorRegistration::new(
+      Some(@option.SeriesType::Map),
+      5000,
+      Some("map_data_statistic"),
+    ),
+  )
 }
 
 ///|

@@ -258,6 +258,14 @@ pub impl Default for ParallelOption with default() {
 }
 
 ///|
+pub(all) enum MapValueCalculationType {
+  Sum
+  Average
+  Min
+  Max
+} derive(Eq)
+
+///|
 /// Series type.
 pub(all) enum SeriesType {
   // pub`(all)` enum to construct the "never constructed" variant outside of the current package
@@ -291,7 +299,7 @@ pub(all) enum DataValue {
 
 ///|
 /// One item in a series data array.
-pub struct DataItem {
+pub(all) struct DataItem {
   value : DataValue
   name : String?
   symbol : String?
@@ -367,6 +375,7 @@ pub(all) struct SeriesOption {
   min_val : Double // data min, default 0
   max_val : Double // data max, default 100
   split_number : Int // tick divisions, default 10
+  map_value_calculation : MapValueCalculationType
   active_opacity : Double?
   inactive_opacity : Double?
 }
@@ -425,6 +434,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     min_val: 0.0,
     max_val: 100.0,
     split_number: 10,
+    map_value_calculation: MapValueCalculationType::Sum,
     active_opacity: None,
     inactive_opacity: None,
   }

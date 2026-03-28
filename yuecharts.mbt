@@ -124,6 +124,9 @@ fn apply_processor_to_option(
   series_type : @option.SeriesType?,
   execution_key : String?,
 ) -> @option.ChartOption {
+  if execution_key == Some("map_data_statistic") {
+    return @chart.apply_map_data_statistic(opt)
+  }
   let next_series : Array[@option.SeriesOption] = []
   let mut i = 0
   while i < opt.series.length() {
