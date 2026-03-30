@@ -23,24 +23,24 @@
 // With these defaults:
 //   startAngle_rad = -225/180*PI = -5PI/4  → lower-left → 7-8 o'clock ✓
 //   endAngle_rad   = +45/180*PI  = +PI/4   → lower-right → 4-5 o'clock ✓
-//   Arc spans 270° going counterclockwise (SVG sweep-flag=0, large-arc=1)
+//   Gauge axisLine/progress is rendered as a ring sector like GaugeView.ts,
+//   with outer SVG sweep-flag=1 and inner reverse arc sweep-flag=0.
 
 ///|
-/// Build SVG arc path segment.
-/// angle_from and angle_to in radians (ECharts convention: x=cx+r*cos, y=cy+r*sin).
-/// sweep: 0 = counterclockwise in screen (CCW), 1 = clockwise.
-fn gauge_arc_path(
+/// Build SVG sector path for the gauge axis line / progress ring.
+/// Corresponds to the graphic.Sector path used in echarts/src/chart/gauge/GaugeView.ts.
+fn gauge_sector_path(
   cx : Double,
   cy : Double,
+  r0 : Double,
   r : Double,
   a0 : Double,
   a1 : Double,
-  sweep : Int,
 ) -> String {
-  let x0 = cx + r * @math.cos(a0)
-  let y0 = cy + r * @math.sin(a0)
-  let x1 = cx + r * @math.cos(a1)
-  let y1 = cy + r * @math.sin(a1)
+  let outer_x0 = cx + r * @math.cos(a0)
+  let outer_y0 = cy + r * @math.sin(a0)
+  let outer_x1 = cx + r * @math.cos(a1)
+  let outer_y1 = cy + r * @math.sin(a1)
   let span = {
     let d = a1 - a0
     if d < 0.0 {
@@ -49,8 +49,12 @@ fn gauge_arc_path(
       d
     }
   }
-  let large = if span > @math.PI { 1 } else { 0 }
-  "M \{r4(x0)} \{r4(y0)} A \{r4(r)} \{r4(r)} 0 \{large} \{sweep} \{r4(x1)} \{r4(y1)}"
+  let large_arc = if span > @math.PI { 1 } else { 0 }
+  let inner_x0 = cx + r0 * @math.cos(a0)
+  let inner_y0 = cy + r0 * @math.sin(a0)
+  let inner_x1 = cx + r0 * @math.cos(a1)
+  let inner_y1 = cy + r0 * @math.sin(a1)
+  "M \{r4(outer_x0)} \{r4(outer_y0)} A \{r4(r)} \{r4(r)} 0 \{large_arc} 1 \{r4(outer_x1)} \{r4(outer_y1)} L \{r4(inner_x1)} \{r4(inner_y1)} A \{r4(r0)} \{r4(r0)} 0 \{large_arc} 0 \{r4(inner_x0)} \{r4(inner_y0)} Z"
 }
 
 ///|
@@ -190,7 +194,7 @@ pub fn render_gauge_series(
 
   // --- Layout constants (GaugeSeries.ts defaults) ---
   let track_width = 10.0 // axisLine.lineStyle.width
-  let track_r = r - track_width * 0.5
+  let track_inner_r = r - track_width
   let split_len = 10.0 // splitLine.length
   let tick_len = 6.0 // axisTick.length
   let label_gap = 25.0 // approx distance from inner track edge to label baseline
@@ -198,26 +202,22 @@ pub fn render_gauge_series(
   let split_n = if series.split_number > 0 { series.split_number } else { 10 }
 
   // --- ECharts default colors ---
-  let track_bg_color = "#ebedf0" // tokens.color.neutral10 (track background)
+  let track_bg_color = "#e8ebf0" // gauge axisLine default background in ECharts SSR
   let split_color = "#54555a" // tokens.color.axisTick = neutral70
   let tick_color = "#b0b2b5" // tokens.color.axisTickMinor (approximate)
   let label_color = "#54555a" // tokens.color.axisLabel
   let progress_color = @visual.palette_color(0) // first palette color
 
   // --- 1. Background track arc (full gauge range, light gray) ---
-  let bg_arc = gauge_arc_path(cx, cy, track_r, start_rad, end_rad, 0)
-  elems.push(
-    @graphic.Element::path_stroked_round(bg_arc, track_bg_color, track_width),
-  )
+  let bg_arc = gauge_sector_path(cx, cy, track_inner_r, r, start_rad, end_rad)
+  elems.push(@graphic.Element::path_filled(bg_arc, track_bg_color, 1.0))
 
   // --- 2. Progress arc (startAngle → valueAngle, palette color) ---
   if percent > 0.0 {
-    let prog_arc = gauge_arc_path(cx, cy, track_r, start_rad, value_rad, 0)
-    elems.push(
-      @graphic.Element::path_stroked_round(
-        prog_arc, progress_color, track_width,
-      ),
+    let prog_arc = gauge_sector_path(
+      cx, cy, track_inner_r, r, start_rad, value_rad,
     )
+    elems.push(@graphic.Element::path_filled(prog_arc, progress_color, 1.0))
   }
 
   // --- 3. Split lines and labels ---

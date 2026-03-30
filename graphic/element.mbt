@@ -541,6 +541,25 @@ pub fn Element::rect_outlined(
 }
 
 ///|
+/// Circle stroked with a CSS/hex color string (no fill).
+pub fn Element::circle_stroked(
+  cx : Double,
+  cy : Double,
+  r : Double,
+  color_str : String,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  let stroke = {
+    color,
+    width: 1.0,
+    dash: [],
+    line_cap: "butt",
+    line_join: "miter",
+  }
+  Circle({ cx, cy, r, fill: None, stroke: Some(stroke), opacity: 1.0 })
+}
+
+///|
 /// Path stroked with a CSS/hex color string.
 pub fn Element::path_stroked(d : String, color_str : String) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)

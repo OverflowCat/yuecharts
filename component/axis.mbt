@@ -308,13 +308,26 @@ fn render_angle_axis(
 ) -> Unit {
   let axis = polar.angle_axis
   let area = polar.get_area()
+  let angle_span = (polar.angle_axis.extent_end - polar.angle_axis.extent_start).abs()
+  let is_full_circle = angle_span >= 360.0
   if area.r0 <= 0.0 {
-    elems.push(
-      @graphic.Element::path_stroked(
-        arc_path(area.cx, area.cy, area.r, area.start_angle, area.end_angle),
-        axis_line_color,
-      ),
-    )
+    if is_full_circle {
+      elems.push(
+        @graphic.Element::circle_stroked(
+          area.cx,
+          area.cy,
+          area.r,
+          axis_line_color,
+        ),
+      )
+    } else {
+      elems.push(
+        @graphic.Element::path_stroked(
+          arc_path(area.cx, area.cy, area.r, area.start_angle, area.end_angle),
+          axis_line_color,
+        ),
+      )
+    }
   } else {
     elems.push(
       @graphic.Element::path_fill_stroke(
@@ -430,18 +443,31 @@ fn render_radius_axis(
       ),
     )
     if radius > 0.0 {
-      elems.push(
-        @graphic.Element::path_stroked(
-          arc_path(
+      let angle_span = (polar.angle_axis.extent_end -
+      polar.angle_axis.extent_start).abs()
+      if angle_span >= 360.0 {
+        elems.push(
+          @graphic.Element::circle_stroked(
             polar.cx,
             polar.cy,
             radius,
-            -polar.angle_axis.extent_start / 180.0 * @math.PI,
-            -polar.angle_axis.extent_end / 180.0 * @math.PI,
+            polar_axis_split_line_color,
           ),
-          polar_axis_split_line_color,
-        ),
-      )
+        )
+      } else {
+        elems.push(
+          @graphic.Element::path_stroked(
+            arc_path(
+              polar.cx,
+              polar.cy,
+              radius,
+              -polar.angle_axis.extent_start / 180.0 * @math.PI,
+              -polar.angle_axis.extent_end / 180.0 * @math.PI,
+            ),
+            polar_axis_split_line_color,
+          ),
+        )
+      }
     }
     i += 1
   }

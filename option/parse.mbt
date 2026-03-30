@@ -760,6 +760,22 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         to_name: None,
         children: [],
       }
+    Array([Number(x, ..), Number(val, ..), String(name)]) => {
+      let key = if x.to_int().to_double() == x {
+        x.to_int().to_string()
+      } else {
+        x.to_string()
+      }
+      {
+        value: DataValue::DateValue(key, val),
+        name: Some(name),
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
+    }
     Array([String(date), Number(val, ..)]) =>
       {
         value: DataValue::DateValue(date, val),
@@ -770,6 +786,22 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         to_name: None,
         children: [],
       }
+    Array([Number(x, ..), Number(val, ..)]) => {
+      let key = if x.to_int().to_double() == x {
+        x.to_int().to_string()
+      } else {
+        x.to_string()
+      }
+      {
+        value: DataValue::DateValue(key, val),
+        name: None,
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
+    }
     _ => parse_data_item(j)
   }
 }
