@@ -322,6 +322,23 @@ pub fn Element::line_colored(
 }
 
 ///|
+/// Line stroked with a CSS/hex color string, dash pattern, and explicit opacity.
+pub fn Element::line_colored_dashed(
+  x1 : Double,
+  y1 : Double,
+  x2 : Double,
+  y2 : Double,
+  color_str : String,
+  width : Double,
+  dash : Array[Double],
+  opacity : Double,
+) -> Element {
+  let color = Color::from_string(color_str).unwrap_or(black)
+  let stroke = { color, width, dash, line_cap: "butt", line_join: "miter" }
+  Line({ x1, y1, x2, y2, stroke, opacity })
+}
+
+///|
 /// Text element with anchor, baseline, and explicit fill color.
 pub fn Element::text_colored(
   x : Double,

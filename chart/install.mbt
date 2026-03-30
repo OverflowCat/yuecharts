@@ -137,6 +137,14 @@ pub impl @core.ChartViewLike for GaugeChartView with render(_self, ctx) {
 }
 
 ///|
+struct ThemeRiverChartView {}
+
+///|
+pub impl @core.ChartViewLike for ThemeRiverChartView with render(_self, ctx) {
+  render_theme_rivers(ctx.option, ctx.single)
+}
+
+///|
 fn register_chart(
   registry : @core.Registry,
   series_type : @option.SeriesType,
@@ -366,6 +374,18 @@ pub fn install_gauge(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_theme_river(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/themeRiver/install.ts
+  // echarts/src/chart/themeRiver/ThemeRiverSeries.ts
+  // echarts/src/chart/themeRiver/ThemeRiverView.ts
+  // layout: echarts/src/chart/themeRiver/themeRiverLayout.ts
+  // processor: echarts/src/processor/dataFilter.ts
+  register_chart(registry, @option.SeriesType::ThemeRiver, true, false, ThemeRiverChartView::{
+
+  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_bar(registry)
   install_heatmap(registry)
@@ -384,4 +404,5 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_funnel(registry)
   install_radar(registry)
   install_gauge(registry)
+  install_theme_river(registry)
 }

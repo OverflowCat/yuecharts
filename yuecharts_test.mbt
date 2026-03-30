@@ -78,6 +78,122 @@ test "two line series use distinct palette colors" {
 }
 
 ///|
+/// ThemeRiver should render stream area paths and stream labels.
+test "themeRiver renders paths and labels" {
+  let json_str =
+    #|{
+    #|  "width": 600, "height": 400,
+    #|  "singleAxis": {"type": "time", "left": "8%", "right": "8%", "top": "12%", "bottom": "18%", "position": "bottom"},
+    #|  "series": [{
+    #|    "type": "themeRiver",
+    #|    "coordinateSystem": "singleAxis",
+    #|    "data": [
+    #|      ["2015/11/08", 10, "DQ"], ["2015/11/09", 15, "DQ"], ["2015/11/10", 20, "DQ"],
+    #|      ["2015/11/08", 20, "TY"], ["2015/11/09", 18, "TY"], ["2015/11/10", 16, "TY"]
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(palette_0))
+  assert_true(svg.contains(palette_1))
+  assert_true(svg.contains(">DQ</text>"))
+  assert_true(svg.contains(">TY</text>"))
+  assert_true(count_substring(svg, "<path") >= 2)
+}
+
+///|
+/// ThemeRiver boundaryGap should accept percent and pixel forms.
+test "themeRiver boundaryGap percent and px" {
+  let json_str =
+    #|{
+    #|  "width": 600, "height": 400,
+    #|  "singleAxis": {"type": "time", "left": "8%", "right": "8%", "top": "12%", "bottom": "18%", "position": "bottom"},
+    #|  "series": [{
+    #|    "type": "themeRiver",
+    #|    "coordinateSystem": "singleAxis",
+    #|    "boundaryGap": ["20%", 12],
+    #|    "data": [
+    #|      ["2015/11/08", 10, "A"], ["2015/11/09", 14, "A"], ["2015/11/10", 18, "A"],
+    #|      ["2015/11/08", 8, "B"], ["2015/11/09", 6, "B"], ["2015/11/10", 4, "B"]
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">A</text>"))
+  assert_true(svg.contains(">B</text>"))
+  assert_true(count_substring(svg, "<path") >= 2)
+}
+
+///|
+/// ThemeRiver singleAxis time ticks should use formatted source labels, not raw day-count numbers.
+test "themeRiver singleAxis formats time ticks and draws split lines" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "singleAxis": {"type": "time", "left": "8%", "right": "8%", "top": "12%", "bottom": "18%", "position": "bottom"},
+    #|  "series": [{
+    #|    "type": "themeRiver",
+    #|    "data": [
+    #|      ["2015/11/08", 10, "A"], ["2015/11/09", 14, "A"], ["2015/11/10", 18, "A"],
+    #|      ["2015/11/08", 8, "B"], ["2015/11/09", 6, "B"], ["2015/11/10", 4, "B"]
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">8</text>"))
+  assert_true(svg.contains(">9</text>"))
+  assert_true(svg.contains(">10</text>"))
+  assert_true(!svg.contains(">16747</text>"))
+  assert_true(svg.contains("stroke-dasharray=\"4,2\""))
+}
+
+///|
+/// ThemeRiver should fill missing (time, name) pairs with zero values.
+/// Corresponds to ThemeRiverSeries.fixData() behavior.
+test "themeRiver fixData fills missing time points" {
+  let json_str =
+    #|{
+    #|  "width": 600, "height": 400,
+    #|  "singleAxis": {"type": "time", "left": "8%", "right": "8%", "top": "12%", "bottom": "18%", "position": "bottom"},
+    #|  "series": [{
+    #|    "type": "themeRiver",
+    #|    "data": [
+    #|      ["2015/11/08", 10, "A"], ["2015/11/09", 14, "A"], ["2015/11/10", 18, "A"],
+    #|      ["2015/11/09", 6, "B"]
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">A</text>"))
+  assert_true(svg.contains(">B</text>"))
+  assert_true(count_substring(svg, "<path") >= 2)
+  // With >=3 points after fillData, smooth path includes cubic Bezier commands.
+  assert_true(svg.contains(" C "))
+}
+
+///|
+/// ThemeRiver should ignore items without name.
+/// Corresponds to `filter(option.data, dataItem => dataItem[2] !== undefined)`.
+test "themeRiver ignores unnamed items" {
+  let json_str =
+    #|{
+    #|  "width": 600, "height": 400,
+    #|  "singleAxis": {"type": "time"},
+    #|  "series": [{
+    #|    "type": "themeRiver",
+    #|    "data": [
+    #|      ["2015/11/08", 10, "Named"],
+    #|      ["2015/11/09", 12]
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Named</text>"))
+  assert_true(!svg.contains(">default</text>"))
+}
+
+///|
 /// Mixed bar+line: bar gets palette[0], line gets palette[1].
 test "mixed bar+line uses palette[0] and palette[1]" {
   let json_str =
@@ -857,7 +973,11 @@ test "map data statistic aggregates same-geo series and draws once" {
     #|  ]
     #|}
   let svg = @yuecharts.render(json_str)
-  assert_eq(count_substring(svg, "<path d=\"M "), 2)
+  // 2 geo outlines (fill=none) + 2 map fill paths.
+  assert_eq(count_substring(svg, "<path d=\"M "), 4)
+  assert_eq(count_substring(svg, "fill=\"none\""), 2)
+  assert_eq(count_substring(svg, "fill=\"#3182bd\""), 1)
+  assert_eq(count_substring(svg, "fill=\"#deebf7\""), 1)
   assert_true(svg.contains("fill=\"#3182bd\""))
   assert_true(svg.contains("fill=\"#deebf7\""))
 }

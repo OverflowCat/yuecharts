@@ -24,4 +24,12 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   registry.register_layout(
     @core.LayoutRegistration::new(None, 105, Some("build_polar")),
   )
+  // echarts/src/coord/single/singleCreator.ts
+  registry.register_layout(
+    @core.LayoutRegistration::new(
+      Some(@option.SeriesType::ThemeRiver),
+      109,
+      Some("build_single"),
+    ),
+  )
 }

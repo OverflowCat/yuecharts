@@ -276,6 +276,7 @@ fn run_registered_layouts(
   let mut parallel = @coord.Parallel::build(opt)
   let geo = @coord.Geo::build(opt)
   let mut calendar = @coord.Calendar::build(opt)
+  let mut single = @coord.Single::build(opt)
   let visited = new_flags(registry.layouts.length())
   let mut done = 0
   while done < registry.layouts.length() {
@@ -290,12 +291,15 @@ fn run_registered_layouts(
           Some("build_polar") => polar = @layout.build_polar(opt)
           Some("build_parallel") => parallel = @coord.Parallel::build(opt)
           Some("build_calendar") => calendar = @coord.Calendar::build(opt)
+          Some("build_single") => single = @coord.Single::build(opt)
           _ => ()
         }
       }
     }
   }
-  @core.RenderContext::new(raw_opt, opt, coord, polar, parallel, geo, calendar)
+  @core.RenderContext::new(
+    raw_opt, opt, coord, polar, parallel, geo, calendar, single,
+  )
 }
 
 ///|

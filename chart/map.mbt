@@ -54,12 +54,7 @@ fn map_data_item_by_name(
 ///|
 fn map_data_item_numeric_value(item : @option.DataItem) -> Double? {
   match item.value {
-    Num(value) =>
-      if value.is_nan() {
-        None
-      } else {
-        Some(value)
-      }
+    Num(value) => if value.is_nan() { None } else { Some(value) }
     _ => None
   }
 }
@@ -122,12 +117,14 @@ fn map_statistic_value(
     sum += value
     i += 1
   }
-  Some(match statistic_type {
-    Sum => sum
-    Average => sum / values.length().to_double()
-    Min => min
-    Max => max
-  })
+  Some(
+    match statistic_type {
+      Sum => sum
+      Average => sum / values.length().to_double()
+      Min => min
+      Max => max
+    },
+  )
 }
 
 ///|

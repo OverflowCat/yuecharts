@@ -11,6 +11,7 @@ pub struct RenderContext {
   parallel : @coord.Parallel?
   geo : @coord.Geo?
   calendar : @coord.Calendar?
+  single : @coord.Single?
 }
 
 ///|
@@ -22,8 +23,9 @@ pub fn RenderContext::new(
   parallel : @coord.Parallel?,
   geo : @coord.Geo?,
   calendar : @coord.Calendar?,
+  single : @coord.Single?,
 ) -> RenderContext {
-  { raw_option, option, coord, polar, parallel, geo, calendar }
+  { raw_option, option, coord, polar, parallel, geo, calendar, single }
 }
 
 ///|

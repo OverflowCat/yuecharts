@@ -20,6 +20,7 @@ fn series_type_name(series_type : @option.SeriesType) -> String {
     @option.Funnel => "Funnel chart"
     @option.Gauge => "Gauge"
     @option.Map => "Map"
+    @option.ThemeRiver => "Theme river"
     @option.Parallel => "Parallel coordinates"
   }
 }

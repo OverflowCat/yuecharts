@@ -286,6 +286,7 @@ pub(all) enum SeriesType {
   Funnel
   Gauge
   Map
+  ThemeRiver
 } derive(Eq)
 
 ///|
@@ -350,6 +351,8 @@ pub(all) struct SeriesOption {
   radar_index : Int
   map_name : String?
   stack : String?
+  // For themeRiver: [before, after] gap on axis orthogonal direction
+  boundary_gap : Array[String]
   smooth : Bool
   polyline : Bool
   symbol_size : Double
@@ -412,6 +415,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     radar_index: 0,
     map_name: None,
     stack: None,
+    boundary_gap: [],
     smooth: false,
     polyline: false,
     symbol_size: 4.0,
@@ -556,6 +560,16 @@ pub fn SeriesOption::default_map() -> SeriesOption {
     ..SeriesOption::default_line(),
     series_type: SeriesType::Map,
     coordinate_system: Some("geo"),
+  }
+}
+
+///|
+pub fn SeriesOption::default_theme_river() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::ThemeRiver,
+    coordinate_system: Some("singleAxis"),
+    boundary_gap: ["10%", "10%"],
   }
 }
 
@@ -897,6 +911,43 @@ pub impl Default for CalendarOption with default() {
 }
 
 ///|
+/// Corresponds to: echarts/src/coord/single/AxisModel.ts
+pub(all) struct SingleAxisOption {
+  axis_type : AxisType
+  orient : String // "horizontal" | "vertical"
+  position : String // "top" | "bottom" | "left" | "right"
+  left : SizeSpec?
+  top : SizeSpec?
+  right : SizeSpec?
+  bottom : SizeSpec?
+  width : SizeSpec?
+  height : SizeSpec?
+  min : Double?
+  max : Double?
+  data : Array[String]
+  inverse : Bool
+}
+
+///|
+pub impl Default for SingleAxisOption with default() {
+  {
+    axis_type: AxisType::Time,
+    orient: "horizontal",
+    position: "bottom",
+    left: Some(SizeSpec::Pct(5.0)),
+    top: Some(SizeSpec::Pct(5.0)),
+    right: Some(SizeSpec::Pct(5.0)),
+    bottom: Some(SizeSpec::Pct(5.0)),
+    width: None,
+    height: None,
+    min: None,
+    max: None,
+    data: [],
+    inverse: false,
+  }
+}
+
+///|
 /// Root chart option.
 pub(all) struct ChartOption {
   width : Double
@@ -914,6 +965,7 @@ pub(all) struct ChartOption {
   geo : Array[GeoOption]
   calendar : Array[CalendarOption]
   radar : Array[RadarOption]
+  single_axis : Array[SingleAxisOption]
   series : Array[SeriesOption]
   map_registry : Array[MapRegistryOption]
   background_color : String?
@@ -941,6 +993,7 @@ pub impl Default for ChartOption with default() {
     geo: [],
     calendar: [],
     radar: [],
+    single_axis: [],
     series: [],
     map_registry: [],
     background_color: None,

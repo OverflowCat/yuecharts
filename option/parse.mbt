@@ -49,6 +49,12 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let geo = j_parse_one_or_many(j, "geo", parse_geo_option, [])
   let calendar = j_parse_one_or_many(j, "calendar", parse_calendar_option, [])
   let radar = j_parse_one_or_many(j, "radar", parse_radar_option, [])
+  let single_axis = j_parse_one_or_many(
+    j,
+    "singleAxis",
+    parse_single_axis_option,
+    [],
+  )
   let series = j_parse_one_or_many(j, "series", parse_series_option, [])
   let map_registry = j_parse_one_or_many(j, "maps", parse_map_registry_option, [])
   let visual_map = j_parse_one_or_many(j, "visualMap", parse_visual_map, [])
@@ -68,6 +74,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     geo,
     calendar,
     radar,
+    single_axis,
     series,
     map_registry,
     background_color,
@@ -279,6 +286,32 @@ fn parse_parallel_axis_option(j : Json) -> ParallelAxisOption {
 }
 
 ///|
+fn parse_single_axis_option(j : Json) -> SingleAxisOption {
+  let base = SingleAxisOption::default()
+  {
+    axis_type: match j_string(j, "type", "") {
+      "category" => AxisType::Category
+      "time" => AxisType::Time
+      "log" => AxisType::Log
+      "value" => AxisType::Value
+      _ => base.axis_type
+    },
+    orient: j_string(j, "orient", base.orient),
+    position: j_string(j, "position", base.position),
+    left: parse_size_spec_opt(j, "left", base.left),
+    top: parse_size_spec_opt(j, "top", base.top),
+    right: parse_size_spec_opt(j, "right", base.right),
+    bottom: parse_size_spec_opt(j, "bottom", base.bottom),
+    width: parse_size_spec_opt(j, "width", base.width),
+    height: parse_size_spec_opt(j, "height", base.height),
+    min: j_number_opt(j, "min"),
+    max: j_number_opt(j, "max"),
+    data: j_string_array_lossy(j, "data", base.data),
+    inverse: j_bool(j, "inverse", base.inverse),
+  }
+}
+
+///|
 fn parse_geo_item_style_option(j : Json) -> GeoItemStyleOption {
   let base = GeoItemStyleOption::default()
   {
@@ -449,6 +482,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "funnel" => SeriesType::Funnel
     "gauge" => SeriesType::Gauge
     "map" => SeriesType::Map
+    "themeRiver" => SeriesType::ThemeRiver
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -464,11 +498,17 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Treemap => SeriesOption::default_treemap()
     Gauge => SeriesOption::default_gauge()
     Map => SeriesOption::default_map()
+    ThemeRiver => SeriesOption::default_theme_river()
     _ => SeriesOption::default_line()
   }
   // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
   let data = match j_field(j, "data") {
-    Some(Array(arr)) => arr.map(parse_data_item)
+    Some(Array(arr)) =>
+      if series_type == SeriesType::ThemeRiver {
+        arr.map(parse_data_item_theme_river)
+      } else {
+        arr.map(parse_data_item)
+      }
     _ => base.data
   }
   let name = j_string_opt(j, "name")
@@ -483,6 +523,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let geo_index = j_int(j, "geoIndex", base.geo_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
   let map_name = j_string_opt(j, "map")
+  let boundary_gap = j_stringish_array(j, "boundaryGap", base.boundary_gap)
   let symbol_size_values = parse_symbol_size_values(j)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
   let symbol = j_string_or_number_as_string_opt(j, "symbol", base.symbol)
@@ -556,11 +597,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let min_val = j_number(j, "min", base.min_val)
   let max_val = j_number(j, "max", base.max_val)
   let split_number = j_int(j, "splitNumber", base.split_number)
-  let map_value_calculation = match j_string(
-    j,
-    "mapValueCalculation",
-    "sum",
-  ) {
+  let map_value_calculation = match j_string(j, "mapValueCalculation", "sum") {
     "average" => MapValueCalculationType::Average
     "min" => MapValueCalculationType::Min
     "max" => MapValueCalculationType::Max
@@ -598,6 +635,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     radar_index,
     map_name,
     stack,
+    boundary_gap,
     smooth,
     polyline,
     symbol_size,
@@ -705,6 +743,34 @@ fn parse_data_array_value(arr : Array[Json]) -> DataValue {
   match arr {
     [String(date), Number(n, ..)] => DataValue::DateValue(date, n)
     _ => DataValue::Vec(arr.map(json_number_or_zero))
+  }
+}
+
+///|
+// Corresponds to: ThemeRiverSeries.ts data format [date, value, name]
+fn parse_data_item_theme_river(j : Json) -> DataItem {
+  match j {
+    Array([String(date), Number(val, ..), String(name)]) =>
+      {
+        value: DataValue::DateValue(date, val),
+        name: Some(name),
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
+    Array([String(date), Number(val, ..)]) =>
+      {
+        value: DataValue::DateValue(date, val),
+        name: None,
+        symbol: None,
+        coords: None,
+        from_name: None,
+        to_name: None,
+        children: [],
+      }
+    _ => parse_data_item(j)
   }
 }
 
