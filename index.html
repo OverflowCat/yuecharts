@@ -140,7 +140,11 @@
       overflow: hidden;
       font-size: 13px;
     }
-    .backend-toggle input[type=radio] { display: none; }
+
+    .backend-toggle input[type=radio] {
+      display: none;
+    }
+
     .backend-toggle label {
       padding: 4px 14px;
       cursor: pointer;
@@ -150,13 +154,26 @@
       transition: background 0.12s, color 0.12s;
       border-right: 1px solid #ccc;
     }
-    .backend-toggle label:last-of-type { border-right: none; }
+
+    .backend-toggle label:last-of-type {
+      border-right: none;
+    }
+
     .backend-toggle input[type=radio]:checked + label {
       background: #5470c6;
       color: #fff;
     }
-    .backend-toggle label.loading { opacity: 0.45; cursor: not-allowed; }
-    .backend-toggle label.unavailable { opacity: 0.3; cursor: not-allowed; text-decoration: line-through; }
+
+    .backend-toggle label.loading {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .backend-toggle label.unavailable {
+      opacity: 0.3;
+      cursor: not-allowed;
+      text-decoration: line-through;
+    }
   </style>
 </head>
 
@@ -173,16 +190,16 @@
   "height": 400,
   "title": { "text": "Weekly Sales" },
   "xAxis": {
-  "type": "category",
-  "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    "type": "category",
+    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
   },
   "yAxis": { "type": "value" },
   "series": [
-  {
-    "type": "bar",
-    "name": "Sales",
-    "data": [120, 200, 150, 80, 70, 110, 130]
-  }
+    {
+      "type": "bar",
+      "name": "Sales",
+      "data": [120, 200, 150, 80, 70, 110, 130]
+    }
   ]
 }</textarea>
       <div class="toolbar">
@@ -193,7 +210,7 @@
           <label for="backendLinear" id="labelLinear" class="loading">wasm</label>
         </div>
         <button id="renderBtn">Render</button>
-        <span id="status">Loading WASM modules…</span>
+        <span id="status">Loading WASM modules...</span>
       </div>
     </div>
     <div class="panel">
@@ -203,91 +220,49 @@
   </div>
 
   <script>
-    // Example chart configs
-    const EXAMPLES = {
-      bar: {
-        width: 600, height: 400,
-        title: { text: "Weekly Sales" },
-        xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
-        yAxis: { type: "value" },
-        series: [{ type: "bar", name: "Sales", data: [120, 200, 150, 80, 70, 110, 130] }]
-      },
-      line: {
-        width: 600, height: 400,
-        title: { text: "Temperature" },
-        xAxis: { type: "category", data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] },
-        yAxis: { type: "value" },
-        series: [{ type: "line", name: "Temp", data: [10, 11, 13, 11, 12, 12, 9] }]
-      },
-      pie: {
-        width: 600, height: 400,
-        title: { text: "Browser Share" },
-        series: [{
-          type: "pie", name: "Browser", radius: "50%",
-          data: [
-            { value: 1048, name: "Chrome" },
-            { value: 735, name: "Firefox" },
-            { value: 580, name: "Safari" },
-            { value: 484, name: "Edge" },
-            { value: 300, name: "Other" }
-          ]
-        }]
-      },
-      scatter: {
-        width: 600, height: 400,
-        title: { text: "Scatter Plot" },
-        xAxis: { type: "value" },
-        yAxis: { type: "value" },
-        series: [{
-          type: "scatter", name: "Data",
-          data: [[10, 8], [14, 12], [20, 15], [25, 20], [30, 22], [35, 28], [40, 30], [45, 32], [50, 40]]
-        }]
-      },
-      radar: {
-        width: 600, height: 400,
-        title: { text: "Radar Chart" },
-        radar: {
-          indicator: [
-            { name: "Attack", max: 100 },
-            { name: "Defense", max: 100 },
-            { name: "Speed", max: 100 },
-            { name: "Power", max: 100 },
-            { name: "Endurance", max: 100 }
-          ]
-        },
-        series: [{
-          type: "radar", name: "Stats",
-          data: [{ value: [80, 50, 90, 60, 70], name: "Player A" }]
-        }]
-      },
-      funnel: {
-        width: 600, height: 400,
-        title: { text: "Funnel Chart" },
-        series: [{
-          type: "funnel", name: "Funnel",
-          data: [
-            { value: 100, name: "Visit" },
-            { value: 80, name: "Inquiry" },
-            { value: 60, name: "Order" },
-            { value: 40, name: "Click" },
-            { value: 20, name: "Show" }
-          ]
-        }]
-      }
-    };
+    const EXAMPLE_FILES = [
+      "aria-template.json",
+      "bar.json",
+      "boxplot.json",
+      "calendar.json",
+      "calendar-simple.json",
+      "candlestick.json",
+      "donut.json",
+      "effectscatter.json",
+      "funnel.json",
+      "gauge.json",
+      "geo-choropleth-scatter.json",
+      "geo-compressed.json",
+      "geo-hole.json",
+      "geo-lines.json",
+      "geo-map-statistic.json",
+      "geo-multiline.json",
+      "geo-regions-namemap.json",
+      "geo-specialareas.json",
+      "heatmap.json",
+      "line.json",
+      "mixed.json",
+      "multibar.json",
+      "parallel.json",
+      "pictorialbar.json",
+      "pictorialbar-body-fill.json",
+      "pictorialbar-clip.json",
+      "pictorialbar-offset.json",
+      "pictorialbar-path.json",
+      "pictorialbar-path-dup.json",
+      "pictorialbar-symbolsize.json",
+      "pie.json",
+      "pie-legend-selected.json",
+      "polar-bar.json",
+      "polar-line.json",
+      "polar-scatter.json",
+      "radar.json",
+      "scatter.json",
+      "sunburst.json",
+      "themeriver.json",
+      "treemap.json"
+    ];
 
-    // Populate example buttons
-    const exBar = document.getElementById("examplesBar");
-    for (const [name] of Object.entries(EXAMPLES)) {
-      const btn = document.createElement("button");
-      btn.textContent = name;
-      btn.addEventListener("click", () => {
-        document.getElementById("jsonInput").value = JSON.stringify(EXAMPLES[name], null, 2);
-      });
-      exBar.appendChild(btn);
-    }
-
-    // WASM loading and rendering
     const renderers = { gc: null, linear: null };
     const renderBtn = document.getElementById("renderBtn");
     const statusEl = document.getElementById("status");
@@ -297,15 +272,45 @@
     const labelLinear = document.getElementById("labelLinear");
     const backendGC = document.getElementById("backendGC");
     const backendLinear = document.getElementById("backendLinear");
+    const exBar = document.getElementById("examplesBar");
 
     function activeRenderer() {
       const v = document.querySelector('input[name=backend]:checked').value;
       return renderers[v];
     }
 
-    // --- wasm-gc mode (JS String Builtins) ---
+    async function loadExample(fileName) {
+      try {
+        const response = await fetch(`examples/${fileName}`);
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+        const text = await response.text();
+        jsonInput.value = text;
+        statusEl.textContent = `Loaded examples/${fileName}`;
+        statusEl.className = "";
+        // 立即渲染
+        onRender();
+      } catch (e) {
+        statusEl.textContent = `Failed to load examples/${fileName}: ${e.message}`;
+        statusEl.className = "error";
+      }
+    }
+
+    function populateExampleButtons() {
+      for (const fileName of EXAMPLE_FILES) {
+        const btn = document.createElement("button");
+        btn.textContent = fileName.replace(/\.json$/, "");
+        btn.title = `examples/${fileName}`;
+        btn.addEventListener("click", () => {
+          loadExample(fileName);
+        });
+        exBar.appendChild(btn);
+      }
+    }
+
     async function loadWasmGC() {
-      const response = await fetch("wasm-gc.wasm");
+      const response = await fetch("_build/wasm-gc/release/build/cmd/wasm/wasm.wasm");
       if (!response.ok) throw new Error(`${response.status}`);
       const bytes = await response.arrayBuffer();
       const { instance } = await WebAssembly.instantiate(bytes, {}, {
@@ -317,13 +322,11 @@
       return (json) => renderFn(json);
     }
 
-    // --- plain wasm mode (linear memory, no GC) ---
     async function loadWasmLinear() {
-      const response = await fetch("wasm.wasm");
+      const response = await fetch("_build/wasm/release/build/cmd/wasm/wasm.wasm");
       if (!response.ok) throw new Error(`${response.status}`);
       const bytes = await response.arrayBuffer();
 
-      // I/O state for the linear wasm module
       let inputStr = "";
       let inputPos = 0;
       let outputChars = [];
@@ -349,7 +352,6 @@
         inputPos = 0;
         outputChars = [];
         doRenderWasm();
-        // Remove trailing newline from println
         let result = outputChars.join("");
         if (result.endsWith("\n")) result = result.slice(0, -1);
         return result;
@@ -357,7 +359,6 @@
     }
 
     async function loadWasm() {
-      // Load both modules in parallel
       const [gcResult, linearResult] = await Promise.allSettled([
         loadWasmGC(),
         loadWasmLinear(),
@@ -383,14 +384,13 @@
         backendLinear.disabled = true;
       }
 
-      // Select best available backend by default
       if (!renderers.gc && renderers.linear) {
         backendLinear.checked = true;
       }
 
       const anyReady = renderers.gc || renderers.linear;
       if (anyReady) {
-        statusEl.textContent = "WASM modules ready — select backend above";
+        statusEl.textContent = "WASM modules ready - select backend above";
         statusEl.className = "";
       } else {
         statusEl.textContent = "Failed to load any WASM module";
@@ -430,11 +430,29 @@
       }
     }
 
+    function throttle(fn, delay) {
+      let lastCall = 0;
+      return function (...args) {
+        const now = Date.now();
+        if (now - lastCall >= delay) {
+          lastCall = now;
+          fn.apply(this, args);
+        }
+      };
+    }
+
     renderBtn.addEventListener("click", onRender);
     jsonInput.addEventListener("keydown", (e) => {
-      if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); onRender(); }
+      if (e.ctrlKey && e.key === "Enter") {
+        e.preventDefault();
+        onRender();
+      }
     });
 
+    const throttledRender = throttle(onRender, 300);
+    jsonInput.addEventListener("input", throttledRender);
+
+    populateExampleButtons();
     loadWasm();
   </script>
 </body>

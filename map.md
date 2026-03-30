@@ -1,36 +1,4 @@
-## 2026-03-27 Geo Update
-
-- Added first-pass GeoJSON-backed `geo` plumbing across `option/types.mbt`, `option/parse.mbt`, `coord/geo.mbt`, `core/registry.mbt`, and `yuecharts.mbt`. The current subset covers inline `maps[].geoJSON`, `geo.map`, `geo.aspectScale`, `geo.label`, and region-center placement from `properties.cp` or polygon bbox center.
-- Added static `map`/`geo` rendering in `chart/map.mbt` and `component/geo.mbt`, wired through `chart/install.mbt` and `component/install.mbt`. Current output covers GeoJSON polygon rendering, region labels, basic borders, choropleth fill from `visualMap.inRange.color`, and scatter/effectScatter anchoring on `coordinateSystem: 'geo'` with `visualMap.inRange.symbolSize`.
-- Added `coord/geo_wbtest.mbt` plus top-level geo render tests in `yuecharts_test.mbt`, and updated `tools/echarts-render.js` so JS SSR now consumes the same top-level `maps[].geoJSON` registration payload via `echarts.registerMap(...)`.
-- Added first-pass `series.type = 'lines'` support in `chart/lines.mbt`, wired through `chart/install.mbt` and `option/*`; the current subset covers `data[i].coords`, `fromName/toName` region-center lookup, `polyline`, and series-level `lineStyle.width/color/opacity/curveness` on geo.
-- Added first-pass `geo.nameMap`, `geo.itemStyle`, and `geo.regions[].label/itemStyle` support across `option/*`, `coord/geo.mbt`, `component/geo.mbt`, and `chart/map.mbt`; current static output now respects renamed region names plus per-region label/border/fill overrides.
-- Added first-pass `specialAreas` and compressed GeoJSON decode support in `coord/geo.mbt` and `option/*`, translating the static subset of upstream `parseGeoJson.ts` / `Region.ts` behavior for `UTF8Encoding`, `UTF8Scale`, `encodeOffsets`, and region bbox-based inset transforms.
-- `coord/geo.mbt` now keeps polygon vs linestring geometries separately, preserves polygon interiors in parsed data, and uses line geometries when computing region bbox / fallback center.
-- Added [`coord/geo_source_manager.mbt`](/E:/yuecharts/coord/geo_source_manager.mbt) to land the current static subset of upstream `GeoJSONResource.ts` / `geoSourceManager.ts`; `Geo::build(...)` now loads map data through a resource manager instead of directly scanning `opt.map_registry`.
-- `examples/geo-choropleth-scatter.json` now embeds the Iceland GeoJSON asset inline so both MoonBit and JS SSR can render it directly from the same file.
-- `component/geo.mbt` and `chart/map.mbt` now render polygon geometries as compound SVG paths, so GeoJSON interiors/holes are preserved in static output rather than being flattened to exterior-only polygons.
-- Added comparison fixtures `examples/geo-specialareas.json`, `examples/geo-compressed.json`, and `examples/geo-hole.json`, plus static fixture `examples/geo-multiline.json`; MoonBit / JS SSR SVG outputs are written under `_tmp/`.
-- Current status remains `partial`: this translation does not yet cover SVG maps, projection providers, public `registerMap/getMap` runtime APIs on the top-level yuecharts module, region selection/hover state, `mapDataStatistic.ts`, or upstream series-order/zrender structure parity.
 # ECharts to yuecharts Port Map
-
-## 2026-03-26 Update
-
-- option/types.mbt now derives Eq for SeriesType, enabling registry/stage filtering to use enum equality directly instead of ad-hoc string names.
-- core/registry.mbt, chart/install.mbt, and yuecharts.mbt now store and compare typed @option.SeriesType? for stage/chart applicability; component/install.mbt also aligns aria visual priority with upstream PRIORITY.VISUAL.ARIA = 6000.
-- `chart/pictorial_bar.mbt` now additionally translates the `path://` symbol branch from `util/symbol.ts`/`util/graphic.ts` for static cartesian pictorial bars: series-level and item-level `symbol` both work, path symbols are normalized to the upstream `symbolPatternSize = 400` coordinate system, and `itemStyle.opacity` plus `barCategoryGap` now affect the static SVG output.
-- `chart/pictorial_bar.mbt` now covers a larger static subset of `installPictorialBar.ts`, `PictorialBarSeries.ts`, and `PictorialBarView.ts`: `symbolSize`, `symbolRepeat`, `symbolClip`, `symbolPosition`, `symbolBoundingData`, `symbolOffset`, and `symbolRepeatDirection` are partially translated for cartesian/category static SVG output.
-- `visual/aria.mbt` now covers static `aria.ts` label generation with default English template strings and option overrides parsed through `option/parse.mbt`.
-- Added example/reference pairs: `examples/pictorialbar-offset.{json,svg,ref.svg}`, `examples/pictorialbar-symbolsize.{json,svg,ref.svg}`, and `examples/aria-template.{json,svg,ref.svg}`.
-- Added `scale/interval_wbtest.mbt`, translating the portable subset of `test/ut/spec/scale/interval.test.ts` onto the current `LinearScale` port.
-
-## 2026-03-27 Update
-
-- Added first-pass polar coordinate plumbing across `option/types.mbt`, `option/parse.mbt`, `coord/polar.mbt`, `layout/polar.mbt`, `core/registry.mbt`, `layout/install.mbt`, and `yuecharts.mbt`, covering static `polar` / `angleAxis` / `radiusAxis` parsing plus root layout creation.
-- `component/axis.mbt` now renders static polar angle/radius axes and split lines based on `AngleAxisView.ts` / `RadiusAxisView.ts`.
-- `chart/bar.mbt`, `chart/line.mbt`, `chart/scatter.mbt`, and `chart/effect_scatter.mbt` now accept polar render context; `examples/polar-bar.json`, `examples/polar-line.json`, and `examples/polar-scatter.json` were rendered against JS SSR references.
-- Current status is still `partial`: the static SVG output now exists and uses the polar coordinate model, but `barPolar.ts` / `LineView.ts` behavior is not yet 1:1 with upstream and the generated element structure still differs from ECharts SSR.
-- Added first-pass `parallel` support across `option/types.mbt`, `option/parse.mbt`, `coord/parallel.mbt`, `core/registry.mbt`, `layout/install.mbt`, `component/parallel.mbt`, `component/install.mbt`, `chart/parallel.mbt`, `chart/install.mbt`, and `yuecharts.mbt`. The current static subset covers `parallel`, `parallelAxis`, `series.type = "parallel"`, value-axis layout/ticks/labels, and polyline rendering for numeric dimensions; parallel axes now render in the foreground with horizontal axis names placed above the coordinate area, series polylines are clipped to the parallel bbox, and missing/null dimension values are skipped instead of fabricating fallback coordinates.
 
 ## Scope
 
