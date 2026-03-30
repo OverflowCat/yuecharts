@@ -1,0 +1,54 @@
+{
+  "width": 420,
+  "height": 260,
+  "title": { "text": "Matrix Merge" },
+  "matrix": {
+    "left": 60,
+    "top": 40,
+    "right": 30,
+    "bottom": 24,
+    "x": {
+      "levelSize": 28,
+      "data": ["Mon", "Tue", "Wed"]
+    },
+    "y": {
+      "levelSize": 58,
+      "data": ["AM", "PM", "Night"]
+    },
+    "corner": {
+      "data": [
+        { "coord": [-1, -1], "value": "Time" }
+      ]
+    },
+    "body": {
+      "itemStyle": {
+        "color": "#ffffff",
+        "borderColor": "#d7dbe3",
+        "borderWidth": 1
+      },
+      "data": [
+        {
+          "coord": [null, 1],
+          "coordClamp": true,
+          "mergeCells": true,
+          "value": "Break",
+          "itemStyle": {
+            "color": "#f3f5f9",
+            "borderColor": "#aeb7c5",
+            "borderWidth": 1
+          },
+          "label": {
+            "show": true,
+            "color": "#60656f",
+            "fontSize": 14
+          }
+        }
+      ]
+    },
+    "backgroundStyle": {
+      "color": "none",
+      "borderColor": "#54555a",
+      "borderWidth": 1
+    }
+  }
+}

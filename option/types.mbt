@@ -346,6 +346,7 @@ pub(all) struct SeriesOption {
   polar_index : Int
   coordinate_system : String?
   calendar_index : Int
+  matrix_index : Int
   geo_index : Int
   // For radar: index into ChartOption.radar[]
   radar_index : Int
@@ -411,6 +412,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     polar_index: 0,
     coordinate_system: None,
     calendar_index: 0,
+    matrix_index: 0,
     geo_index: 0,
     radar_index: 0,
     map_name: None,
@@ -911,6 +913,175 @@ pub impl Default for CalendarOption with default() {
 }
 
 ///|
+pub struct MatrixLabelOption {
+  show : Bool
+  color : String
+  font_size : Double
+  font_family : String
+  font_weight : String
+}
+
+///|
+pub impl Default for MatrixLabelOption with default() {
+  {
+    show: true,
+    color: "#54555a",
+    font_size: 12.0,
+    font_family: "sans-serif",
+    font_weight: "normal",
+  }
+}
+
+///|
+pub struct MatrixItemStyleOption {
+  color : String
+  border_color : String
+  border_width : Double
+}
+
+///|
+pub impl Default for MatrixItemStyleOption with default() {
+  { color: "none", border_color: "#d7dbe3", border_width: 1.0 }
+}
+
+///|
+pub struct MatrixLineStyleOption {
+  color : String
+  width : Double
+}
+
+///|
+pub impl Default for MatrixLineStyleOption with default() {
+  { color: "#54555a", width: 1.0 }
+}
+
+///|
+pub(all) struct MatrixDimensionLevelOption {
+  level_size : SizeSpec?
+}
+
+///|
+pub impl Default for MatrixDimensionLevelOption with default() {
+  { level_size: None }
+}
+
+///|
+pub(all) struct MatrixDimensionCellOption {
+  value : String?
+  size : SizeSpec?
+  children : Array[MatrixDimensionCellOption]
+  item_style : MatrixItemStyleOption?
+  label : MatrixLabelOption?
+}
+
+///|
+pub(all) struct MatrixDimensionOption {
+  show : Bool
+  data : Array[MatrixDimensionCellOption]
+  length : Int?
+  level_size : SizeSpec?
+  levels : Array[MatrixDimensionLevelOption]
+  item_style : MatrixItemStyleOption
+  label : MatrixLabelOption
+  divider_line_style : MatrixLineStyleOption
+}
+
+///|
+pub impl Default for MatrixDimensionOption with default() {
+  {
+    show: true,
+    data: [],
+    length: None,
+    level_size: None,
+    levels: [],
+    item_style: MatrixItemStyleOption::default(),
+    label: MatrixLabelOption::default(),
+    divider_line_style: MatrixLineStyleOption::default(),
+  }
+}
+
+///|
+pub(all) enum MatrixCoordValue {
+  Locator(Int)
+  Name(String)
+  Missing
+}
+
+///|
+pub(all) enum MatrixCoordPart {
+  Value(MatrixCoordValue)
+  Range(MatrixCoordValue, MatrixCoordValue)
+  Missing
+}
+
+///|
+pub(all) struct MatrixBodyCellOption {
+  coord : Array[MatrixCoordPart]
+  value : String?
+  item_style : MatrixItemStyleOption?
+  label : MatrixLabelOption?
+  coord_clamp : Bool
+  merge_cells : Bool
+}
+
+///|
+pub(all) struct MatrixBodyOption {
+  data : Array[MatrixBodyCellOption]
+  item_style : MatrixItemStyleOption
+  label : MatrixLabelOption
+}
+
+///|
+pub impl Default for MatrixBodyOption with default() {
+  {
+    data: [],
+    item_style: MatrixItemStyleOption::default(),
+    label: MatrixLabelOption::default(),
+  }
+}
+
+///|
+pub(all) struct MatrixOption {
+  left : SizeSpec?
+  top : SizeSpec?
+  right : SizeSpec?
+  bottom : SizeSpec?
+  width : SizeSpec?
+  height : SizeSpec?
+  x : MatrixDimensionOption
+  y : MatrixDimensionOption
+  body : MatrixBodyOption
+  corner : MatrixBodyOption
+  background_style : MatrixItemStyleOption
+  border_z2 : Double?
+}
+
+///|
+pub impl Default for MatrixOption with default() {
+  {
+    left: Some(SizeSpec::Pct(10.0)),
+    top: Some(SizeSpec::Pct(10.0)),
+    right: Some(SizeSpec::Pct(10.0)),
+    bottom: Some(SizeSpec::Pct(10.0)),
+    width: None,
+    height: None,
+    x: MatrixDimensionOption::default(),
+    y: MatrixDimensionOption::default(),
+    body: MatrixBodyOption::default(),
+    corner: {
+      ..MatrixBodyOption::default(),
+      item_style: { color: "none", border_color: "none", border_width: 1.0 },
+    },
+    background_style: {
+      color: "none",
+      border_color: "#54555a",
+      border_width: 1.0,
+    },
+    border_z2: None,
+  }
+}
+
+///|
 /// Corresponds to: echarts/src/coord/single/AxisModel.ts
 pub(all) struct SingleAxisOption {
   axis_type : AxisType
@@ -964,6 +1135,7 @@ pub(all) struct ChartOption {
   parallel_axis : Array[ParallelAxisOption]
   geo : Array[GeoOption]
   calendar : Array[CalendarOption]
+  matrix : Array[MatrixOption]
   radar : Array[RadarOption]
   single_axis : Array[SingleAxisOption]
   series : Array[SeriesOption]
@@ -992,6 +1164,7 @@ pub impl Default for ChartOption with default() {
     parallel_axis: [],
     geo: [],
     calendar: [],
+    matrix: [],
     radar: [],
     single_axis: [],
     series: [],

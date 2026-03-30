@@ -48,6 +48,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
   )
   let geo = j_parse_one_or_many(j, "geo", parse_geo_option, [])
   let calendar = j_parse_one_or_many(j, "calendar", parse_calendar_option, [])
+  let matrix = j_parse_one_or_many(j, "matrix", parse_matrix_option, [])
   let radar = j_parse_one_or_many(j, "radar", parse_radar_option, [])
   let single_axis = j_parse_one_or_many(
     j,
@@ -73,6 +74,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     parallel_axis,
     geo,
     calendar,
+    matrix,
     radar,
     single_axis,
     series,
@@ -413,6 +415,247 @@ fn parse_calendar_option(j : Json) -> CalendarOption {
 }
 
 ///|
+fn parse_matrix_option(j : Json) -> MatrixOption {
+  let base = MatrixOption::default()
+  {
+    left: parse_size_spec_opt(j, "left", base.left),
+    top: parse_size_spec_opt(j, "top", base.top),
+    right: parse_size_spec_opt(j, "right", base.right),
+    bottom: parse_size_spec_opt(j, "bottom", base.bottom),
+    width: parse_size_spec_opt(j, "width", base.width),
+    height: parse_size_spec_opt(j, "height", base.height),
+    x: parse_matrix_dimension_option(j_field_or_self(j, "x")),
+    y: parse_matrix_dimension_option(j_field_or_self(j, "y")),
+    body: parse_matrix_body_option(j_field_or_self(j, "body")),
+    corner: parse_matrix_body_option(j_field_or_self(j, "corner")),
+    background_style: parse_matrix_item_style_option(
+      j_field_or_self(j, "backgroundStyle"),
+      base.background_style,
+    ),
+    border_z2: j_number_opt(j, "borderZ2"),
+  }
+}
+
+///|
+fn parse_matrix_dimension_option(j : Json) -> MatrixDimensionOption {
+  let base = MatrixDimensionOption::default()
+  {
+    show: j_bool(j, "show", base.show),
+    data: parse_matrix_dimension_cells(j_field(j, "data")),
+    length: match j_field(j, "length") {
+      Some(Number(n, ..)) => Some(n.to_int())
+      _ => base.length
+    },
+    level_size: parse_size_spec_opt(j, "levelSize", base.level_size),
+    levels: parse_matrix_dimension_levels(j),
+    item_style: parse_matrix_item_style_option(
+      j_field_or_self(j, "itemStyle"),
+      base.item_style,
+    ),
+    label: parse_matrix_label_option(j_field_or_self(j, "label"), base.label),
+    divider_line_style: parse_matrix_line_style_option(
+      j_field_or_self(j, "dividerLineStyle"),
+      base.divider_line_style,
+    ),
+  }
+}
+
+///|
+fn parse_matrix_dimension_levels(j : Json) -> Array[MatrixDimensionLevelOption] {
+  match j_field(j, "levels") {
+    Some(Array(arr)) => {
+      let out : Array[MatrixDimensionLevelOption] = []
+      let mut i = 0
+      while i < arr.length() {
+        out.push({ level_size: parse_size_spec_opt(arr[i], "levelSize", None) })
+        i += 1
+      }
+      out
+    }
+    _ => []
+  }
+}
+
+///|
+fn parse_matrix_dimension_cells(j : Json?) -> Array[MatrixDimensionCellOption] {
+  match j {
+    Some(Array(arr)) => arr.map(parse_matrix_dimension_cell)
+    _ => []
+  }
+}
+
+///|
+fn parse_matrix_dimension_cell(j : Json) -> MatrixDimensionCellOption {
+  match j {
+    String(s) =>
+      {
+        value: Some(s),
+        size: None,
+        children: [],
+        item_style: None,
+        label: None,
+      }
+    Number(n, ..) =>
+      {
+        value: Some("\{n}"),
+        size: None,
+        children: [],
+        item_style: None,
+        label: None,
+      }
+    _ =>
+      {
+        value: j_string_opt(j, "value"),
+        size: parse_size_spec_opt(j, "size", None),
+        children: parse_matrix_dimension_cells(j_field(j, "children")),
+        item_style: parse_matrix_item_style_optional(j_field(j, "itemStyle")),
+        label: parse_matrix_label_optional(j_field(j, "label")),
+      }
+  }
+}
+
+///|
+fn parse_matrix_body_option(j : Json) -> MatrixBodyOption {
+  let base = MatrixBodyOption::default()
+  {
+    data: parse_matrix_body_cells(j_field(j, "data")),
+    item_style: parse_matrix_item_style_option(
+      j_field_or_self(j, "itemStyle"),
+      base.item_style,
+    ),
+    label: parse_matrix_label_option(j_field_or_self(j, "label"), base.label),
+  }
+}
+
+///|
+fn parse_matrix_body_cells(j : Json?) -> Array[MatrixBodyCellOption] {
+  match j {
+    Some(Array(arr)) => arr.map(parse_matrix_body_cell)
+    _ => []
+  }
+}
+
+///|
+fn parse_matrix_body_cell(j : Json) -> MatrixBodyCellOption {
+  {
+    coord: parse_matrix_coord_pair(j_field(j, "coord")),
+    value: j_string_opt(j, "value"),
+    item_style: parse_matrix_item_style_optional(j_field(j, "itemStyle")),
+    label: parse_matrix_label_optional(j_field(j, "label")),
+    coord_clamp: j_bool(j, "coordClamp", false),
+    merge_cells: j_bool(j, "mergeCells", false),
+  }
+}
+
+///|
+fn parse_matrix_coord_pair(j : Json?) -> Array[MatrixCoordPart] {
+  match j {
+    Some(Array(arr)) => {
+      let out : Array[MatrixCoordPart] = []
+      let mut i = 0
+      while i < arr.length() && i < 2 {
+        out.push(parse_matrix_coord_part(arr[i]))
+        i += 1
+      }
+      out
+    }
+    _ => []
+  }
+}
+
+///|
+fn parse_matrix_coord_part(j : Json) -> MatrixCoordPart {
+  match j {
+    Null => Missing
+    Array(arr) =>
+      if arr.length() == 0 {
+        Missing
+      } else if arr.length() == 1 {
+        Value(parse_matrix_coord_value(arr[0]))
+      } else {
+        Range(
+          parse_matrix_coord_value(arr[0]),
+          parse_matrix_coord_value(arr[arr.length() - 1]),
+        )
+      }
+    _ => Value(parse_matrix_coord_value(j))
+  }
+}
+
+///|
+fn parse_matrix_coord_value(j : Json) -> MatrixCoordValue {
+  match j {
+    Number(n, ..) => Locator(n.to_int())
+    Null => Missing
+    String(s) => {
+      let parsed = try? @strconv.parse_int(s, base=10)
+      match parsed {
+        Ok(v) => Locator(v)
+        Err(_) => Name(s)
+      }
+    }
+    _ => Missing
+  }
+}
+
+///|
+fn parse_matrix_item_style_optional(j : Json?) -> MatrixItemStyleOption? {
+  match j {
+    Some(value) =>
+      Some(
+        parse_matrix_item_style_option(value, MatrixItemStyleOption::default()),
+      )
+    None => None
+  }
+}
+
+///|
+fn parse_matrix_item_style_option(
+  j : Json,
+  base : MatrixItemStyleOption,
+) -> MatrixItemStyleOption {
+  {
+    color: j_string(j, "color", base.color),
+    border_color: j_string(j, "borderColor", base.border_color),
+    border_width: j_number(j, "borderWidth", base.border_width),
+  }
+}
+
+///|
+fn parse_matrix_label_optional(j : Json?) -> MatrixLabelOption? {
+  match j {
+    Some(value) =>
+      Some(parse_matrix_label_option(value, MatrixLabelOption::default()))
+    None => None
+  }
+}
+
+///|
+fn parse_matrix_label_option(
+  j : Json,
+  base : MatrixLabelOption,
+) -> MatrixLabelOption {
+  {
+    show: j_bool(j, "show", base.show),
+    color: j_string(j, "color", base.color),
+    font_size: j_number(j, "fontSize", base.font_size),
+    font_family: j_string(j, "fontFamily", base.font_family),
+    font_weight: j_string(j, "fontWeight", base.font_weight),
+  }
+}
+
+///|
+fn parse_matrix_line_style_option(
+  j : Json,
+  base : MatrixLineStyleOption,
+) -> MatrixLineStyleOption {
+  {
+    color: j_string(j, "color", base.color),
+    width: j_number(j, "width", base.width),
+  }
+}
+
+///|
 fn parse_size_spec(j : Json, key : String, default_val : SizeSpec) -> SizeSpec {
   match j_field(j, key) {
     Some(Number(n, ..)) => SizeSpec::Px(n)
@@ -447,16 +690,10 @@ fn parse_size_spec_opt(
       if s.has_suffix("%") {
         let pct_str = s[:s.length() - 1]
         let r = try? @strconv.parse_double(pct_str.to_string())
-        match r {
-          Ok(pct) => Some(SizeSpec::Pct(pct))
-          Err(_) => default_val
-        }
+        r.map(pct => Some(SizeSpec::Pct(pct))).unwrap_or(default_val)
       } else {
         let r = try? @strconv.parse_double(s)
-        match r {
-          Ok(px) => Some(SizeSpec::Px(px))
-          Err(_) => default_val
-        }
+        r.map(px => Some(SizeSpec::Px(px))).unwrap_or(default_val)
       }
     _ => default_val
   }
@@ -520,6 +757,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let polar_index = j_int(j, "polarIndex", base.polar_index)
   let coordinate_system = j_string_opt(j, "coordinateSystem")
   let calendar_index = j_int(j, "calendarIndex", base.calendar_index)
+  let matrix_index = j_int(j, "matrixIndex", base.matrix_index)
   let geo_index = j_int(j, "geoIndex", base.geo_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
   let map_name = j_string_opt(j, "map")
@@ -631,6 +869,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     polar_index,
     coordinate_system,
     calendar_index,
+    matrix_index,
     geo_index,
     radar_index,
     map_name,

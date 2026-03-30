@@ -24,7 +24,9 @@ fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
         }
       @option.Heatmap =>
         if s.coordinate_system != Some("calendar") {
-          return true
+          if s.coordinate_system != Some("matrix") {
+            return true
+          }
         }
       _ => ()
     }

@@ -109,7 +109,12 @@ struct HeatmapChartView {}
 
 ///|
 pub impl @core.ChartViewLike for HeatmapChartView with render(_self, ctx) {
-  render_heatmaps(ctx.option, ctx.coord, calendar?=ctx.calendar)
+  render_heatmaps(
+    ctx.option,
+    ctx.coord,
+    calendar?=ctx.calendar,
+    matrix?=@coord.Matrix::build(ctx.option),
+  )
 }
 
 ///|

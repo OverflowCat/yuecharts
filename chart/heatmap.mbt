@@ -145,6 +145,50 @@ fn render_calendar_heatmap_series(
 }
 
 ///|
+fn render_matrix_heatmap_series(
+  series : @option.SeriesOption,
+  series_index : Int,
+  matrix : @coord.Matrix,
+  vm_min : Double,
+  vm_max : Double,
+) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  let _ = series_index
+  let v_span = if vm_max > vm_min { vm_max - vm_min } else { 1.0 }
+  let mut di = 0
+  while di < series.data.length() {
+    let item = series.data[di]
+    di += 1
+    match item.value {
+      Vec(arr) if arr.length() >= 3 => {
+        let xi = arr[0].to_int()
+        let yi = arr[1].to_int()
+        let v = arr[2]
+        let layout = matrix.data_to_layout(xi, yi)
+        let shape = layout.content_rect
+        if shape.x.is_nan() || shape.y.is_nan() {
+          ()
+        } else {
+          let t = (v - vm_min) / v_span
+          let t_clamped = if t < 0.0 { 0.0 } else if t > 1.0 { 1.0 } else { t }
+          elems.push(
+            @graphic.Element::rect_colored(
+              shape.x,
+              shape.y,
+              shape.width,
+              shape.height,
+              heatmap_visual_map_color(t_clamped).to_svg(),
+            ),
+          )
+        }
+      }
+      _ => ()
+    }
+  }
+  elems
+}
+
+///|
 fn resolve_heatmap_visual_range(opt : @option.ChartOption) -> (Double, Double) {
   if opt.visual_map.length() > 0 {
     let vm = opt.visual_map[0]
@@ -206,6 +250,7 @@ pub fn render_heatmaps(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
   calendar? : @coord.Calendar,
+  matrix? : @coord.Matrix,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let (vm_min, vm_max) = resolve_heatmap_visual_range(opt)
@@ -226,6 +271,12 @@ pub fn render_heatmaps(
             vm_min,
             vm_max,
           )
+        None => []
+      }
+    } else if series.coordinate_system == Some("matrix") {
+      match matrix {
+        Some(matrix) =>
+          render_matrix_heatmap_series(series, si - 1, matrix, vm_min, vm_max)
         None => []
       }
     } else {

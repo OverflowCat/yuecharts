@@ -1041,3 +1041,87 @@ test "parallel skips missing values and clips series group" {
   assert_eq(count_substring(svg, "<polyline points="), 2)
   assert_true(svg.contains("<polyline points=\"50,30 210,30\""))
 }
+
+///|
+test "matrix heatmap renders headers and colored body cells" {
+  let json_str =
+    #|{
+    #|  "width": 520,
+    #|  "height": 320,
+    #|  "matrix": {
+    #|    "left": 70,
+    #|    "top": 50,
+    #|    "right": 40,
+    #|    "bottom": 30,
+    #|    "x": {
+    #|      "levelSize": 28,
+    #|      "data": [
+    #|        { "value": "North", "children": ["Q1", "Q2"] },
+    #|        { "value": "South", "children": ["Q3", "Q4"] }
+    #|      ]
+    #|    },
+    #|    "y": {
+    #|      "levelSize": 56,
+    #|      "data": [
+    #|        { "value": "Team A", "children": ["Alice", "Bob"] },
+    #|        { "value": "Team B", "children": ["Carol", "Dave"] }
+    #|      ]
+    #|    }
+    #|  },
+    #|  "visualMap": { "min": 0, "max": 10 },
+    #|  "series": [{
+    #|    "type": "heatmap",
+    #|    "coordinateSystem": "matrix",
+    #|    "data": [[0,0,1],[1,0,4],[2,1,8],[3,3,10]]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">North</text>"))
+  assert_true(svg.contains(">South</text>"))
+  assert_true(svg.contains(">Alice</text>"))
+  assert_true(svg.contains(">Dave</text>"))
+  assert_true(svg.contains("#5070dd"))
+  assert_true(svg.contains("#c6d1f4"))
+}
+
+///|
+test "matrix body coordClamp mergeCells and corner locators render once" {
+  let json_str =
+    #|{
+    #|  "width": 420,
+    #|  "height": 260,
+    #|  "matrix": {
+    #|    "left": 60,
+    #|    "top": 40,
+    #|    "right": 30,
+    #|    "bottom": 24,
+    #|    "x": { "levelSize": 28, "data": ["Mon", "Tue", "Wed"] },
+    #|    "y": { "levelSize": 58, "data": ["AM", "PM", "Night"] },
+    #|    "corner": {
+    #|      "data": [{ "coord": [-1, -1], "value": "Time" }]
+    #|    },
+    #|    "body": {
+    #|      "itemStyle": {
+    #|        "color": "#ffffff",
+    #|        "borderColor": "#d7dbe3",
+    #|        "borderWidth": 1
+    #|      },
+    #|      "data": [{
+    #|        "coord": [null, 1],
+    #|        "coordClamp": true,
+    #|        "mergeCells": true,
+    #|        "value": "Break",
+    #|        "itemStyle": {
+    #|          "color": "#f3f5f9",
+    #|          "borderColor": "#aeb7c5",
+    #|          "borderWidth": 1
+    #|        }
+    #|      }]
+    #|    }
+    #|  }
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Time</text>"))
+  assert_true(svg.contains(">Break</text>"))
+  assert_eq(count_substring(svg, ">Break</text>"), 1)
+}

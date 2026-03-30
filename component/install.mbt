@@ -72,6 +72,14 @@ pub impl @core.ComponentViewLike for CalendarComponentView with render(
 }
 
 ///|
+struct MatrixComponentView {}
+
+///|
+pub impl @core.ComponentViewLike for MatrixComponentView with render(_self, ctx) {
+  render_matrix(ctx.option, matrix?=@coord.Matrix::build(ctx.option))
+}
+
+///|
 fn register_component(
   registry : @core.Registry,
   render_stage : @core.ComponentRenderStage,
@@ -147,6 +155,14 @@ pub fn install_calendar(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_matrix(registry : @core.Registry) -> Unit {
+  // echarts/src/component/matrix/install.ts
+  // echarts/src/coord/matrix/MatrixModel.ts
+  // echarts/src/component/matrix/MatrixView.ts
+  register_component(registry, Background, false, MatrixComponentView::{  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_grid_lines(registry)
   install_axis(registry)
@@ -155,5 +171,6 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_title(registry)
   install_legend(registry)
   install_calendar(registry)
+  install_matrix(registry)
   install_aria(registry)
 }

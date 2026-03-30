@@ -349,12 +349,12 @@ E:\recharts\echarts\src
 │   │   └── prepareCustom.ts => coord/calendar.mbt [translated] Feature: calendar custom adapter
 │   │
 │   └── matrix
-│       ├── Matrix.ts =>  [missing] Feature: matrix coordinate system
-│       ├── MatrixBodyCorner.ts =>  [missing] Feature: matrix corner helper
-│       ├── matrixCoordHelper.ts =>  [missing] Feature: matrix coord helper
-│       ├── MatrixDim.ts =>  [missing] Feature: matrix dimension types
-│       ├── MatrixModel.ts =>  [missing] Feature: matrix model
-│       └── prepareCustom.ts =>  [missing] Feature: matrix custom adapter
+│       ├── Matrix.ts => coord/matrix.mbt [partial] Feature: matrix coordinate system
+│       ├── MatrixBodyCorner.ts => coord/matrix.mbt [partial] Feature: sparse body/corner cells, coordClamp, merged-cell subset
+│       ├── matrixCoordHelper.ts => coord/matrix.mbt [partial] Feature: matrix coord/layout helper subset with locator-range subset
+│       ├── MatrixDim.ts => coord/matrix.mbt [partial] Feature: matrix dimension tree/layout subset
+│       ├── MatrixModel.ts => option/types.mbt, option/parse.mbt, coord/matrix.mbt [partial] Feature: matrix model/data parsing subset
+│       └── prepareCustom.ts => coord/matrix.mbt [translated] Feature: matrix custom adapter subset
 │
 ├── layout
 │   ├── barGrid.ts => chart/bar.mbt [partial] Feature: bar grid layout
@@ -587,8 +587,8 @@ E:\recharts\echarts\src
 │   │   └── CalendarView.ts => component/calendar.mbt [translated] Feature: calendar view
 │   │
 │   ├── matrix
-│   │   ├── install.ts =>  [missing] Feature: matrix install
-│   │   └── MatrixView.ts =>  [missing] Feature: matrix view
+│   │   ├── install.ts => component/install.mbt [partial] Feature: matrix install
+│   │   └── MatrixView.ts => component/matrix.mbt [translated] Feature: matrix view
 │   │
 │   ├── polar
 │   │   └── install.ts => layout/polar.mbt, layout/install.mbt, component/install.mbt [partial] Feature: polar install
@@ -754,8 +754,8 @@ E:\recharts\echarts\src
 │   │
 │   ├── heatmap
 │   │   ├── HeatmapLayer.ts =>  [missing] Feature: canvas heatmap layer
-│   │   ├── HeatmapSeries.ts => chart/heatmap.mbt, option/types.mbt, option/parse.mbt [partial] Feature: heatmap series model incl. calendar coordinateSystem/data parsing
-│   │   ├── HeatmapView.ts => chart/heatmap.mbt [translated] Feature: heatmap renderer incl. calendar branch
+│   │   ├── HeatmapSeries.ts => chart/heatmap.mbt, option/types.mbt, option/parse.mbt [partial] Feature: heatmap series model incl. calendar/matrix coordinateSystem/data parsing
+│   │   ├── HeatmapView.ts => chart/heatmap.mbt [translated] Feature: heatmap renderer incl. calendar/matrix branches
 │   │   └── install.ts => chart/install.mbt, chart/heatmap.mbt [partial] Feature: heatmap install
 │   │
 │   ├── candlestick
