@@ -302,6 +302,8 @@ pub(all) enum DataValue {
 /// One item in a series data array.
 pub(all) struct DataItem {
   value : DataValue
+  raw_value_parts : Array[Json]?
+  raw_item : Json?
   name : String?
   symbol : String?
   coords : Array[Array[Double]]?
@@ -723,11 +725,12 @@ pub impl Default for AriaOption with default() {
 pub struct VisualMapInRange {
   color : Array[String]
   symbol_size : Array[Double]
+  opacity : Array[Double]
 }
 
 ///|
 pub impl Default for VisualMapInRange with default() {
-  { color: [], symbol_size: [] }
+  { color: [], symbol_size: [], opacity: [] }
 }
 
 ///|

@@ -104,34 +104,31 @@ pub fn Matrix::build(opt : @option.ChartOption) -> Matrix? {
   let y_source = matrix_dimension_roots(model.y)
   let x_depth = if model.x.show { matrix_tree_depth(x_source) } else { 0 }
   let y_depth = if model.y.show { matrix_tree_depth(y_source) } else { 0 }
-  let x_level_sizes = matrix_level_sizes(model.x, x_depth, rect.height, 32.0)
-  let y_level_sizes = matrix_level_sizes(model.y, y_depth, rect.width, 56.0)
+  let x_leaves = matrix_collect_leaves(x_source, model.x)
+  let y_leaves = matrix_collect_leaves(y_source, model.y)
+  let (x_leaf_widths, y_level_sizes) = matrix_layout_dimension_units(
+    rect.width,
+    x_leaves,
+    model.y,
+    y_depth,
+    model.y.show,
+  )
+  let (y_leaf_heights, x_level_sizes) = matrix_layout_dimension_units(
+    rect.height,
+    y_leaves,
+    model.x,
+    x_depth,
+    model.x.show,
+  )
   let x_header_height = matrix_sum_doubles(x_level_sizes)
   let y_header_width = matrix_sum_doubles(y_level_sizes)
   let body_rect = @graphic.BBox::new(
     rect.x + y_header_width,
     rect.y + x_header_height,
-    if rect.width - y_header_width > 0.0 {
-      rect.width - y_header_width
-    } else {
-      0.0
-    },
-    if rect.height - x_header_height > 0.0 {
-      rect.height - x_header_height
-    } else {
-      0.0
-    },
+    matrix_sum_doubles(x_leaf_widths),
+    matrix_sum_doubles(y_leaf_heights),
   )
-  let corner_rect = @graphic.BBox::new(
-    rect.x,
-    rect.y,
-    y_header_width,
-    x_header_height,
-  )
-  let x_leaves = matrix_collect_leaves(x_source, model.x)
-  let y_leaves = matrix_collect_leaves(y_source, model.y)
-  let x_leaf_widths = matrix_leaf_sizes(x_leaves, body_rect.width)
-  let y_leaf_heights = matrix_leaf_sizes(y_leaves, body_rect.height)
+  let corner_rect = @graphic.BBox::new(rect.x, rect.y, y_header_width, x_header_height)
   let x_leaf_cells = matrix_build_x_leaf_cells(
     x_leaves, x_leaf_widths, body_rect,
   )
@@ -449,37 +446,6 @@ fn matrix_tree_depth(nodes : Array[MatrixTreeNode]) -> Int {
 }
 
 ///|
-fn matrix_level_sizes(
-  option : @option.MatrixDimensionOption,
-  depth : Int,
-  total : Double,
-  default_px : Double,
-) -> Array[Double] {
-  let out : Array[Double] = []
-  let mut level = 0
-  while level < depth {
-    let size = if level < option.levels.length() {
-      match option.levels[level].level_size {
-        Some(spec) => matrix_resolve_size(spec, total)
-        None =>
-          match option.level_size {
-            Some(spec) => matrix_resolve_size(spec, total)
-            None => default_px
-          }
-      }
-    } else {
-      match option.level_size {
-        Some(spec) => matrix_resolve_size(spec, total)
-        None => default_px
-      }
-    }
-    out.push(size)
-    level += 1
-  }
-  out
-}
-
-///|
 fn matrix_sum_doubles(values : Array[Double]) -> Double {
   let mut sum = 0.0
   let mut i = 0
@@ -536,43 +502,80 @@ fn matrix_collect_leaves_from_node(
 }
 
 ///|
-fn matrix_leaf_sizes(
-  leaves : Array[@option.MatrixDimensionCellOption],
+fn matrix_layout_dimension_units(
   total : Double,
-) -> Array[Double] {
-  let sizes : Array[Double] = []
+  leaves : Array[@option.MatrixDimensionCellOption],
+  other_dim_option : @option.MatrixDimensionOption,
+  other_depth : Int,
+  other_show : Bool,
+) -> (Array[Double], Array[Double]) {
+  let leaf_sizes : Array[Double] = []
+  let level_sizes : Array[Double] = []
   let mut rest = total
   let mut unspecified = 0
+
+  let mut level = 0
+  while level < other_depth {
+    let size = if other_show {
+      if level < other_dim_option.levels.length() {
+        match other_dim_option.levels[level].level_size {
+          Some(spec) => matrix_resolve_size(spec, total)
+          None =>
+            match other_dim_option.level_size {
+              Some(spec) => matrix_resolve_size(spec, total)
+              None => -1.0
+            }
+        }
+      } else {
+        match other_dim_option.level_size {
+          Some(spec) => matrix_resolve_size(spec, total)
+          None => -1.0
+        }
+      }
+    } else {
+      0.0
+    }
+    level_sizes.push(size)
+    if size >= 0.0 {
+      rest -= size
+    } else {
+      unspecified += 1
+    }
+    level += 1
+  }
+
   let mut i = 0
   while i < leaves.length() {
-    match leaves[i].size {
-      Some(spec) => {
-        let resolved = matrix_resolve_size(spec, total)
-        sizes.push(resolved)
-        rest -= resolved
-      }
-      None => {
-        sizes.push(-1.0)
-        unspecified += 1
-      }
+    let size = match leaves[i].size {
+      Some(spec) => matrix_resolve_size(spec, total)
+      None => -1.0
+    }
+    leaf_sizes.push(size)
+    if size >= 0.0 {
+      rest -= size
+    } else {
+      unspecified += 1
     }
     i += 1
   }
-  let auto_size = if unspecified > 0 && rest > 0.0 {
-    rest / unspecified.to_double()
-  } else if unspecified > 0 {
-    0.0
-  } else {
-    0.0
-  }
-  let mut j = 0
-  while j < sizes.length() {
-    if sizes[j] < 0.0 {
-      sizes[j] = auto_size
+
+  let auto_size = if unspecified > 0 { rest / unspecified.to_double() } else { 0.0 }
+
+  level = 0
+  while level < level_sizes.length() {
+    if level_sizes[level] < 0.0 {
+      level_sizes[level] = if auto_size > 0.0 { auto_size } else { 0.0 }
     }
-    j += 1
+    level += 1
   }
-  sizes
+  i = 0
+  while i < leaf_sizes.length() {
+    if leaf_sizes[i] < 0.0 {
+      leaf_sizes[i] = if auto_size > 0.0 { auto_size } else { 0.0 }
+    }
+    i += 1
+  }
+  (leaf_sizes, level_sizes)
 }
 
 ///|

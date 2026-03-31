@@ -716,6 +716,36 @@ pub fn Element::rect_fill_stroke(
 }
 
 ///|
+/// Rect with both fill and stroke colors and explicit element opacity.
+pub fn Element::rect_fill_stroke_opacity(
+  x : Double,
+  y : Double,
+  w : Double,
+  h : Double,
+  fill_color_str : String,
+  stroke_color_str : String,
+  stroke_width : Double,
+  opacity : Double,
+) -> Element {
+  let fill = Color::from_string(fill_color_str).unwrap_or(black)
+  let stroke_c = Color::from_string(stroke_color_str).unwrap_or(black)
+  Rect({
+    bbox: BBox::new(x, y, w, h),
+    rx: 0.0,
+    ry: 0.0,
+    fill: Some({ color: fill }),
+    stroke: Some({
+      color: stroke_c,
+      width: stroke_width,
+      dash: [],
+      line_cap: "butt",
+      line_join: "miter",
+    }),
+    opacity,
+  })
+}
+
+///|
 /// Polyline with explicit stroke color/width/cap/join.
 pub fn Element::polyline_custom(
   points : Array[Point],

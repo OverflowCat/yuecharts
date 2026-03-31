@@ -1125,3 +1125,47 @@ test "matrix body coordClamp mergeCells and corner locators render once" {
   assert_true(svg.contains(">Break</text>"))
   assert_eq(count_substring(svg, ">Break</text>"), 1)
 }
+
+///|
+test "matrix heatmap accepts string coords in data value arrays" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 220,
+    #|  "matrix": {
+    #|    "left": 20,
+    #|    "top": 20,
+    #|    "width": 160,
+    #|    "height": 140,
+    #|    "x": { "data": ["A", "B"] },
+    #|    "y": { "data": ["C", "D"] },
+    #|    "body": {
+    #|      "itemStyle": {
+    #|        "color": "#ffffff",
+    #|        "borderColor": "#d7dbe3",
+    #|        "borderWidth": 1
+    #|      }
+    #|    }
+    #|  },
+    #|  "visualMap": { "min": 0, "max": 10 },
+    #|  "series": [{
+    #|    "type": "heatmap",
+    #|    "coordinateSystem": "matrix",
+    #|    "data": [
+    #|      { "value": ["A", "C", 2] },
+    #|      { "value": ["B", "D", 8] }
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(
+    svg.contains(
+      "<rect x=\"73.33333333333334\" y=\"66.66666666666666\" width=\"53.333333333333336\" height=\"46.666666666666664\"",
+    ),
+  )
+  assert_true(
+    svg.contains(
+      "<rect x=\"126.66666666666669\" y=\"113.33333333333331\" width=\"53.333333333333336\" height=\"46.666666666666664\"",
+    ),
+  )
+}

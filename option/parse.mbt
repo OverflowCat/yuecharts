@@ -909,6 +909,8 @@ fn parse_data_item(j : Json) -> DataItem {
     Number(n, ..) =>
       {
         value: DataValue::Num(n),
+        raw_value_parts: None,
+        raw_item: None,
         name: None,
         symbol: None,
         coords: None,
@@ -919,6 +921,8 @@ fn parse_data_item(j : Json) -> DataItem {
     Null =>
       {
         value: DataValue::Null,
+        raw_value_parts: None,
+        raw_item: None,
         name: None,
         symbol: None,
         coords: None,
@@ -929,6 +933,8 @@ fn parse_data_item(j : Json) -> DataItem {
     True =>
       {
         value: DataValue::Num(1.0),
+        raw_value_parts: None,
+        raw_item: None,
         name: None,
         symbol: None,
         coords: None,
@@ -939,6 +945,8 @@ fn parse_data_item(j : Json) -> DataItem {
     False =>
       {
         value: DataValue::Num(0.0),
+        raw_value_parts: None,
+        raw_item: None,
         name: None,
         symbol: None,
         coords: None,
@@ -954,6 +962,8 @@ fn parse_data_item(j : Json) -> DataItem {
     _ =>
       {
         value: DataValue::Null,
+        raw_value_parts: None,
+        raw_item: None,
         name: None,
         symbol: None,
         coords: None,
@@ -968,6 +978,8 @@ fn parse_data_item(j : Json) -> DataItem {
 fn parse_data_array_item(arr : Array[Json]) -> DataItem {
   {
     value: parse_data_array_value(arr),
+    raw_value_parts: Some(arr),
+    raw_item: None,
     name: None,
     symbol: None,
     coords: None,
@@ -992,6 +1004,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
     Array([String(date), Number(val, ..), String(name)]) =>
       {
         value: DataValue::DateValue(date, val),
+        raw_value_parts: None,
+        raw_item: None,
         name: Some(name),
         symbol: None,
         coords: None,
@@ -1007,6 +1021,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
       }
       {
         value: DataValue::DateValue(key, val),
+        raw_value_parts: None,
+        raw_item: None,
         name: Some(name),
         symbol: None,
         coords: None,
@@ -1018,6 +1034,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
     Array([String(date), Number(val, ..)]) =>
       {
         value: DataValue::DateValue(date, val),
+        raw_value_parts: None,
+        raw_item: None,
         name: None,
         symbol: None,
         coords: None,
@@ -1033,6 +1051,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
       }
       {
         value: DataValue::DateValue(key, val),
+        raw_value_parts: None,
+        raw_item: None,
         name: None,
         symbol: None,
         coords: None,
@@ -1394,6 +1414,7 @@ fn parse_visual_map_in_range(j : Json) -> VisualMapInRange {
   {
     color: j_stringish_array(j, "color", base.color),
     symbol_size: parse_number_pair(j_field(j, "symbolSize")),
+    opacity: parse_number_pair(j_field(j, "opacity")),
   }
 }
 
@@ -1551,13 +1572,27 @@ fn pair_symbol_bounding_data(arr : Array[Json]) -> SymbolBoundingData? {
 
 ///|
 fn parse_data_object(j : Json, value : DataValue) -> DataItem {
+  let raw_value_parts = match j_field(j, "value") {
+    Some(Array(arr)) => Some(arr)
+    _ => None
+  }
   let name = j_string_opt(j, "name")
   let symbol = j_string_opt(j, "symbol")
   let coords = parse_data_coords(j)
   let from_name = j_string_opt(j, "fromName")
   let to_name = j_string_opt(j, "toName")
   let children = j_parse_array(j, "children", parse_data_item, [])
-  { value, name, symbol, coords, from_name, to_name, children }
+  {
+    value,
+    raw_value_parts,
+    raw_item: Some(j),
+    name,
+    symbol,
+    coords,
+    from_name,
+    to_name,
+    children,
+  }
 }
 
 ///|

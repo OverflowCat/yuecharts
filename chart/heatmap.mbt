@@ -146,6 +146,7 @@ fn render_calendar_heatmap_series(
 
 ///|
 fn render_matrix_heatmap_series(
+  opt : @option.ChartOption,
   series : @option.SeriesOption,
   series_index : Int,
   matrix : @coord.Matrix,
@@ -159,33 +160,191 @@ fn render_matrix_heatmap_series(
   while di < series.data.length() {
     let item = series.data[di]
     di += 1
-    match item.value {
-      Vec(arr) if arr.length() >= 3 => {
-        let xi = arr[0].to_int()
-        let yi = arr[1].to_int()
-        let v = arr[2]
-        let layout = matrix.data_to_layout(xi, yi)
-        let shape = layout.content_rect
+    match matrix_heatmap_item_layout(item, matrix) {
+      Some((shape, v)) =>
         if shape.x.is_nan() || shape.y.is_nan() {
           ()
         } else {
           let t = (v - vm_min) / v_span
           let t_clamped = if t < 0.0 { 0.0 } else if t > 1.0 { 1.0 } else { t }
+          let (fill, stroke, stroke_width, opacity) = matrix_heatmap_rect_style(
+            opt, series_index, item, t_clamped,
+          )
           elems.push(
-            @graphic.Element::rect_colored(
+            @graphic.Element::rect_fill_stroke_opacity(
               shape.x,
               shape.y,
               shape.width,
               shape.height,
-              heatmap_visual_map_color(t_clamped).to_svg(),
+              fill,
+              stroke,
+              stroke_width,
+              opacity,
             ),
           )
         }
-      }
       _ => ()
     }
   }
   elems
+}
+
+///|
+fn matrix_heatmap_item_layout(
+  item : @option.DataItem,
+  matrix : @coord.Matrix,
+) -> (@graphic.BBox, Double)? {
+  match item.raw_value_parts {
+    Some(parts) if parts.length() >= 3 => {
+      let x = matrix_heatmap_coord_value(parts[0])
+      let y = matrix_heatmap_coord_value(parts[1])
+      let v = matrix_heatmap_number(parts[2])
+      match (x, y, v) {
+        (Some(xv), Some(yv), Some(value)) => {
+          let xi = match xv {
+            @option.Locator(idx) => Some(idx)
+            _ => matrix.resolve_x(xv)
+          }
+          let yi = match yv {
+            @option.Locator(idx) => Some(idx)
+            _ => matrix.resolve_y(yv)
+          }
+          match (xi, yi) {
+            (Some(xi), Some(yi)) => {
+              let layout = matrix.data_to_layout(xi, yi)
+              Some((layout.rect, value))
+            }
+            _ => None
+          }
+        }
+        _ => None
+      }
+    }
+    None =>
+      match item.value {
+        Vec(arr) if arr.length() >= 3 => {
+          let layout = matrix.data_to_layout(arr[0].to_int(), arr[1].to_int())
+          Some((layout.rect, arr[2]))
+        }
+        _ => None
+      }
+    _ => None
+  }
+}
+
+///|
+fn matrix_heatmap_rect_style(
+  opt : @option.ChartOption,
+  series_index : Int,
+  item : @option.DataItem,
+  ratio : Double,
+) -> (String, String, Double, Double) {
+  let mut fill = heatmap_visual_map_color(ratio).to_svg()
+  let mut stroke = "none"
+  let mut stroke_width = 0.0
+  let mut opacity = matrix_heatmap_visual_opacity(opt, series_index, ratio)
+  match item.raw_item {
+    Some(raw_item) =>
+      match heatmap_j_field(raw_item, "itemStyle") {
+        Some(item_style) => {
+          match heatmap_j_string_opt(item_style, "color") {
+            Some(color) => fill = color
+            None =>
+              match heatmap_j_field(item_style, "decal") {
+                Some(decal) =>
+                  match heatmap_j_string_opt(decal, "backgroundColor") {
+                    Some(color) => fill = color
+                    None =>
+                      match heatmap_j_string_opt(decal, "color") {
+                        Some(color) => fill = color
+                        None => ()
+                      }
+                  }
+                None => ()
+              }
+          }
+          match heatmap_j_string_opt(item_style, "borderColor") {
+            Some(color) => stroke = color
+            None => ()
+          }
+          match heatmap_j_number_opt(item_style, "borderWidth") {
+            Some(width) => stroke_width = width
+            None => ()
+          }
+          match heatmap_j_number_opt(item_style, "opacity") {
+            Some(item_opacity) => opacity *= item_opacity
+            None => ()
+          }
+        }
+        None => ()
+      }
+    None => ()
+  }
+  (fill, stroke, stroke_width, opacity)
+}
+
+///|
+fn matrix_heatmap_visual_opacity(
+  opt : @option.ChartOption,
+  series_index : Int,
+  ratio : Double,
+) -> Double {
+  let mut i = 0
+  while i < opt.visual_map.length() {
+    let visual_map = opt.visual_map[i]
+    i += 1
+    if visual_map.series_index != series_index {
+      continue
+    }
+    if visual_map.in_range.opacity.length() >= 2 {
+      let min_opacity = visual_map.in_range.opacity[0]
+      let max_opacity = visual_map.in_range.opacity[1]
+      return min_opacity + (max_opacity - min_opacity) * ratio
+    }
+  }
+  1.0
+}
+
+///|
+fn heatmap_j_field(j : Json, key : String) -> Json? {
+  match j {
+    Object(m) => m.get(key)
+    _ => None
+  }
+}
+
+///|
+fn heatmap_j_string_opt(j : Json, key : String) -> String? {
+  match heatmap_j_field(j, key) {
+    Some(String(s)) => Some(s)
+    Some(Number(n, ..)) => Some("\{n}")
+    _ => None
+  }
+}
+
+///|
+fn heatmap_j_number_opt(j : Json, key : String) -> Double? {
+  match heatmap_j_field(j, key) {
+    Some(Number(n, ..)) => Some(n)
+    _ => None
+  }
+}
+
+///|
+fn matrix_heatmap_coord_value(j : Json) -> @option.MatrixCoordValue? {
+  match j {
+    String(s) => Some(@option.Name(s))
+    Number(n, ..) => Some(@option.Locator(n.to_int()))
+    _ => None
+  }
+}
+
+///|
+fn matrix_heatmap_number(j : Json) -> Double? {
+  match j {
+    Number(n, ..) => Some(n)
+    _ => None
+  }
 }
 
 ///|
@@ -276,7 +435,14 @@ pub fn render_heatmaps(
     } else if series.coordinate_system == Some("matrix") {
       match matrix {
         Some(matrix) =>
-          render_matrix_heatmap_series(series, si - 1, matrix, vm_min, vm_max)
+          render_matrix_heatmap_series(
+            opt,
+            series,
+            si - 1,
+            matrix,
+            vm_min,
+            vm_max,
+          )
         None => []
       }
     } else {
