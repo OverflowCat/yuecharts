@@ -983,6 +983,52 @@ test "map data statistic aggregates same-geo series and draws once" {
 }
 
 ///|
+test "map series renders without geo component when map is specified on series" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "visualMap": {
+    #|    "seriesIndex": 0,
+    #|    "min": 0,
+    #|    "max": 100,
+    #|    "dimension": 0,
+    #|    "inRange": { "color": ["#deebf7", "#3182bd"] }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Beta", "cp": [15, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[10,0],[20,0],[20,10],[10,10],[10,0]]] }
+    #|        }
+    #|      ]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "data": [
+    #|      { "name": "Alpha", "value": 0 },
+    #|      { "name": "Beta", "value": 100 }
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_eq(count_substring(svg, "<path d=\"M "), 2)
+  assert_true(svg.contains("fill=\"#deebf7\""))
+  assert_true(svg.contains("fill=\"#3182bd\""))
+}
+
+///|
 test "parallel coordinates render axes and polylines" {
   let json_str =
     #|{
@@ -1168,4 +1214,89 @@ test "matrix heatmap accepts string coords in data value arrays" {
       "<rect x=\"126.66666666666669\" y=\"113.33333333333331\" width=\"53.333333333333336\" height=\"46.666666666666664\"",
     ),
   )
+}
+
+///|
+test "standalone map emits hover css from svg renderer" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "data": [{ "name": "Alpha", "value": 1 }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("<style><![CDATA["))
+  assert_true(svg.contains(":hover {"))
+  assert_true(svg.contains("cursor:pointer;"))
+  assert_true(svg.contains("class=\"zr-cls-0\""))
+}
+
+///|
+test "map data item emphasis style and silent feed svg hover css" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|          "geometry": {
+    #|            "type": "Polygon",
+    #|            "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|          }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Beta", "cp": [15, 5] },
+    #|          "geometry": {
+    #|            "type": "Polygon",
+    #|            "coordinates": [[[10,0],[20,0],[20,10],[10,10],[10,0]]]
+    #|          }
+    #|        }
+    #|      ]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "data": [
+    #|      {
+    #|        "name": "Alpha",
+    #|        "value": 1,
+    #|        "emphasis": { "itemStyle": { "areaColor": "#ff0000" } }
+    #|      },
+    #|      {
+    #|        "name": "Beta",
+    #|        "value": 2,
+    #|        "silent": true
+    #|      }
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill:#ff0000;"))
+  assert_true(svg.contains("pointer-events:none;"))
 }

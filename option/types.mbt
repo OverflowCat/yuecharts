@@ -147,10 +147,46 @@ pub impl Default for GeoItemStyleOption with default() {
 }
 
 ///|
+pub(all) struct GeoItemStylePatchOption {
+  area_color : String?
+  border_color : String?
+  border_width : Double?
+}
+
+///|
+pub impl Default for GeoItemStylePatchOption with default() {
+  { area_color: None, border_color: None, border_width: None }
+}
+
+///|
+pub(all) struct GeoStateOption {
+  item_style : GeoItemStylePatchOption?
+}
+
+///|
+pub impl Default for GeoStateOption with default() {
+  { item_style: None }
+}
+
+///|
+pub(all) struct GeoStatesOption {
+  emphasis : GeoStateOption?
+  select : GeoStateOption?
+  blur : GeoStateOption?
+}
+
+///|
+pub impl Default for GeoStatesOption with default() {
+  { emphasis: None, select: None, blur: None }
+}
+
+///|
 pub(all) struct GeoRegionOption {
   name : String
   label : GeoLabelOption?
-  item_style : GeoItemStyleOption?
+  item_style : GeoItemStylePatchOption?
+  silent : Bool?
+  states : GeoStatesOption
 }
 
 ///|
@@ -309,6 +345,10 @@ pub(all) struct DataItem {
   coords : Array[Array[Double]]?
   from_name : String?
   to_name : String?
+  cursor : String?
+  silent : Bool?
+  item_style : GeoItemStylePatchOption?
+  states : GeoStatesOption
   children : Array[DataItem]
 }
 
@@ -366,6 +406,9 @@ pub(all) struct SeriesOption {
   line_style_curveness : Double?
   item_style : String? // color override
   item_opacity : Double?
+  geo_item_style : GeoItemStylePatchOption?
+  silent : Bool
+  states : GeoStatesOption
   area_style : Bool
   encode_x : String?
   encode_y : String?
@@ -430,6 +473,9 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     line_style_curveness: None,
     item_style: None,
     item_opacity: None,
+    geo_item_style: None,
+    silent: false,
+    states: GeoStatesOption::default(),
     area_style: false,
     encode_x: None,
     encode_y: None,

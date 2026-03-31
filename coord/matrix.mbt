@@ -128,7 +128,12 @@ pub fn Matrix::build(opt : @option.ChartOption) -> Matrix? {
     matrix_sum_doubles(x_leaf_widths),
     matrix_sum_doubles(y_leaf_heights),
   )
-  let corner_rect = @graphic.BBox::new(rect.x, rect.y, y_header_width, x_header_height)
+  let corner_rect = @graphic.BBox::new(
+    rect.x,
+    rect.y,
+    y_header_width,
+    x_header_height,
+  )
   let x_leaf_cells = matrix_build_x_leaf_cells(
     x_leaves, x_leaf_widths, body_rect,
   )
@@ -559,7 +564,11 @@ fn matrix_layout_dimension_units(
     i += 1
   }
 
-  let auto_size = if unspecified > 0 { rest / unspecified.to_double() } else { 0.0 }
+  let auto_size = if unspecified > 0 {
+    rest / unspecified.to_double()
+  } else {
+    0.0
+  }
 
   level = 0
   while level < level_sizes.length() {

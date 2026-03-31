@@ -43,18 +43,44 @@ pub struct Geo {
 }
 
 ///|
+fn geo_exclusive_map_name(opt : @option.ChartOption) -> String? {
+  let mut i = 0
+  while i < opt.series.length() {
+    let series = opt.series[i]
+    if series.series_type == @option.SeriesType::Map &&
+      series.coordinate_system.unwrap_or("geo") == "geo" {
+      match series.map_name {
+        Some(map_name) => if map_name != "" { return Some(map_name) }
+        None => ()
+      }
+    }
+    i += 1
+  }
+  None
+}
+
+///|
 pub fn Geo::build(opt : @option.ChartOption) -> Geo? {
-  if opt.geo.length() == 0 {
-    return None
+  if opt.geo.length() > 0 {
+    let geo_opt = opt.geo[0]
+    if geo_opt.map == "" {
+      return None
+    }
+    let source_manager = GeoSourceManager::from_option(opt)
+    return source_manager
+      .load(geo_opt.map, geo_opt.name_map, "name")
+      .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
   }
-  let geo_opt = opt.geo[0]
-  if geo_opt.map == "" {
-    return None
+  match geo_exclusive_map_name(opt) {
+    Some(map_name) => {
+      let geo_opt = { ..@option.GeoOption::default(), map: map_name }
+      let source_manager = GeoSourceManager::from_option(opt)
+      source_manager
+      .load(map_name, geo_opt.name_map, "name")
+      .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
+    }
+    None => None
   }
-  let source_manager = GeoSourceManager::from_option(opt)
-  source_manager
-  .load(geo_opt.map, geo_opt.name_map, "name")
-  .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
 }
 
 ///|

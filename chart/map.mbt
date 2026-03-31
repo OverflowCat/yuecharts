@@ -9,8 +9,39 @@
 let map_default_fill = "#f3f5f8"
 
 ///|
-fn map_series_group_key(series : @option.SeriesOption) -> String {
-  if map_series_uses_geo(series) {
+fn map_patch_area_color(patch : @option.GeoItemStylePatchOption?) -> String? {
+  patch.bind(style => style.area_color)
+}
+
+///|
+fn map_patch_border_color(patch : @option.GeoItemStylePatchOption?) -> String? {
+  patch.bind(style => style.border_color)
+}
+
+///|
+fn map_patch_border_width(patch : @option.GeoItemStylePatchOption?) -> Double? {
+  patch.bind(style => style.border_width)
+}
+
+///|
+fn map_region_state_item_style(
+  states : @option.GeoStatesOption,
+  state_name : String,
+) -> @option.GeoItemStylePatchOption? {
+  match state_name {
+    "emphasis" => states.emphasis.bind(state => state.item_style)
+    "select" => states.select.bind(state => state.item_style)
+    "blur" => states.blur.bind(state => state.item_style)
+    _ => None
+  }
+}
+
+///|
+fn map_series_group_key(
+  opt : @option.ChartOption,
+  series : @option.SeriesOption,
+) -> String {
+  if map_series_uses_host_geo(opt, series) {
     "geo:\{series.geo_index}"
   } else {
     let map_name = series.map_name.unwrap_or("")
@@ -19,8 +50,28 @@ fn map_series_group_key(series : @option.SeriesOption) -> String {
 }
 
 ///|
-fn map_series_uses_geo(series : @option.SeriesOption) -> Bool {
-  series.coordinate_system.unwrap_or("geo") == "geo"
+fn map_series_uses_host_geo(
+  opt : @option.ChartOption,
+  series : @option.SeriesOption,
+) -> Bool {
+  series.coordinate_system.unwrap_or("geo") == "geo" &&
+  series.geo_index >= 0 &&
+  series.geo_index < opt.geo.length()
+}
+
+///|
+fn map_series_matches_geo(
+  opt : @option.ChartOption,
+  series : @option.SeriesOption,
+  geo : @coord.Geo,
+) -> Bool {
+  if map_series_uses_host_geo(opt, series) {
+    series.geo_index == 0
+  } else {
+    series.coordinate_system.unwrap_or("geo") == "geo" &&
+    series.map_name.unwrap_or("") == geo.map &&
+    geo.map != ""
+  }
 }
 
 ///|
@@ -178,12 +229,13 @@ fn map_series_group(
   start_index : Int,
 ) -> Array[@option.SeriesOption] {
   let target = opt.series[start_index]
-  let target_key = map_series_group_key(target)
+  let target_key = map_series_group_key(opt, target)
   let group : Array[@option.SeriesOption] = []
   let mut i = 0
   while i < opt.series.length() {
     let series = opt.series[i]
-    if series.series_type == Map && map_series_group_key(series) == target_key {
+    if series.series_type == Map &&
+      map_series_group_key(opt, series) == target_key {
       group.push(series)
     }
     i += 1
@@ -206,7 +258,7 @@ pub fn apply_map_data_statistic(
   while series_index < opt.series.length() {
     let series = opt.series[series_index]
     if series.series_type == Map {
-      let group_key = map_series_group_key(series)
+      let group_key = map_series_group_key(opt, series)
       if !map_has_drawn_group(processed_groups, group_key) {
         processed_groups.push(group_key)
         let group = map_series_group(opt, series_index)
@@ -215,7 +267,7 @@ pub fn apply_map_data_statistic(
         while j < opt.series.length() {
           let candidate = opt.series[j]
           if candidate.series_type == Map &&
-            map_series_group_key(candidate) == group_key {
+            map_series_group_key(opt, candidate) == group_key {
             next_series[j] = { ..candidate, data: aggregated }
           }
           j += 1
@@ -256,6 +308,7 @@ fn map_region_option_by_name(
 fn map_region_fill(
   opt : @option.ChartOption,
   geo_opt : @option.GeoOption,
+  series : @option.SeriesOption,
   series_index : Int,
   region_name : String,
   item : @option.DataItem?,
@@ -263,10 +316,23 @@ fn map_region_fill(
   let fallback = map_region_fill_fallback(opt, geo_opt, series_index, item)
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
-      region.item_style
-      .map(style => style.area_color.unwrap_or(fallback))
-      .unwrap_or(fallback)
-    None => fallback
+      map_patch_area_color(region.item_style).unwrap_or(
+        item
+        .bind(data_item => map_patch_area_color(data_item.item_style))
+        .unwrap_or(
+          map_patch_area_color(series.geo_item_style).unwrap_or(
+            series.item_style.unwrap_or(fallback),
+          ),
+        ),
+      )
+    None =>
+      item
+      .bind(data_item => map_patch_area_color(data_item.item_style))
+      .unwrap_or(
+        map_patch_area_color(series.geo_item_style).unwrap_or(
+          series.item_style.unwrap_or(fallback),
+        ),
+      )
   }
 }
 
@@ -289,28 +355,93 @@ fn map_region_fill_fallback(
 ///|
 fn map_region_stroke_color(
   geo_opt : @option.GeoOption,
+  series : @option.SeriesOption,
   region_name : String,
+  item : @option.DataItem?,
 ) -> String {
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
-      region.item_style
-      .map(style => style.border_color)
-      .unwrap_or(geo_opt.item_style.border_color)
-    None => geo_opt.item_style.border_color
+      map_patch_border_color(region.item_style).unwrap_or(
+        item
+        .bind(data_item => map_patch_border_color(data_item.item_style))
+        .unwrap_or(
+          map_patch_border_color(series.geo_item_style).unwrap_or(
+            geo_opt.item_style.border_color,
+          ),
+        ),
+      )
+    None =>
+      item
+      .bind(data_item => map_patch_border_color(data_item.item_style))
+      .unwrap_or(
+        map_patch_border_color(series.geo_item_style).unwrap_or(
+          geo_opt.item_style.border_color,
+        ),
+      )
   }
 }
 
 ///|
 fn map_region_stroke_width(
   geo_opt : @option.GeoOption,
+  series : @option.SeriesOption,
   region_name : String,
+  item : @option.DataItem?,
 ) -> Double {
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
-      region.item_style
-      .map(style => style.border_width)
-      .unwrap_or(geo_opt.item_style.border_width)
-    None => geo_opt.item_style.border_width
+      map_patch_border_width(region.item_style).unwrap_or(
+        item
+        .bind(data_item => map_patch_border_width(data_item.item_style))
+        .unwrap_or(
+          map_patch_border_width(series.geo_item_style).unwrap_or(
+            geo_opt.item_style.border_width,
+          ),
+        ),
+      )
+    None =>
+      item
+      .bind(data_item => map_patch_border_width(data_item.item_style))
+      .unwrap_or(
+        map_patch_border_width(series.geo_item_style).unwrap_or(
+          geo_opt.item_style.border_width,
+        ),
+      )
+  }
+}
+
+///|
+fn map_region_state_style(
+  geo_opt : @option.GeoOption,
+  series : @option.SeriesOption,
+  region_name : String,
+  item : @option.DataItem?,
+  state_name : String,
+) -> @graphic.DisplayStateStyle? {
+  let region_opt = map_region_option_by_name(geo_opt, region_name)
+  let style = match
+    item.bind(data_item => {
+      map_region_state_item_style(data_item.states, state_name)
+    }) {
+    Some(style) => Some(style)
+    None =>
+      match
+        region_opt.bind(region => {
+          map_region_state_item_style(region.states, state_name)
+        }) {
+        Some(style) => Some(style)
+        None => map_region_state_item_style(series.states, state_name)
+      }
+  }
+  match style {
+    Some(style) =>
+      Some({
+        fill: style.area_color,
+        stroke: style.border_color,
+        line_width: style.border_width,
+        stroke_no_scale: false,
+      })
+    None => None
   }
 }
 
@@ -320,14 +451,25 @@ fn render_map_region_polygon(
   fill : String,
   stroke_color_str : String,
   stroke_width : Double,
+  silent : Bool,
+  emphasis_style : @graphic.DisplayStateStyle?,
+  select_style : @graphic.DisplayStateStyle?,
 ) -> @graphic.Element {
-  @graphic.Element::path_fill_stroke(
+  let element = @graphic.Element::path_fill_stroke(
     map_rings_path_d(rings),
     fill,
     stroke_color_str,
     stroke_width,
     1.0,
-  )
+  ).with_silent(silent)
+  let element = match emphasis_style {
+    Some(style) => element.with_emphasis_style(style)
+    None => element.with_emphasis_style(@graphic.DisplayStateStyle::default())
+  }
+  match select_style {
+    Some(style) => element.with_select_style(style)
+    None => element
+  }
 }
 
 ///|
@@ -366,8 +508,8 @@ pub fn render_maps(
     let series = opt.series[series_index]
     match series.series_type {
       Map =>
-        if map_series_uses_geo(series) {
-          let group_key = map_series_group_key(series)
+        if map_series_matches_geo(opt, series, geo) {
+          let group_key = map_series_group_key(opt, series)
           if map_has_drawn_group(drawn_groups, group_key) {
             series_index += 1
             continue
@@ -380,12 +522,40 @@ pub fn render_maps(
             let fill = map_region_fill(
               opt,
               geo_opt,
+              series,
               series_index,
               region.name,
               item,
             )
-            let stroke_color = map_region_stroke_color(geo_opt, region.name)
-            let stroke_width = map_region_stroke_width(geo_opt, region.name)
+            let stroke_color = map_region_stroke_color(
+              geo_opt,
+              series,
+              region.name,
+              item,
+            )
+            let stroke_width = map_region_stroke_width(
+              geo_opt,
+              series,
+              region.name,
+              item,
+            )
+            let silent = item
+              .bind(data_item => data_item.silent)
+              .unwrap_or(series.silent)
+            let emphasis_style = map_region_state_style(
+              geo_opt,
+              series,
+              region.name,
+              item,
+              "emphasis",
+            )
+            let select_style = map_region_state_style(
+              geo_opt,
+              series,
+              region.name,
+              item,
+              "select",
+            )
             let polygons = region.screen_polygon_rings(geo)
             let mut polygon_index = 0
             while polygon_index < polygons.length() {
@@ -395,6 +565,9 @@ pub fn render_maps(
                   fill,
                   stroke_color,
                   stroke_width,
+                  silent,
+                  emphasis_style,
+                  select_style,
                 ),
               )
               polygon_index += 1

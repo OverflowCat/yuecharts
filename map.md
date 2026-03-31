@@ -155,6 +155,15 @@ These files are not under `E:\recharts\echarts\src`, but they are real source
 dependencies for the current MoonBit port and are explicitly referenced by the
 existing `.mbt` comments.
 
+### Current port gap: Hover-style
+- `zrender/src/svg/Painter.ts => svg/painter.mbt [partial]`: MoonBit now emits `<style><![CDATA[...]]></style>` for renderer-owned hover CSS, but still lacks full vnode/defs/animation parity.
+- `zrender/src/svg/core.ts => svg/painter.mbt [partial]`: MoonBit now has first-pass CSS rule serialization, but not the upstream vnode/attrs abstraction.
+- `zrender/src/svg/graphic.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now carries displayable state metadata into SVG serialization, but still lacks the broader brush/meta pipeline.
+- `zrender/src/svg/cssEmphasis.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now emits `:hover` class rules from element emphasis state, but only for the current static color/stroke-width subset.
+- `zrender/src/svg/cssClassId.ts => svg/painter.mbt [partial]`: MoonBit now allocates deduplicated renderer class ids, but only inside the current simplified painter scope.
+- `zrender/src/svg/helper.ts => svg/painter.mbt [missing]`: helper-level renderer parity is still incomplete around non-color/pattern style emission dependencies.
+- `echarts/src/component/helper/MapDraw.ts => chart/map.mbt, component/geo.mbt, option/types.mbt, option/parse.mbt [partial]`: MoonBit now parses and applies the static subset of `silent`, normal partial `itemStyle`, and `emphasis/select/blur.itemStyle` for map data items and geo regions, but still lacks the full event/high-down/label-state pipeline from upstream `MapDraw`.
+
 ```text
 zrender
 ├── src
@@ -327,16 +336,16 @@ E:\recharts\echarts\src
 │   │   └── parallelPreprocessor.ts => option/parse.mbt [partial] Feature: parallel option preprocessor
 │   │
 │   ├── geo
-│   │   ├── Geo.ts =>  [missing] Feature: geo coordinate system
-│   │   ├── geoCreator.ts =>  [missing] Feature: geo creator
+│   │   ├── Geo.ts => coord/geo.mbt [partial] Feature: geo coordinate system
+│   │   ├── geoCreator.ts => coord/geo.mbt [partial] Feature: geo creator incl. standalone map geo fallback
 │   │   ├── GeoJSONResource.ts =>  [missing] Feature: GeoJSON resource loading
-│   │   ├── GeoModel.ts =>  [missing] Feature: geo model
-│   │   ├── geoSourceManager.ts =>  [missing] Feature: registered map source manager
+│   │   ├── GeoModel.ts => option/types.mbt, option/parse.mbt, coord/geo.mbt [partial] Feature: geo model
+│   │   ├── geoSourceManager.ts => coord/geo_source_manager.mbt [translated] Feature: registered map source manager
 │   │   ├── GeoSVGResource.ts =>  [missing] Feature: SVG map resource
 │   │   ├── geoTypes.ts =>  [missing] Feature: geo type defs
 │   │   ├── parseGeoJson.ts =>  [missing] Feature: GeoJSON parser
 │   │   ├── prepareCustom.ts =>  [missing] Feature: geo custom adapter
-│   │   ├── Region.ts =>  [missing] Feature: geo region model
+│   │   ├── Region.ts => coord/geo.mbt [partial] Feature: geo region model
 │   │   └── fix
 │   │       ├── diaoyuIsland.ts =>  [missing] Feature: China map fixup
 │   │       ├── geoCoord.ts =>  [missing] Feature: geo coord fixup
@@ -401,7 +410,7 @@ E:\recharts\echarts\src
 │   ├── dataZoomInside.ts =>  [missing] Feature: inside dataZoom entry
 │   ├── dataZoomSelect.ts =>  [missing] Feature: select dataZoom entry
 │   ├── dataZoomSlider.ts =>  [missing] Feature: slider dataZoom entry
-│   ├── geo.ts =>  [missing] Feature: geo component entry
+│   ├── geo.ts => component/install.mbt [partial] Feature: geo component entry
 │   ├── graphic.ts =>  [missing] Feature: graphic component entry
 │   ├── grid.ts => layout/grid.mbt [partial] Feature: grid component entry
 │   ├── gridSimple.ts =>  [missing] Feature: simple grid entry
@@ -563,7 +572,7 @@ E:\recharts\echarts\src
 │   │
 │   ├── geo
 │   │   ├── install.ts =>  [missing] Feature: geo component install
-│   │   └── GeoView.ts =>  [missing] Feature: geo component view
+│   │   └── GeoView.ts => component/geo.mbt [translated] Feature: geo component view
 │   │
 │   ├── graphic
 │   │   ├── install.ts =>  [missing] Feature: graphic component install
@@ -625,7 +634,7 @@ E:\recharts\echarts\src
 │       ├── cursorHelper.ts =>  [missing] Feature: cursor helper
 │       ├── interactionMutex.ts =>  [missing] Feature: interaction mutex
 │       ├── listComponent.ts =>  [missing] Feature: list component helper
-│       ├── MapDraw.ts =>  [missing] Feature: geo/map drawing helper
+│       ├── MapDraw.ts => chart/map.mbt, component/geo.mbt [partial] Feature: geo/map drawing helper
 │       ├── RoamController.ts =>  [missing] Feature: roam interaction controller
 │       ├── roamHelper.ts =>  [missing] Feature: roam helper/action sync
 │       ├── sliderMove.ts =>  [missing] Feature: slider move helper
@@ -644,7 +653,7 @@ E:\recharts\echarts\src
 │   ├── heatmap.ts => chart/heatmap.mbt [partial] Feature: heatmap chart entry
 │   ├── line.ts => chart/line.mbt [partial] Feature: line chart entry
 │   ├── lines.ts => chart/lines.mbt [partial] Feature: lines chart entry
-│   ├── map.ts =>  [missing] Feature: map chart entry
+│   ├── map.ts => chart/install.mbt [partial] Feature: map chart entry
 │   ├── parallel.ts => chart/install.mbt, chart/parallel.mbt [partial] Feature: parallel chart entry
 │   ├── pictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar chart entry
 │   ├── pie.ts => chart/pie.mbt [partial] Feature: pie chart entry
@@ -652,7 +661,7 @@ E:\recharts\echarts\src
 │   ├── sankey.ts =>  [missing] Feature: sankey chart entry
 │   ├── scatter.ts => chart/scatter.mbt [partial] Feature: scatter chart entry
 │   ├── sunburst.ts => chart/sunburst.mbt [partial] Feature: sunburst chart entry
-│   ├── themeRiver.ts =>  [missing] Feature: themeRiver chart entry
+│   ├── themeRiver.ts => chart/install.mbt [partial] Feature: themeRiver chart entry
 │   ├── tree.ts =>  [missing] Feature: tree chart entry
 │   └── treemap.ts => chart/treemap.mbt [partial] Feature: treemap chart entry
 │   │
@@ -818,9 +827,9 @@ E:\recharts\echarts\src
 │   │
 │   ├── themeRiver
 │   │   ├── install.ts =>  [missing] Feature: themeRiver install
-│   │   ├── themeRiverLayout.ts =>  [missing] Feature: themeRiver layout
-│   │   ├── ThemeRiverSeries.ts =>  [missing] Feature: themeRiver series model
-│   │   └── ThemeRiverView.ts =>  [missing] Feature: themeRiver renderer
+│   │   ├── themeRiverLayout.ts => chart/themeRiver.mbt [translated] Feature: themeRiver layout
+│   │   ├── ThemeRiverSeries.ts => chart/themeRiver.mbt [partial] Feature: themeRiver series model
+│   │   └── ThemeRiverView.ts => chart/themeRiver.mbt [translated] Feature: themeRiver renderer
 │   │
 │   ├── parallel
 │   │   ├── install.ts => chart/install.mbt [partial] Feature: parallel chart install
@@ -837,10 +846,10 @@ E:\recharts\echarts\src
 │   │
 │   ├── map
 │   │   ├── install.ts =>  [missing] Feature: map install
-│   │   ├── mapDataStatistic.ts =>  [missing] Feature: map statistic processor
-│   │   ├── MapSeries.ts =>  [missing] Feature: map series model
+│   │   ├── mapDataStatistic.ts => chart/map.mbt [translated] Feature: map statistic processor
+│   │   ├── MapSeries.ts => chart/map.mbt, option/types.mbt, option/parse.mbt [partial] Feature: map series model
 │   │   ├── mapSymbolLayout.ts =>  [missing] Feature: map symbol layout
-│   │   └── MapView.ts =>  [missing] Feature: map renderer
+│   │   └── MapView.ts => chart/map.mbt [translated] Feature: map renderer
 │   │
 │   └── custom
 │       ├── CustomSeries.ts =>  [missing] Feature: custom series model

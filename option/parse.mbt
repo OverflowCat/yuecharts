@@ -324,6 +324,43 @@ fn parse_geo_item_style_option(j : Json) -> GeoItemStyleOption {
 }
 
 ///|
+fn parse_geo_item_style_patch_option(j : Json) -> GeoItemStylePatchOption {
+  {
+    area_color: j_string_opt(j, "areaColor"),
+    border_color: j_string_opt(j, "borderColor"),
+    border_width: j_number_opt(j, "borderWidth"),
+  }
+}
+
+///|
+fn parse_geo_state_option(j : Json) -> GeoStateOption {
+  {
+    item_style: match j_field(j, "itemStyle") {
+      Some(value) => Some(parse_geo_item_style_patch_option(value))
+      None => None
+    },
+  }
+}
+
+///|
+fn parse_geo_states_option(j : Json) -> GeoStatesOption {
+  {
+    emphasis: match j_field(j, "emphasis") {
+      Some(value) => Some(parse_geo_state_option(value))
+      None => None
+    },
+    select: match j_field(j, "select") {
+      Some(value) => Some(parse_geo_state_option(value))
+      None => None
+    },
+    blur: match j_field(j, "blur") {
+      Some(value) => Some(parse_geo_state_option(value))
+      None => None
+    },
+  }
+}
+
+///|
 fn parse_geo_region_option(j : Json) -> GeoRegionOption {
   {
     name: j_string(j, "name", ""),
@@ -332,9 +369,15 @@ fn parse_geo_region_option(j : Json) -> GeoRegionOption {
       None => None
     },
     item_style: match j_field(j, "itemStyle") {
-      Some(value) => Some(parse_geo_item_style_option(value))
+      Some(value) => Some(parse_geo_item_style_patch_option(value))
       None => None
     },
+    silent: match j_field(j, "silent") {
+      Some(True) => Some(true)
+      Some(False) => Some(false)
+      _ => None
+    },
+    states: parse_geo_states_option(j),
   }
 }
 
@@ -805,6 +848,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
       }
     _ => None
   }
+  let geo_item_style = match j_field(j, "itemStyle") {
+    Some(style) => Some(parse_geo_item_style_patch_option(style))
+    None => None
+  }
   let item_opacity = match j_field(j, "itemStyle") {
     Some(style) =>
       match j_field(style, "opacity") {
@@ -843,6 +890,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
   }
   let active_opacity = j_number_opt(j, "activeOpacity")
   let inactive_opacity = j_number_opt(j, "inactiveOpacity")
+  let silent = j_bool(j, "silent", base.silent)
+  let states = parse_geo_states_option(j)
   {
     series_type,
     name,
@@ -885,6 +934,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     line_style_curveness,
     item_style,
     item_opacity,
+    geo_item_style,
+    silent,
+    states,
     area_style,
     encode_x: None,
     encode_y: None,
@@ -916,6 +968,10 @@ fn parse_data_item(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     Null =>
@@ -928,6 +984,10 @@ fn parse_data_item(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     True =>
@@ -940,6 +1000,10 @@ fn parse_data_item(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     False =>
@@ -952,6 +1016,10 @@ fn parse_data_item(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     Array(arr) => parse_data_array_item(arr)
@@ -969,6 +1037,10 @@ fn parse_data_item(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
   }
@@ -985,6 +1057,10 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     coords: None,
     from_name: None,
     to_name: None,
+    cursor: None,
+    silent: None,
+    item_style: None,
+    states: GeoStatesOption::default(),
     children: [],
   }
 }
@@ -1011,6 +1087,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     Array([Number(x, ..), Number(val, ..), String(name)]) => {
@@ -1028,6 +1108,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     }
@@ -1041,6 +1125,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     Array([Number(x, ..), Number(val, ..)]) => {
@@ -1058,6 +1146,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         coords: None,
         from_name: None,
         to_name: None,
+        cursor: None,
+        silent: None,
+        item_style: None,
+        states: GeoStatesOption::default(),
         children: [],
       }
     }
@@ -1581,6 +1673,16 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
   let coords = parse_data_coords(j)
   let from_name = j_string_opt(j, "fromName")
   let to_name = j_string_opt(j, "toName")
+  let cursor = j_string_opt(j, "cursor")
+  let silent = match j_field(j, "silent") {
+    Some(True) => Some(true)
+    Some(False) => Some(false)
+    _ => None
+  }
+  let item_style = match j_field(j, "itemStyle") {
+    Some(style) => Some(parse_geo_item_style_patch_option(style))
+    None => None
+  }
   let children = j_parse_array(j, "children", parse_data_item, [])
   {
     value,
@@ -1591,6 +1693,10 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     coords,
     from_name,
     to_name,
+    cursor,
+    silent,
+    item_style,
+    states: parse_geo_states_option(j),
     children,
   }
 }

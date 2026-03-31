@@ -44,6 +44,37 @@ pub fn Color::lerp(a : Color, b : Color, t : Double) -> Color {
 }
 
 ///|
+/// Corresponds to: zrender/src/tool/color.ts lift
+pub fn Color::lift(self : Color, level : Double) -> Color {
+  let lift_channel = fn(channel : Int) -> Int {
+    let next = if level < 0.0 {
+      (channel.to_double() * (1.0 - level)).to_int()
+    } else {
+      ((255 - channel).to_double() * level + channel.to_double()).to_int()
+    }
+    if next < 0 {
+      0
+    } else if next > 255 {
+      255
+    } else {
+      next
+    }
+  }
+  {
+    r: lift_channel(self.r),
+    g: lift_channel(self.g),
+    b: lift_channel(self.b),
+    a: self.a,
+  }
+}
+
+///|
+/// Corresponds to: zrender/src/tool/color.ts liftColor
+pub fn Color::lift_color_string(color_str : String) -> String? {
+  Color::from_string(color_str).map(color => color.lift(-0.1).to_svg())
+}
+
+///|
 /// Parse a hex color string like "#rgb", "#rrggbb", or "#rrggbbaa".
 /// Returns None if the string is not a valid hex color.
 pub fn Color::from_hex(s : String) -> Color? {

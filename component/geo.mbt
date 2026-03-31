@@ -26,7 +26,7 @@ fn geo_region_border_color(
   match region_opt {
     Some(region) =>
       region.item_style
-      .map(style => style.border_color)
+      .bind(style => style.border_color)
       .unwrap_or(geo_opt.item_style.border_color)
     None => geo_opt.item_style.border_color
   }
@@ -40,10 +40,41 @@ fn geo_region_border_width(
   match region_opt {
     Some(region) =>
       region.item_style
-      .map(style => style.border_width)
+      .bind(style => style.border_width)
       .unwrap_or(geo_opt.item_style.border_width)
     None => geo_opt.item_style.border_width
   }
+}
+
+///|
+fn geo_region_silent(region_opt : @option.GeoRegionOption?) -> Bool {
+  match region_opt {
+    Some(region) => region.silent.unwrap_or(false)
+    None => false
+  }
+}
+
+///|
+fn geo_region_state_style(
+  region_opt : @option.GeoRegionOption?,
+  state_name : String,
+) -> @graphic.DisplayStateStyle? {
+  let style = match region_opt {
+    Some(region) =>
+      match state_name {
+        "emphasis" => region.states.emphasis.bind(state => state.item_style)
+        "select" => region.states.select.bind(state => state.item_style)
+        "blur" => region.states.blur.bind(state => state.item_style)
+        _ => None
+      }
+    None => None
+  }
+  style.map(style => {
+    fill: style.area_color,
+    stroke: style.border_color,
+    line_width: style.border_width,
+    stroke_no_scale: false,
+  })
 }
 
 ///|
@@ -75,15 +106,26 @@ fn render_geo_region_outline(
   rings : Array[Array[@graphic.Point]],
   border_color : String,
   border_width : Double,
+  silent : Bool,
+  emphasis_style : @graphic.DisplayStateStyle?,
+  select_style : @graphic.DisplayStateStyle?,
 ) -> @graphic.Element {
-  @graphic.Element::path_stroke_custom(
+  let element = @graphic.Element::path_stroke_custom(
     geo_rings_path_d(rings),
     border_color,
     border_width,
     "butt",
     "miter",
     1.0,
-  )
+  ).with_silent(silent)
+  let element = match emphasis_style {
+    Some(style) => element.with_emphasis_style(style)
+    None => element
+  }
+  match select_style {
+    Some(style) => element.with_select_style(style)
+    None => element
+  }
 }
 
 ///|
@@ -113,6 +155,9 @@ pub fn render_geo_component(
   opt : @option.ChartOption,
   geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
+  if opt.geo.length() == 0 {
+    return []
+  }
   guard geo is Some(geo) else { [] }
   let elems : Array[@graphic.Element] = []
   let geo_opt = if opt.geo.length() > 0 {
@@ -127,6 +172,9 @@ pub fn render_geo_component(
     let polygons = region.screen_polygon_rings(geo)
     let border_color = geo_region_border_color(geo_opt, region_opt)
     let border_width = geo_region_border_width(geo_opt, region_opt)
+    let silent = geo_region_silent(region_opt)
+    let emphasis_style = geo_region_state_style(region_opt, "emphasis")
+    let select_style = geo_region_state_style(region_opt, "select")
     let mut polygon_index = 0
     while polygon_index < polygons.length() {
       elems.push(
@@ -134,6 +182,9 @@ pub fn render_geo_component(
           polygons[polygon_index],
           border_color,
           border_width,
+          silent,
+          emphasis_style,
+          select_style,
         ),
       )
       polygon_index += 1

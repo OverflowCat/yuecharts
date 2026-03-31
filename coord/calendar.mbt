@@ -214,11 +214,9 @@ fn compute_calendar_y(
   match model.top {
     Some(spec) => resolve_size(spec, total_height)
     None =>
-      match model.bottom {
-        Some(spec) =>
-          total_height - resolve_size(spec, total_height) - layout_height
-        None => 60.0
-      }
+      model.bottom.map_or(60.0, spec => {
+        total_height - resolve_size(spec, total_height) - layout_height
+      })
   }
 }
 

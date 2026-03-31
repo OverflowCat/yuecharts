@@ -1,8 +1,39 @@
-// Corresponds to: zrender/src/svg/Painter.ts
+// Corresponds to: zrender/src/svg/Painter.ts, zrender/src/svg/core.ts,
+// zrender/src/svg/cssEmphasis.ts
 // Renders graphic elements to SVG output
 
 ///|
-/// SVG painter: walks the scene graph and produces an SVG string.
+pub struct CssProperty {
+  name : String
+  value : String
+}
+
+///|
+pub struct CssNode {
+  selector : String
+  properties : Array[CssProperty]
+}
+
+///|
+pub struct CssStyleCacheEntry {
+  style_key : String
+  class_name : String
+}
+
+///|
+pub struct BrushScope {
+  css_nodes : Array[CssNode]
+  css_style_cache : Array[CssStyleCacheEntry]
+  next_class_id : Int
+  emphasis : Bool
+}
+
+///|
+pub fn BrushScope::new() -> BrushScope {
+  { css_nodes: [], css_style_cache: [], next_class_id: 0, emphasis: true }
+}
+
+///|
 fn points_to_svg(points : Array[@graphic.Point]) -> String {
   let buf = StringBuilder::new()
   for i, p in points {
@@ -51,21 +82,199 @@ fn opacity_attr(op : Double) -> String {
 }
 
 ///|
+fn css_style_key(properties : Array[CssProperty], with_hover : Bool) -> String {
+  let buf = StringBuilder::new()
+  if with_hover {
+    buf.write_string("hover|")
+  } else {
+    buf.write_string("plain|")
+  }
+  let mut i = 0
+  while i < properties.length() {
+    if i > 0 {
+      buf.write_char(';')
+    }
+    let property = properties[i]
+    buf.write_string(property.name)
+    buf.write_char('=')
+    buf.write_string(property.value)
+    i += 1
+  }
+  buf.to_string()
+}
+
+///|
+fn css_join_classes(class_names : Array[String]) -> String {
+  let buf = StringBuilder::new()
+  let mut i = 0
+  while i < class_names.length() {
+    if i > 0 {
+      buf.write_char(' ')
+    }
+    buf.write_string(class_names[i])
+    i += 1
+  }
+  buf.to_string()
+}
+
+///|
+fn css_cached_class_name(
+  scope : Ref[BrushScope],
+  properties : Array[CssProperty],
+  with_hover : Bool,
+) -> String {
+  let style_key = css_style_key(properties, with_hover)
+  let mut i = 0
+  while i < scope.val.css_style_cache.length() {
+    let entry = scope.val.css_style_cache[i]
+    if entry.style_key == style_key {
+      return entry.class_name
+    }
+    i += 1
+  }
+  let class_name = "zr-cls-\{scope.val.next_class_id}"
+  scope.val.css_style_cache.push({ style_key, class_name })
+  scope.val.css_nodes.push({
+    selector: if with_hover {
+      ".\{class_name}:hover"
+    } else {
+      ".\{class_name}"
+    },
+    properties,
+  })
+  scope.val = { ..scope.val, next_class_id: scope.val.next_class_id + 1 }
+  class_name
+}
+
+///|
+fn current_state_contains(
+  current_states : Array[String],
+  target : String,
+) -> Bool {
+  let mut i = 0
+  while i < current_states.length() {
+    if current_states[i] == target {
+      return true
+    }
+    i += 1
+  }
+  false
+}
+
+///|
+fn emphasis_fill_value(
+  meta : @graphic.DisplayableMeta,
+  normal_fill : String?,
+) -> String? {
+  match meta.states.emphasis {
+    Some(style) =>
+      match style.fill {
+        Some(fill) => Some(fill)
+        None => {
+          let from_fill = if current_state_contains(
+              meta.current_states,
+              "select",
+            ) {
+            match meta.states.select {
+              Some(select_style) =>
+                match select_style.fill {
+                  Some(fill) => Some(fill)
+                  None => normal_fill
+                }
+              None => normal_fill
+            }
+          } else {
+            normal_fill
+          }
+          match from_fill {
+            Some(fill) =>
+              match @graphic.Color::lift_color_string(fill) {
+                Some(lifted_fill) => Some(lifted_fill)
+                None => Some(fill)
+              }
+            None => None
+          }
+        }
+      }
+    None => None
+  }
+}
+
+///|
+fn emphasis_hover_properties(
+  meta : @graphic.DisplayableMeta,
+  normal_fill : String?,
+) -> Array[CssProperty] {
+  let properties : Array[CssProperty] = []
+  if meta.silent {
+    properties.push({ name: "pointer-events", value: "none" })
+    return properties
+  }
+  match meta.states.emphasis {
+    Some(style) => {
+      properties.push({ name: "cursor", value: "pointer" })
+      match emphasis_fill_value(meta, normal_fill) {
+        Some(fill) => properties.push({ name: "fill", value: fill })
+        None => ()
+      }
+      match style.stroke {
+        Some(stroke) => properties.push({ name: "stroke", value: stroke })
+        None => ()
+      }
+      match style.line_width {
+        Some(line_width) =>
+          properties.push({
+            name: "stroke-width",
+            value: line_width.to_string(),
+          })
+        None => ()
+      }
+    }
+    None => ()
+  }
+  properties
+}
+
+///|
+fn write_displayable_class_attr(
+  buf : StringBuilder,
+  meta : @graphic.DisplayableMeta,
+  normal_fill : String?,
+  scope : Ref[BrushScope],
+) -> Unit {
+  let class_names : Array[String] = []
+  match meta.class_name {
+    Some(class_name) => class_names.push(class_name)
+    None => ()
+  }
+  if scope.val.emphasis {
+    let hover_properties = emphasis_hover_properties(meta, normal_fill)
+    if hover_properties.length() > 0 {
+      class_names.push(css_cached_class_name(scope, hover_properties, true))
+    }
+  }
+  if class_names.length() > 0 {
+    buf.write_string(" class=\"\{css_join_classes(class_names)}\"")
+  }
+}
+
+///|
 fn render_element(
   buf : StringBuilder,
   elem : @graphic.Element,
   indent : String,
   clip_counter : Ref[Int],
+  scope : Ref[BrushScope],
 ) -> Unit {
   match elem {
-    Group(g) => render_group(buf, g, indent, clip_counter)
-    Rect(r) => render_rect(buf, r, indent)
-    Circle(c) => render_circle(buf, c, indent)
-    Line(l) => render_line(buf, l, indent)
-    Polyline(pl) => render_polyline(buf, pl, indent)
-    Polygon(pg) => render_polygon(buf, pg, indent)
-    Path(p) => render_path(buf, p, indent)
-    Text(t) => render_text(buf, t, indent)
+    Group(g) => render_group(buf, g, indent, clip_counter, scope)
+    Rect(r) => render_rect(buf, r, indent, scope)
+    Circle(c) => render_circle(buf, c, indent, scope)
+    Line(l) => render_line(buf, l, indent, scope)
+    Polyline(pl) => render_polyline(buf, pl, indent, scope)
+    Polygon(pg) => render_polygon(buf, pg, indent, scope)
+    Path(p) => render_path(buf, p, indent, scope)
+    Text(t) => render_text(buf, t, indent, scope)
   }
 }
 
@@ -75,6 +284,7 @@ fn render_group(
   g : @graphic.GroupData,
   indent : String,
   clip_counter : Ref[Int],
+  scope : Ref[BrushScope],
 ) -> Unit {
   let next = indent + "  "
   match g.clip_rect {
@@ -99,7 +309,7 @@ fn render_group(
       }
       buf.write_string(">\n")
       for child in g.children {
-        render_element(buf, child, next, clip_counter)
+        render_element(buf, child, next, clip_counter, scope)
       }
       buf.write_string(indent + "</g>\n")
     }
@@ -115,7 +325,7 @@ fn render_group(
       }
       buf.write_string(">\n")
       for child in g.children {
-        render_element(buf, child, next, clip_counter)
+        render_element(buf, child, next, clip_counter, scope)
       }
       buf.write_string(indent + "</g>\n")
     }
@@ -127,10 +337,17 @@ fn render_rect(
   buf : StringBuilder,
   r : @graphic.RectData,
   indent : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   buf.write_string(indent)
   buf.write_string(
     "<rect x=\"\{r.bbox.x}\" y=\"\{r.bbox.y}\" width=\"\{r.bbox.width}\" height=\"\{r.bbox.height}\"",
+  )
+  write_displayable_class_attr(
+    buf,
+    r.meta,
+    r.fill.map(fill => fill.color.to_svg()),
+    scope,
   )
   if r.rx > 0.0 {
     buf.write_string(" rx=\"\{r.rx}\"")
@@ -155,9 +372,16 @@ fn render_circle(
   buf : StringBuilder,
   c : @graphic.CircleData,
   indent : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   buf.write_string(indent)
   buf.write_string("<circle cx=\"\{c.cx}\" cy=\"\{c.cy}\" r=\"\{c.r}\"")
+  write_displayable_class_attr(
+    buf,
+    c.meta,
+    c.fill.map(fill => fill.color.to_svg()),
+    scope,
+  )
   match c.fill {
     Some(f) => buf.write_string(fill_attr(f.color))
     None => buf.write_string(" fill=\"none\"")
@@ -175,11 +399,13 @@ fn render_line(
   buf : StringBuilder,
   l : @graphic.LineData,
   indent : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   buf.write_string(indent)
   buf.write_string(
     "<line x1=\"\{l.x1}\" y1=\"\{l.y1}\" x2=\"\{l.x2}\" y2=\"\{l.y2}\"",
   )
+  write_displayable_class_attr(buf, l.meta, None, scope)
   buf.write_string(stroke_attrs(l.stroke))
   buf.write_string(" fill=\"none\"")
   buf.write_string(opacity_attr(l.opacity))
@@ -191,9 +417,11 @@ fn render_polyline(
   buf : StringBuilder,
   pl : @graphic.PolylineData,
   indent : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   buf.write_string(indent)
   buf.write_string("<polyline points=\"\{points_to_svg(pl.points)}\"")
+  write_displayable_class_attr(buf, pl.meta, Some(pl.fill.to_svg()), scope)
   buf.write_string(fill_attr(pl.fill))
   buf.write_string(stroke_attrs(pl.stroke))
   buf.write_string(opacity_attr(pl.opacity))
@@ -205,9 +433,16 @@ fn render_polygon(
   buf : StringBuilder,
   pg : @graphic.PolygonData,
   indent : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   buf.write_string(indent)
   buf.write_string("<polygon points=\"\{points_to_svg(pg.points)}\"")
+  write_displayable_class_attr(
+    buf,
+    pg.meta,
+    pg.fill.map(fill => fill.color.to_svg()),
+    scope,
+  )
   match pg.fill {
     Some(f) => buf.write_string(fill_attr(f.color))
     None => buf.write_string(" fill=\"none\"")
@@ -225,9 +460,16 @@ fn render_path(
   buf : StringBuilder,
   p : @graphic.PathData,
   indent : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   buf.write_string(indent)
   buf.write_string("<path d=\"\{p.d}\"")
+  write_displayable_class_attr(
+    buf,
+    p.meta,
+    p.fill.map(fill => fill.color.to_svg()),
+    scope,
+  )
   match p.fill {
     Some(f) => buf.write_string(fill_attr(f.color))
     None => buf.write_string(" fill=\"none\"")
@@ -245,12 +487,14 @@ fn render_text(
   buf : StringBuilder,
   t : @graphic.TextData,
   indent : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   buf.write_string(indent)
   let s = t.style
   buf.write_string(
     "<text x=\"\{t.x}\" y=\"\{t.y}\" fill=\"\{s.fill.to_svg()}\"",
   )
+  write_displayable_class_attr(buf, t.meta, Some(s.fill.to_svg()), scope)
   buf.write_string(" font-size=\"\{s.font_size}\"")
   if s.font_family != "sans-serif" {
     buf.write_string(" font-family=\"\{s.font_family}\"")
@@ -267,10 +511,37 @@ fn render_text(
     buf.write_string(" dominant-baseline=\"\{baseline_str}\"")
   }
   buf.write_string(opacity_attr(t.opacity))
-  // Escape XML special chars in text content
   buf.write_string(">")
   buf.write_string(xml_escape(t.content))
   buf.write_string("</text>\n")
+}
+
+///|
+fn css_nodes_to_string(css_nodes : Array[CssNode]) -> String {
+  if css_nodes.length() == 0 {
+    return ""
+  }
+  let buf = StringBuilder::new()
+  buf.write_string("<![CDATA[\n")
+  let mut node_index = 0
+  while node_index < css_nodes.length() {
+    let node = css_nodes[node_index]
+    buf.write_string(node.selector)
+    buf.write_string(" {\n")
+    let mut property_index = 0
+    while property_index < node.properties.length() {
+      let property = node.properties[property_index]
+      buf.write_string(property.name)
+      buf.write_char(':')
+      buf.write_string(property.value)
+      buf.write_string(";\n")
+      property_index += 1
+    }
+    buf.write_string("}\n")
+    node_index += 1
+  }
+  buf.write_string("]]>")
+  buf.to_string()
 }
 
 ///|
@@ -316,6 +587,14 @@ pub fn paint(
   background : @graphic.Color?,
   accessibility : SvgAccessibility?,
 ) -> String {
+  let body_buf = StringBuilder::new()
+  let clip_counter : Ref[Int] = Ref::new(0)
+  let scope : Ref[BrushScope] = Ref::new(BrushScope::new())
+  for elem in elements {
+    render_element(body_buf, elem, "  ", clip_counter, scope)
+  }
+  let css_text = css_nodes_to_string(scope.val.css_nodes)
+
   let buf = StringBuilder::new()
   buf.write_string("<svg xmlns=\"http://www.w3.org/2000/svg\"")
   buf.write_string(
@@ -353,10 +632,12 @@ pub fn paint(
       )
     None => ()
   }
-  let clip_counter : Ref[Int] = Ref::new(0)
-  for elem in elements {
-    render_element(buf, elem, "  ", clip_counter)
+  if css_text != "" {
+    buf.write_string("  <style>")
+    buf.write_string(css_text)
+    buf.write_string("</style>\n")
   }
+  buf.write_string(body_buf.to_string())
   buf.write_string("</svg>")
   buf.to_string()
 }

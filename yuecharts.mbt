@@ -133,10 +133,9 @@ fn apply_processor_to_option(
   let mut i = 0
   while i < opt.series.length() {
     let series = opt.series[i]
-    let matches_type = match series_type {
-      Some(target) => series.series_type == target
-      None => true
-    }
+    let matches_type = series_type.map_or(true, target => {
+      series.series_type == target
+    })
     let next = if matches_type {
       match execution_key {
         Some("data_filter") => filter_series_data_by_legend(opt, series)

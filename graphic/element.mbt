@@ -1,4 +1,5 @@
-// Corresponds to: zrender/src/graphic/Shape.ts, zrender/src/graphic/Path.ts
+// Corresponds to: zrender/src/Element.ts, zrender/src/graphic/Displayable.ts,
+// zrender/src/graphic/Shape.ts, zrender/src/graphic/Path.ts
 // and various zrender/src/graphic/shape/* primitives (Rect, Circle, Line, Text, etc.)
 
 ///|
@@ -101,6 +102,52 @@ pub impl Default for TextStyle with default() {
 }
 
 ///|
+/// Corresponds to: zrender/src/graphic/Displayable.ts (state style payload)
+pub(all) struct DisplayStateStyle {
+  fill : String?
+  stroke : String?
+  line_width : Double?
+  stroke_no_scale : Bool
+}
+
+///|
+pub impl Default for DisplayStateStyle with default() {
+  { fill: None, stroke: None, line_width: None, stroke_no_scale: false }
+}
+
+///|
+/// Corresponds to: zrender/src/graphic/Displayable.ts (states bag)
+pub(all) struct DisplayStates {
+  emphasis : DisplayStateStyle?
+  select : DisplayStateStyle?
+  blur : DisplayStateStyle?
+}
+
+///|
+pub impl Default for DisplayStates with default() {
+  { emphasis: None, select: None, blur: None }
+}
+
+///|
+/// Corresponds to: zrender/src/graphic/Displayable.ts (interactive metadata)
+pub(all) struct DisplayableMeta {
+  class_name : String?
+  silent : Bool
+  current_states : Array[String]
+  states : DisplayStates
+}
+
+///|
+pub impl Default for DisplayableMeta with default() {
+  {
+    class_name: None,
+    silent: false,
+    current_states: [],
+    states: DisplayStates::default(),
+  }
+}
+
+///|
 /// Scene graph element — the core ADT for the graphic layer.
 pub enum Element {
   /// A group containing child elements (used for transforming/clipping subtrees).
@@ -142,6 +189,7 @@ pub struct RectData {
   fill : FillStyle?
   stroke : StrokeStyle?
   opacity : Double
+  meta : DisplayableMeta
 }
 
 ///|
@@ -158,6 +206,7 @@ pub fn RectData::new(
     fill: Some(FillStyle::default()),
     stroke: None,
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   }
 }
 
@@ -169,11 +218,20 @@ pub struct CircleData {
   fill : FillStyle?
   stroke : StrokeStyle?
   opacity : Double
+  meta : DisplayableMeta
 }
 
 ///|
 pub fn CircleData::new(cx : Double, cy : Double, r : Double) -> CircleData {
-  { cx, cy, r, fill: Some(FillStyle::default()), stroke: None, opacity: 1.0 }
+  {
+    cx,
+    cy,
+    r,
+    fill: Some(FillStyle::default()),
+    stroke: None,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  }
 }
 
 ///|
@@ -184,6 +242,7 @@ pub struct LineData {
   y2 : Double
   stroke : StrokeStyle
   opacity : Double
+  meta : DisplayableMeta
 }
 
 ///|
@@ -193,7 +252,15 @@ pub fn LineData::new(
   x2 : Double,
   y2 : Double,
 ) -> LineData {
-  { x1, y1, x2, y2, stroke: StrokeStyle::default(), opacity: 1.0 }
+  {
+    x1,
+    y1,
+    x2,
+    y2,
+    stroke: StrokeStyle::default(),
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  }
 }
 
 ///|
@@ -202,11 +269,18 @@ pub struct PolylineData {
   stroke : StrokeStyle
   fill : Color // usually transparent
   opacity : Double
+  meta : DisplayableMeta
 }
 
 ///|
 pub fn PolylineData::new(points : Array[Point]) -> PolylineData {
-  { points, stroke: StrokeStyle::default(), fill: transparent, opacity: 1.0 }
+  {
+    points,
+    stroke: StrokeStyle::default(),
+    fill: transparent,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  }
 }
 
 ///|
@@ -215,11 +289,18 @@ pub struct PolygonData {
   fill : FillStyle?
   stroke : StrokeStyle?
   opacity : Double
+  meta : DisplayableMeta
 }
 
 ///|
 pub fn PolygonData::new(points : Array[Point]) -> PolygonData {
-  { points, fill: Some(FillStyle::default()), stroke: None, opacity: 1.0 }
+  {
+    points,
+    fill: Some(FillStyle::default()),
+    stroke: None,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  }
 }
 
 ///|
@@ -229,11 +310,18 @@ pub struct PathData {
   fill : FillStyle?
   stroke : StrokeStyle?
   opacity : Double
+  meta : DisplayableMeta
 }
 
 ///|
 pub fn PathData::new(d : String) -> PathData {
-  { d, fill: None, stroke: Some(StrokeStyle::default()), opacity: 1.0 }
+  {
+    d,
+    fill: None,
+    stroke: Some(StrokeStyle::default()),
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  }
 }
 
 ///|
@@ -243,11 +331,19 @@ pub struct TextData {
   content : String
   style : TextStyle
   opacity : Double
+  meta : DisplayableMeta
 }
 
 ///|
 pub fn TextData::new(x : Double, y : Double, content : String) -> TextData {
-  { x, y, content, style: TextStyle::default(), opacity: 1.0 }
+  {
+    x,
+    y,
+    content,
+    style: TextStyle::default(),
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  }
 }
 
 ///|
@@ -261,6 +357,127 @@ pub fn TextData::with_baseline(
   baseline : TextBaseline,
 ) -> TextData {
   { ..self, style: { ..self.style, baseline, } }
+}
+
+///|
+pub fn Element::with_silent(self : Element, silent : Bool) -> Element {
+  match self {
+    Group(g) => Group(g)
+    Rect(r) => Rect({ ..r, meta: { ..r.meta, silent, } })
+    Circle(c) => Circle({ ..c, meta: { ..c.meta, silent, } })
+    Line(l) => Line({ ..l, meta: { ..l.meta, silent, } })
+    Polyline(pl) => Polyline({ ..pl, meta: { ..pl.meta, silent, } })
+    Polygon(pg) => Polygon({ ..pg, meta: { ..pg.meta, silent, } })
+    Path(p) => Path({ ..p, meta: { ..p.meta, silent, } })
+    Text(t) => Text({ ..t, meta: { ..t.meta, silent, } })
+  }
+}
+
+///|
+pub fn Element::with_emphasis_style(
+  self : Element,
+  style : DisplayStateStyle,
+) -> Element {
+  match self {
+    Group(g) => Group(g)
+    Rect(r) =>
+      Rect({
+        ..r,
+        meta: { ..r.meta, states: { ..r.meta.states, emphasis: Some(style) } },
+      })
+    Circle(c) =>
+      Circle({
+        ..c,
+        meta: { ..c.meta, states: { ..c.meta.states, emphasis: Some(style) } },
+      })
+    Line(l) =>
+      Line({
+        ..l,
+        meta: { ..l.meta, states: { ..l.meta.states, emphasis: Some(style) } },
+      })
+    Polyline(pl) =>
+      Polyline({
+        ..pl,
+        meta: { ..pl.meta, states: { ..pl.meta.states, emphasis: Some(style) } },
+      })
+    Polygon(pg) =>
+      Polygon({
+        ..pg,
+        meta: { ..pg.meta, states: { ..pg.meta.states, emphasis: Some(style) } },
+      })
+    Path(p) =>
+      Path({
+        ..p,
+        meta: { ..p.meta, states: { ..p.meta.states, emphasis: Some(style) } },
+      })
+    Text(t) =>
+      Text({
+        ..t,
+        meta: { ..t.meta, states: { ..t.meta.states, emphasis: Some(style) } },
+      })
+  }
+}
+
+///|
+pub fn Element::with_select_style(
+  self : Element,
+  style : DisplayStateStyle,
+) -> Element {
+  match self {
+    Group(g) => Group(g)
+    Rect(r) =>
+      Rect({
+        ..r,
+        meta: { ..r.meta, states: { ..r.meta.states, select: Some(style) } },
+      })
+    Circle(c) =>
+      Circle({
+        ..c,
+        meta: { ..c.meta, states: { ..c.meta.states, select: Some(style) } },
+      })
+    Line(l) =>
+      Line({
+        ..l,
+        meta: { ..l.meta, states: { ..l.meta.states, select: Some(style) } },
+      })
+    Polyline(pl) =>
+      Polyline({
+        ..pl,
+        meta: { ..pl.meta, states: { ..pl.meta.states, select: Some(style) } },
+      })
+    Polygon(pg) =>
+      Polygon({
+        ..pg,
+        meta: { ..pg.meta, states: { ..pg.meta.states, select: Some(style) } },
+      })
+    Path(p) =>
+      Path({
+        ..p,
+        meta: { ..p.meta, states: { ..p.meta.states, select: Some(style) } },
+      })
+    Text(t) =>
+      Text({
+        ..t,
+        meta: { ..t.meta, states: { ..t.meta.states, select: Some(style) } },
+      })
+  }
+}
+
+///|
+pub fn Element::with_current_states(
+  self : Element,
+  current_states : Array[String],
+) -> Element {
+  match self {
+    Group(g) => Group(g)
+    Rect(r) => Rect({ ..r, meta: { ..r.meta, current_states, } })
+    Circle(c) => Circle({ ..c, meta: { ..c.meta, current_states, } })
+    Line(l) => Line({ ..l, meta: { ..l.meta, current_states, } })
+    Polyline(pl) => Polyline({ ..pl, meta: { ..pl.meta, current_states, } })
+    Polygon(pg) => Polygon({ ..pg, meta: { ..pg.meta, current_states, } })
+    Path(p) => Path({ ..p, meta: { ..p.meta, current_states, } })
+    Text(t) => Text({ ..t, meta: { ..t.meta, current_states, } })
+  }
 }
 
 // ---- builder helpers ----
@@ -318,7 +535,15 @@ pub fn Element::line_colored(
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = { color, width, dash: [], line_cap: "butt", line_join: "miter" }
-  Line({ x1, y1, x2, y2, stroke, opacity: 1.0 })
+  Line({
+    x1,
+    y1,
+    x2,
+    y2,
+    stroke,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -335,7 +560,7 @@ pub fn Element::line_colored_dashed(
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = { color, width, dash, line_cap: "butt", line_join: "miter" }
-  Line({ x1, y1, x2, y2, stroke, opacity })
+  Line({ x1, y1, x2, y2, stroke, opacity, meta: DisplayableMeta::default() })
 }
 
 ///|
@@ -375,7 +600,7 @@ pub fn Element::text_title(
     anchor,
     baseline: TextBaseline::Central, // dominant-baseline="central"
   }
-  Text({ x, y, content, style, opacity: 1.0 })
+  Text({ x, y, content, style, opacity: 1.0, meta: DisplayableMeta::default() })
 }
 
 ///|
@@ -430,6 +655,7 @@ pub fn Element::rect_colored(
     fill: Some({ color, }),
     stroke: None,
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -450,6 +676,7 @@ pub fn Element::rect_colored_opacity(
     fill: Some({ color, }),
     stroke: None,
     opacity,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -467,7 +694,13 @@ pub fn Element::polyline_stroked(
     line_cap: "round",
     line_join: "round",
   }
-  Polyline({ points, stroke, fill: transparent, opacity: 1.0 })
+  Polyline({
+    points,
+    stroke,
+    fill: transparent,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -484,7 +717,13 @@ pub fn Element::polyline_leader(
     line_cap: "butt",
     line_join: "miter",
   }
-  Polyline({ points, stroke, fill: transparent, opacity: 1.0 })
+  Polyline({
+    points,
+    stroke,
+    fill: transparent,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -496,7 +735,15 @@ pub fn Element::circle_colored(
   color_str : String,
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
-  Circle({ cx, cy, r, fill: Some({ color, }), stroke: None, opacity: 1.0 })
+  Circle({
+    cx,
+    cy,
+    r,
+    fill: Some({ color, }),
+    stroke: None,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -509,7 +756,15 @@ pub fn Element::circle_colored_opacity(
   opacity : Double,
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
-  Circle({ cx, cy, r, fill: Some({ color, }), stroke: None, opacity })
+  Circle({
+    cx,
+    cy,
+    r,
+    fill: Some({ color, }),
+    stroke: None,
+    opacity,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -537,6 +792,7 @@ pub fn Element::rect_outlined(
     fill: None,
     stroke: Some(stroke),
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -556,7 +812,15 @@ pub fn Element::circle_stroked(
     line_cap: "butt",
     line_join: "miter",
   }
-  Circle({ cx, cy, r, fill: None, stroke: Some(stroke), opacity: 1.0 })
+  Circle({
+    cx,
+    cy,
+    r,
+    fill: None,
+    stroke: Some(stroke),
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -570,7 +834,13 @@ pub fn Element::path_stroked(d : String, color_str : String) -> Element {
     line_cap: "butt",
     line_join: "miter",
   }
-  Path({ d, fill: None, stroke: Some(stroke), opacity: 1.0 })
+  Path({
+    d,
+    fill: None,
+    stroke: Some(stroke),
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -582,7 +852,13 @@ pub fn Element::path_stroked_round(
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = { color, width, dash: [], line_cap: "round", line_join: "round" }
-  Path({ d, fill: None, stroke: Some(stroke), opacity: 1.0 })
+  Path({
+    d,
+    fill: None,
+    stroke: Some(stroke),
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -593,7 +869,13 @@ pub fn Element::path_filled(
   opacity : Double,
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
-  Path({ d, fill: Some({ color, }), stroke: None, opacity })
+  Path({
+    d,
+    fill: Some({ color, }),
+    stroke: None,
+    opacity,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -618,6 +900,7 @@ pub fn Element::path_fill_stroke(
       line_join: "miter",
     }),
     opacity,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -639,6 +922,7 @@ pub fn Element::polygon_stroked(
       line_join: "miter",
     }),
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -660,6 +944,7 @@ pub fn Element::polygon_stroked_round(
       line_join: "round",
     }),
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -683,6 +968,7 @@ pub fn Element::polygon_fill_stroke(
       line_join: "round",
     }),
     opacity,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -712,6 +998,7 @@ pub fn Element::rect_fill_stroke(
       line_join: "miter",
     }),
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -742,6 +1029,7 @@ pub fn Element::rect_fill_stroke_opacity(
       line_join: "miter",
     }),
     opacity,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -760,6 +1048,7 @@ pub fn Element::polyline_custom(
     stroke: { color, width, dash: [], line_cap, line_join },
     fill: transparent,
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -783,6 +1072,7 @@ pub fn Element::text_custom(
     content,
     style: { fill, font_size, font_family, font_weight, anchor, baseline },
     opacity: 1.0,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -802,6 +1092,7 @@ pub fn Element::polyline_custom_opacity(
     stroke: { color, width, dash: [], line_cap, line_join },
     fill: transparent,
     opacity,
+    meta: DisplayableMeta::default(),
   })
 }
 
@@ -821,5 +1112,6 @@ pub fn Element::path_stroke_custom(
     fill: None,
     stroke: Some({ color, width, dash: [], line_cap, line_join }),
     opacity,
+    meta: DisplayableMeta::default(),
   })
 }
