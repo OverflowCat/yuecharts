@@ -22,6 +22,7 @@ fn series_type_name(series_type : @option.SeriesType) -> String {
     @option.Map => "Map"
     @option.ThemeRiver => "Theme river"
     @option.Parallel => "Parallel coordinates"
+    @option.Tree => "Tree diagram"
   }
 }
 

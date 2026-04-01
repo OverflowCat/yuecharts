@@ -1300,3 +1300,68 @@ test "map data item emphasis style and silent feed svg hover css" {
   assert_true(svg.contains("fill:#ff0000;"))
   assert_true(svg.contains("pointer-events:none;"))
 }
+
+///|
+test "geo top-level emphasis style feeds svg hover css" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "emphasis": {
+    #|      "itemStyle": { "borderColor": "#00ff00", "borderWidth": 3 }
+    #|    },
+    #|    "label": { "show": true }
+    #|  },
+    #|  "series": []
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("stroke:#00ff00;"))
+  assert_true(svg.contains("stroke-width:3;"))
+}
+
+///|
+test "geo top-level silent feeds svg hover css" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "silent": true,
+    #|    "label": { "show": true }
+    #|  },
+    #|  "series": []
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("pointer-events:none;"))
+}

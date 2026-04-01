@@ -194,8 +194,10 @@ pub(all) struct GeoOption {
   map : String
   roam : Bool
   aspect_scale : Double?
+  silent : Bool
   label : GeoLabelOption
   item_style : GeoItemStyleOption
+  states : GeoStatesOption
   name_map : Array[GeoNameMapEntry]
   regions : Array[GeoRegionOption]
 }
@@ -206,8 +208,10 @@ pub impl Default for GeoOption with default() {
     map: "",
     roam: false,
     aspect_scale: None,
+    silent: false,
     label: GeoLabelOption::default(),
     item_style: GeoItemStyleOption::default(),
+    states: GeoStatesOption::default(),
     name_map: [],
     regions: [],
   }
@@ -323,6 +327,7 @@ pub(all) enum SeriesType {
   Gauge
   Map
   ThemeRiver
+  Tree
 } derive(Eq)
 
 ///|
@@ -350,6 +355,7 @@ pub(all) struct DataItem {
   item_style : GeoItemStylePatchOption?
   states : GeoStatesOption
   children : Array[DataItem]
+  collapsed : Bool?
 }
 
 ///|
@@ -427,6 +433,18 @@ pub(all) struct SeriesOption {
   map_value_calculation : MapValueCalculationType
   active_opacity : Double?
   inactive_opacity : Double?
+  // tree chart options
+  tree_layout : String
+  tree_orient : String
+  tree_edge_shape : String
+  tree_edge_fork_position : String
+  tree_left : String
+  tree_top : String
+  tree_right : String
+  tree_bottom : String
+  tree_expand_and_collapse : Bool
+  tree_initial_depth : Int
+  tree_node_scale_ratio : Double
 }
 
 ///|
@@ -491,6 +509,18 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     map_value_calculation: MapValueCalculationType::Sum,
     active_opacity: None,
     inactive_opacity: None,
+    // tree chart options
+    tree_layout: "orthogonal",
+    tree_orient: "LR",
+    tree_edge_shape: "curve",
+    tree_edge_fork_position: "50%",
+    tree_expand_and_collapse: true,
+    tree_initial_depth: 2,
+    tree_left: "12%",
+    tree_top: "12%",
+    tree_right: "12%",
+    tree_bottom: "12%",
+    tree_node_scale_ratio: 0.4,
   }
 }
 
@@ -592,6 +622,28 @@ pub fn SeriesOption::default_sunburst() -> SeriesOption {
 ///|
 pub fn SeriesOption::default_treemap() -> SeriesOption {
   { ..SeriesOption::default_line(), series_type: SeriesType::Treemap }
+}
+
+///|
+pub fn SeriesOption::default_tree() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Tree,
+    symbol_size: 7.0,
+    tree_layout: "orthogonal",
+    tree_orient: "LR",
+    tree_edge_shape: "curve",
+    tree_edge_fork_position: "50%",
+    tree_expand_and_collapse: true,
+    tree_initial_depth: 2,
+    tree_left: "12%",
+    tree_top: "12%",
+    tree_right: "12%",
+    tree_bottom: "12%",
+    tree_node_scale_ratio: 0.4,
+    line_style_curveness: Some(0.5),
+    line_style_width: Some(1.5),
+  }
 }
 
 ///|

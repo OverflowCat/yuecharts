@@ -130,6 +130,7 @@ pub fn Color::from_string(s : String) -> Color? {
     "brown" => Some(Color::rgb(165, 42, 42))
     "gray" | "grey" => Some(Color::rgb(128, 128, 128))
     "lightgray" | "lightgrey" => Some(Color::rgb(211, 211, 211))
+    "lightsteelblue" => Some(Color::rgb(176, 196, 222))
     "darkgray" | "darkgrey" => Some(Color::rgb(169, 169, 169))
     "cyan" => Some(Color::rgb(0, 255, 255))
     "magenta" => Some(Color::rgb(255, 0, 255))

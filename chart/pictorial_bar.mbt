@@ -73,10 +73,7 @@ fn parse_offset_component(value : String, reference : Double) -> Double {
   if value.has_suffix("%") {
     let pct_str = value[:value.length() - 1]
     let parsed = try? @strconv.parse_double(pct_str.to_string())
-    match parsed {
-      Ok(pct) => reference * pct / 100.0
-      Err(_) => 0.0
-    }
+    parsed.unwrap_or(0.0) * reference / 100.0
   } else {
     let parsed = try? @strconv.parse_double(value)
     parsed.unwrap_or(0.0)
@@ -341,23 +338,62 @@ fn render_pictorial_bar_series(
       margin = 0.0
       unit = symbol_h
     }
+    // ECharts positions pictorial symbol bundles at the zero baseline.
+    // bundlePosition[valueDim] = layout[valueDim.xy], which for vertical bars
+    // is the y-coordinate where the bar starts (the zero line for positive values).
+    let bundle_y = zero_y
+
+    // Calculate pathPosition based on symbolPosition and the symbol bundle extent.
+    // sizeFix = pxSign * (pathLen / 2), where pathLen is total symbol extent
+    // and pxSign is -1 for vertical bars (values grow upward, y decreases).
+    let total_path_len = if repeat_times > 1 {
+      repeat_times.to_double() * unit -
+      (if has_end_gap(series) { 0.0 } else { margin * 2.0 })
+    } else {
+      symbol_h
+    }
+    let pxSign = -1.0 // vertical bars grow upward (y decreases)
+    let size_fix = pxSign * (total_path_len / 2.0)
+
+    // pathPosition[valueDim] relative to bundle_y, based on symbolPosition
+    let path_pos_y = match series.symbol_position {
+      Some("center") => 0.0
+      Some("end") => -bounding_length + size_fix
+      _ => size_fix // "start" is default
+    }
+
+    // Apply symbolOffset to pathPosition (not individual symbols!)
     let (offset_x, offset_y) = pictorial_symbol_offset(
       series, symbol_w, symbol_h,
     )
+    let final_path_y = path_pos_y + offset_y
+
     // When symbolClip is true, collect symbols into a sub-array and wrap
-    // with an SVG clipPath that clips to [zero_y - actual_length, zero_y].
-    // This matches ECharts' behavior: the symbol is drawn at full bounding
-    // height but visually clipped to the actual data value height.
+    // with an SVG clipPath that clips to [bundle_y, bundle_y + actual_length].
+    // Note: for vertical bars, actual_length is negative, so the clip rect
+    // extends from value_y upward to zero_y.
     let symbol_buf : Array[@graphic.Element] = []
     let mut ri = 0
     while ri < repeat_times {
-      let slot_index = effective_repeat_slot(series, ri, repeat_times)
-      let slot_top = zero_y - (slot_index + 1).to_double() * unit
-      let raw_symbol_y = if repeat_times > 1 {
-        slot_top + margin / 2.0 + offset_y
+      // Position each symbol relative to the path center.
+      // In JS: position[valueDim] = unit * (i - repeatTimes/2 + 0.5) + pathPosition[valueDim]
+      // The reversal logic in JS is:
+      // if (symbolRepeatDirection === 'start' ? pxSign > 0 : pxSign < 0)
+      //   i = repeatTimes - 1 - index
+      // For vertical bars, pxSign = -1, so:
+      // - if direction='start': check pxSign > 0 => false => i = index
+      // - if direction='end' (default): check pxSign < 0 => true => i = repeatTimes - 1 - index
+      let i = if series.symbol_repeat_direction == Some("start") {
+        ri
+      } else if pxSign < 0.0 {
+        repeat_times - 1 - ri
       } else {
-        single_symbol_y(series, zero_y, bounding_length, symbol_h) + offset_y
+        ri
       }
+      let symbol_rel_y = unit *
+        (i.to_double() - repeat_times.to_double() / 2.0 + 0.5)
+      let raw_symbol_y = bundle_y + final_path_y + symbol_rel_y
+
       let sym = @graphic.make_symbol(
         item_symbol,
         bar_x + offset_x,
@@ -372,13 +408,13 @@ fn render_pictorial_bar_series(
     }
     if symbol_buf.length() > 0 {
       if series.symbol_clip {
-        // Use a wide clip rect that restricts only the Y axis to
-        // [zero_y - actual_length, zero_y], matching ECharts' clipPath approach.
+        // Clip to the actual data value extent.
+        // For vertical bars: clip from value_y (top) to zero_y (bottom).
+        // The clip rect y is the min of the two, and height is the absolute difference.
+        let clip_top = if value_y < zero_y { value_y } else { zero_y }
+        let clip_height = actual_length.abs()
         let clip_rect = @graphic.BBox::new(
-          -10000.0,
-          zero_y - actual_length,
-          20000.0,
-          actual_length,
+          -10000.0, clip_top, 20000.0, clip_height,
         )
         elems.push(@graphic.Element::group_clipped(symbol_buf, clip_rect))
       } else {

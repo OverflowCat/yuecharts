@@ -1,0 +1,43 @@
+{
+  "width": 600,
+  "height": 600,
+  "series": [
+    {
+      "type": "tree",
+      "data": [
+        {
+          "name": "Core",
+          "children": [
+            {
+              "name": "Alpha",
+              "children": [
+                { "name": "a1" },
+                { "name": "a2" }
+              ]
+            },
+            {
+              "name": "Beta",
+              "children": [
+                { "name": "b1" },
+                { "name": "b2" },
+                { "name": "b3" }
+              ]
+            },
+            {
+              "name": "Gamma",
+              "children": [
+                { "name": "g1" }
+              ]
+            }
+          ]
+        }
+      ],
+      "layout": "radial",
+      "top": "10%",
+      "left": "10%",
+      "bottom": "10%",
+      "right": "10%",
+      "expandAndCollapse": false
+    }
+  ]
+}

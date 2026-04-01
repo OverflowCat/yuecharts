@@ -239,8 +239,10 @@ fn parse_geo_option(j : Json) -> GeoOption {
     map: j_string(j, "map", base.map),
     roam: j_bool(j, "roam", base.roam),
     aspect_scale: j_number_opt(j, "aspectScale"),
+    silent: j_bool(j, "silent", base.silent),
     label: parse_geo_label_option(j_field_or_self(j, "label")),
     item_style: parse_geo_item_style_option(j_field_or_self(j, "itemStyle")),
+    states: parse_geo_states_option(j),
     name_map: parse_geo_name_map(j),
     regions: j_parse_array(j, "regions", parse_geo_region_option, []),
   }
@@ -763,6 +765,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "gauge" => SeriesType::Gauge
     "map" => SeriesType::Map
     "themeRiver" => SeriesType::ThemeRiver
+    "tree" => SeriesType::Tree
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -779,6 +782,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Gauge => SeriesOption::default_gauge()
     Map => SeriesOption::default_map()
     ThemeRiver => SeriesOption::default_theme_river()
+    Tree => SeriesOption::default_tree()
     _ => SeriesOption::default_line()
   }
   // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
@@ -892,6 +896,30 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let inactive_opacity = j_number_opt(j, "inactiveOpacity")
   let silent = j_bool(j, "silent", base.silent)
   let states = parse_geo_states_option(j)
+  // tree chart options
+  let tree_layout = j_string(j, "layout", base.tree_layout)
+  let tree_orient = j_string(j, "orient", base.tree_orient)
+  let tree_edge_shape = j_string(j, "edgeShape", base.tree_edge_shape)
+  let tree_edge_fork_position = j_string(
+    j,
+    "edgeForkPosition",
+    base.tree_edge_fork_position,
+  )
+  let tree_expand_and_collapse = j_bool(
+    j,
+    "expandAndCollapse",
+    base.tree_expand_and_collapse,
+  )
+  let tree_initial_depth = j_int(j, "initialTreeDepth", base.tree_initial_depth)
+  let tree_left = j_string(j, "left", base.tree_left)
+  let tree_top = j_string(j, "top", base.tree_top)
+  let tree_right = j_string(j, "right", base.tree_right)
+  let tree_bottom = j_string(j, "bottom", base.tree_bottom)
+  let tree_node_scale_ratio = j_number(
+    j,
+    "nodeScaleRatio",
+    base.tree_node_scale_ratio,
+  )
   {
     series_type,
     name,
@@ -952,6 +980,17 @@ fn parse_series_option(j : Json) -> SeriesOption {
     map_value_calculation,
     active_opacity,
     inactive_opacity,
+    tree_layout,
+    tree_orient,
+    tree_edge_shape,
+    tree_edge_fork_position,
+    tree_expand_and_collapse,
+    tree_initial_depth,
+    tree_left,
+    tree_top,
+    tree_right,
+    tree_bottom,
+    tree_node_scale_ratio,
   }
 }
 
@@ -973,6 +1012,7 @@ fn parse_data_item(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     Null =>
       {
@@ -989,6 +1029,7 @@ fn parse_data_item(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     True =>
       {
@@ -1005,6 +1046,7 @@ fn parse_data_item(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     False =>
       {
@@ -1021,6 +1063,7 @@ fn parse_data_item(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     Array(arr) => parse_data_array_item(arr)
     { "value": Number(n, ..), .. } => parse_data_object(j, DataValue::Num(n))
@@ -1042,6 +1085,7 @@ fn parse_data_item(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
   }
 }
@@ -1062,6 +1106,7 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     item_style: None,
     states: GeoStatesOption::default(),
     children: [],
+    collapsed: None,
   }
 }
 
@@ -1092,6 +1137,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     Array([Number(x, ..), Number(val, ..), String(name)]) => {
       let key = if x.to_int().to_double() == x {
@@ -1113,6 +1159,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     }
     Array([String(date), Number(val, ..)]) =>
@@ -1130,6 +1177,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     Array([Number(x, ..), Number(val, ..)]) => {
       let key = if x.to_int().to_double() == x {
@@ -1151,6 +1199,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
+        collapsed: None,
       }
     }
     _ => parse_data_item(j)
@@ -1684,6 +1733,11 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     None => None
   }
   let children = j_parse_array(j, "children", parse_data_item, [])
+  let collapsed = match j_field(j, "collapsed") {
+    Some(True) => Some(true)
+    Some(False) => Some(false)
+    _ => None
+  }
   {
     value,
     raw_value_parts,
@@ -1698,6 +1752,7 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     item_style,
     states: parse_geo_states_option(j),
     children,
+    collapsed,
   }
 }
 

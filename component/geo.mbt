@@ -55,7 +55,21 @@ fn geo_region_silent(region_opt : @option.GeoRegionOption?) -> Bool {
 }
 
 ///|
+fn geo_state_item_style(
+  states : @option.GeoStatesOption,
+  state_name : String,
+) -> @option.GeoItemStylePatchOption? {
+  match state_name {
+    "emphasis" => states.emphasis.bind(state => state.item_style)
+    "select" => states.select.bind(state => state.item_style)
+    "blur" => states.blur.bind(state => state.item_style)
+    _ => None
+  }
+}
+
+///|
 fn geo_region_state_style(
+  geo_opt : @option.GeoOption,
   region_opt : @option.GeoRegionOption?,
   state_name : String,
 ) -> @graphic.DisplayStateStyle? {
@@ -65,9 +79,9 @@ fn geo_region_state_style(
         "emphasis" => region.states.emphasis.bind(state => state.item_style)
         "select" => region.states.select.bind(state => state.item_style)
         "blur" => region.states.blur.bind(state => state.item_style)
-        _ => None
+        _ => geo_state_item_style(geo_opt.states, state_name)
       }
-    None => None
+    None => geo_state_item_style(geo_opt.states, state_name)
   }
   style.map(style => {
     fill: style.area_color,
@@ -172,9 +186,9 @@ pub fn render_geo_component(
     let polygons = region.screen_polygon_rings(geo)
     let border_color = geo_region_border_color(geo_opt, region_opt)
     let border_width = geo_region_border_width(geo_opt, region_opt)
-    let silent = geo_region_silent(region_opt)
-    let emphasis_style = geo_region_state_style(region_opt, "emphasis")
-    let select_style = geo_region_state_style(region_opt, "select")
+    let silent = geo_opt.silent || geo_region_silent(region_opt)
+    let emphasis_style = geo_region_state_style(geo_opt, region_opt, "emphasis")
+    let select_style = geo_region_state_style(geo_opt, region_opt, "select")
     let mut polygon_index = 0
     while polygon_index < polygons.length() {
       elems.push(
@@ -199,7 +213,7 @@ pub fn render_geo_component(
           @graphic.TextAnchor::Middle,
           @graphic.TextBaseline::Middle,
           geo_region_label_color(geo_opt, region_opt),
-        ),
+        ).with_silent(silent),
       )
     }
     region_index += 1

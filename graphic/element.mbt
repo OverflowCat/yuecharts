@@ -824,6 +824,35 @@ pub fn Element::circle_stroked(
 }
 
 ///|
+/// Circle with both a fill and a stroke.
+pub fn Element::circle_fill_stroke(
+  cx : Double,
+  cy : Double,
+  r : Double,
+  fill_str : String,
+  stroke_str : String,
+  stroke_width : Double,
+) -> Element {
+  let fill_color = Color::from_string(fill_str).unwrap_or(black)
+  let stroke_color = Color::from_string(stroke_str).unwrap_or(black)
+  Circle({
+    cx,
+    cy,
+    r,
+    fill: Some({ color: fill_color }),
+    stroke: Some({
+      color: stroke_color,
+      width: stroke_width,
+      dash: [],
+      line_cap: "butt",
+      line_join: "miter",
+    }),
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
+}
+
+///|
 /// Path stroked with a CSS/hex color string.
 pub fn Element::path_stroked(d : String, color_str : String) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)

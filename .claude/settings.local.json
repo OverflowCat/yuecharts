@@ -4,7 +4,8 @@
       "Bash(xargs wc:*)",
       "Bash(find:*)",
       "mcp__zread__read_file",
-      "mcp__zread__search_doc"
+      "mcp__zread__search_doc",
+      "Bash(moon build:*)"
     ]
   }
 }

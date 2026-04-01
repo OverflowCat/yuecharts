@@ -142,6 +142,14 @@ pub impl @core.ChartViewLike for GaugeChartView with render(_self, ctx) {
 }
 
 ///|
+struct TreeChartView {}
+
+///|
+pub impl @core.ChartViewLike for TreeChartView with render(_self, ctx) {
+  render_trees(ctx.option, ctx.coord)
+}
+
+///|
 struct ThemeRiverChartView {}
 
 ///|
@@ -391,6 +399,18 @@ pub fn install_theme_river(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_tree(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/tree/install.ts
+  // echarts/src/chart/tree/TreeSeries.ts
+  // echarts/src/chart/tree/TreeView.ts
+  // layout: echarts/src/chart/tree/treeLayout.ts
+  // visual: echarts/src/chart/tree/treeVisual.ts
+  register_chart(registry, @option.SeriesType::Tree, false, false, TreeChartView::{
+
+  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_bar(registry)
   install_heatmap(registry)
@@ -410,4 +430,5 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_radar(registry)
   install_gauge(registry)
   install_theme_river(registry)
+  install_tree(registry)
 }
