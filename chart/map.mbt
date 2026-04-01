@@ -502,12 +502,18 @@ fn map_label_state_style(
 }
 
 ///|
+fn map_item_is_selected(item : @option.DataItem?) -> Bool {
+  item.bind(data_item => data_item.selected).unwrap_or(false)
+}
+
+///|
 fn render_map_region_polygon(
   rings : Array[Array[@graphic.Point]],
   fill : String,
   stroke_color_str : String,
   stroke_width : Double,
   silent : Bool,
+  selected : Bool,
   emphasis_style : @graphic.DisplayStateStyle?,
   select_style : @graphic.DisplayStateStyle?,
 ) -> @graphic.Element {
@@ -522,9 +528,14 @@ fn render_map_region_polygon(
     Some(style) => element.with_emphasis_style(style)
     None => element.with_emphasis_style(@graphic.DisplayStateStyle::default())
   }
-  match select_style {
+  let element = match select_style {
     Some(style) => element.with_select_style(style)
     None => element
+  }
+  if selected {
+    element.with_current_states(["select"])
+  } else {
+    element
   }
 }
 
@@ -598,6 +609,7 @@ pub fn render_maps(
             let silent = item
               .bind(data_item => data_item.silent)
               .unwrap_or(series.silent)
+            let selected = map_item_is_selected(item)
             let emphasis_style = map_region_state_style(
               geo_opt,
               series,
@@ -622,6 +634,7 @@ pub fn render_maps(
                   stroke_color,
                   stroke_width,
                   silent,
+                  selected,
                   emphasis_style,
                   select_style,
                 ),
@@ -646,6 +659,11 @@ pub fn render_maps(
               let label = match map_label_state_style(series, item, "select") {
                 Some(style) => label.with_select_style(style)
                 None => label
+              }
+              let label = if selected {
+                label.with_current_states(["select"])
+              } else {
+                label
               }
               elems.push(label)
             }

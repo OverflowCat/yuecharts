@@ -197,6 +197,7 @@ pub(all) struct GeoRegionOption {
   name : String
   label : GeoLabelPatchOption?
   item_style : GeoItemStylePatchOption?
+  selected : Bool?
   silent : Bool?
   states : GeoStatesOption
 }
@@ -363,6 +364,7 @@ pub(all) struct DataItem {
   from_name : String?
   to_name : String?
   cursor : String?
+  selected : Bool?
   silent : Bool?
   label : GeoLabelPatchOption?
   item_style : GeoItemStylePatchOption?

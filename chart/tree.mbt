@@ -102,6 +102,7 @@ fn tree_build(
     from_name: None,
     to_name: None,
     cursor: None,
+    selected: None,
     silent: None,
     label: None,
     item_style: None,

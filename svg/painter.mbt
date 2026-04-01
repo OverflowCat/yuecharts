@@ -162,6 +162,107 @@ fn current_state_contains(
 }
 
 ///|
+fn active_display_style(
+  meta : @graphic.DisplayableMeta,
+) -> @graphic.DisplayStateStyle? {
+  if current_state_contains(meta.current_states, "select") {
+    meta.states.select
+  } else if current_state_contains(meta.current_states, "blur") {
+    meta.states.blur
+  } else if current_state_contains(meta.current_states, "emphasis") {
+    meta.states.emphasis
+  } else {
+    None
+  }
+}
+
+///|
+fn active_fill_value(
+  meta : @graphic.DisplayableMeta,
+  normal_fill : String?,
+) -> String? {
+  match active_display_style(meta) {
+    Some(style) =>
+      match style.fill {
+        Some(fill) => Some(fill)
+        None => normal_fill
+      }
+    None => normal_fill
+  }
+}
+
+///|
+fn active_stroke_value(
+  meta : @graphic.DisplayableMeta,
+  normal_stroke : String?,
+) -> String? {
+  match active_display_style(meta) {
+    Some(style) =>
+      match style.stroke {
+        Some(stroke) => Some(stroke)
+        None => normal_stroke
+      }
+    None => normal_stroke
+  }
+}
+
+///|
+fn active_line_width_value(
+  meta : @graphic.DisplayableMeta,
+  normal_line_width : Double?,
+) -> Double? {
+  match active_display_style(meta) {
+    Some(style) =>
+      match style.line_width {
+        Some(line_width) => Some(line_width)
+        None => normal_line_width
+      }
+    None => normal_line_width
+  }
+}
+
+///|
+fn fill_string_attr(color_str : String) -> String {
+  " fill=\"\{color_str}\""
+}
+
+///|
+fn write_stroke_attr_from_base(
+  buf : StringBuilder,
+  stroke_color : String?,
+  stroke_width : Double?,
+  dash : Array[Double],
+  line_cap : String,
+  line_join : String,
+) -> Unit {
+  match stroke_color {
+    Some(stroke_color) => {
+      buf.write_string(" stroke=\"\{stroke_color}\"")
+      match stroke_width {
+        Some(stroke_width) =>
+          buf.write_string(" stroke-width=\"\{stroke_width}\"")
+        None => ()
+      }
+      if dash.length() > 0 {
+        let dash_str = dash
+          .iter()
+          .map(fn(d) { d.to_string() })
+          .collect()
+          .join(",")
+        buf.write_string(" stroke-dasharray=\"\{dash_str}\"")
+      }
+      if line_cap != "butt" {
+        buf.write_string(" stroke-linecap=\"\{line_cap}\"")
+      }
+      if line_join != "miter" {
+        buf.write_string(" stroke-linejoin=\"\{line_join}\"")
+      }
+    }
+    None => buf.write_string(" stroke=\"none\"")
+  }
+}
+
+///|
 fn emphasis_fill_value(
   meta : @graphic.DisplayableMeta,
   normal_fill : String?,
@@ -339,29 +440,52 @@ fn render_rect(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
+  let fill_value = active_fill_value(
+    r.meta,
+    r.fill.map(fill => fill.color.to_svg()),
+  )
+  let stroke_value = active_stroke_value(
+    r.meta,
+    r.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    r.meta,
+    r.stroke.map(stroke => stroke.width),
+  )
   buf.write_string(indent)
   buf.write_string(
     "<rect x=\"\{r.bbox.x}\" y=\"\{r.bbox.y}\" width=\"\{r.bbox.width}\" height=\"\{r.bbox.height}\"",
   )
-  write_displayable_class_attr(
-    buf,
-    r.meta,
-    r.fill.map(fill => fill.color.to_svg()),
-    scope,
-  )
+  write_displayable_class_attr(buf, r.meta, fill_value, scope)
   if r.rx > 0.0 {
     buf.write_string(" rx=\"\{r.rx}\"")
   }
   if r.ry > 0.0 {
     buf.write_string(" ry=\"\{r.ry}\"")
   }
-  match r.fill {
-    Some(f) => buf.write_string(fill_attr(f.color))
+  match fill_value {
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
   }
   match r.stroke {
-    Some(s) => buf.write_string(stroke_attrs(s))
-    None => buf.write_string(" stroke=\"none\"")
+    Some(s) =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
   }
   buf.write_string(opacity_attr(r.opacity))
   buf.write_string("/>\n")
@@ -374,21 +498,44 @@ fn render_circle(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  buf.write_string(indent)
-  buf.write_string("<circle cx=\"\{c.cx}\" cy=\"\{c.cy}\" r=\"\{c.r}\"")
-  write_displayable_class_attr(
-    buf,
+  let fill_value = active_fill_value(
     c.meta,
     c.fill.map(fill => fill.color.to_svg()),
-    scope,
   )
-  match c.fill {
-    Some(f) => buf.write_string(fill_attr(f.color))
+  let stroke_value = active_stroke_value(
+    c.meta,
+    c.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    c.meta,
+    c.stroke.map(stroke => stroke.width),
+  )
+  buf.write_string(indent)
+  buf.write_string("<circle cx=\"\{c.cx}\" cy=\"\{c.cy}\" r=\"\{c.r}\"")
+  write_displayable_class_attr(buf, c.meta, fill_value, scope)
+  match fill_value {
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
   }
   match c.stroke {
-    Some(s) => buf.write_string(stroke_attrs(s))
-    None => buf.write_string(" stroke=\"none\"")
+    Some(s) =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
   }
   buf.write_string(opacity_attr(c.opacity))
   buf.write_string("/>\n")
@@ -401,12 +548,21 @@ fn render_line(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
+  let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color.to_svg()))
+  let stroke_width = active_line_width_value(l.meta, Some(l.stroke.width))
   buf.write_string(indent)
   buf.write_string(
     "<line x1=\"\{l.x1}\" y1=\"\{l.y1}\" x2=\"\{l.x2}\" y2=\"\{l.y2}\"",
   )
   write_displayable_class_attr(buf, l.meta, None, scope)
-  buf.write_string(stroke_attrs(l.stroke))
+  write_stroke_attr_from_base(
+    buf,
+    stroke_value,
+    stroke_width,
+    l.stroke.dash,
+    l.stroke.line_cap,
+    l.stroke.line_join,
+  )
   buf.write_string(" fill=\"none\"")
   buf.write_string(opacity_attr(l.opacity))
   buf.write_string("/>\n")
@@ -419,11 +575,27 @@ fn render_polyline(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
+  let fill_value = active_fill_value(pl.meta, Some(pl.fill.to_svg()))
+  let stroke_value = active_stroke_value(
+    pl.meta,
+    Some(pl.stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(pl.meta, Some(pl.stroke.width))
   buf.write_string(indent)
   buf.write_string("<polyline points=\"\{points_to_svg(pl.points)}\"")
-  write_displayable_class_attr(buf, pl.meta, Some(pl.fill.to_svg()), scope)
-  buf.write_string(fill_attr(pl.fill))
-  buf.write_string(stroke_attrs(pl.stroke))
+  write_displayable_class_attr(buf, pl.meta, fill_value, scope)
+  match fill_value {
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
+    None => buf.write_string(" fill=\"none\"")
+  }
+  write_stroke_attr_from_base(
+    buf,
+    stroke_value,
+    stroke_width,
+    pl.stroke.dash,
+    pl.stroke.line_cap,
+    pl.stroke.line_join,
+  )
   buf.write_string(opacity_attr(pl.opacity))
   buf.write_string("/>\n")
 }
@@ -435,21 +607,44 @@ fn render_polygon(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  buf.write_string(indent)
-  buf.write_string("<polygon points=\"\{points_to_svg(pg.points)}\"")
-  write_displayable_class_attr(
-    buf,
+  let fill_value = active_fill_value(
     pg.meta,
     pg.fill.map(fill => fill.color.to_svg()),
-    scope,
   )
-  match pg.fill {
-    Some(f) => buf.write_string(fill_attr(f.color))
+  let stroke_value = active_stroke_value(
+    pg.meta,
+    pg.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    pg.meta,
+    pg.stroke.map(stroke => stroke.width),
+  )
+  buf.write_string(indent)
+  buf.write_string("<polygon points=\"\{points_to_svg(pg.points)}\"")
+  write_displayable_class_attr(buf, pg.meta, fill_value, scope)
+  match fill_value {
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
   }
   match pg.stroke {
-    Some(s) => buf.write_string(stroke_attrs(s))
-    None => buf.write_string(" stroke=\"none\"")
+    Some(s) =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
   }
   buf.write_string(opacity_attr(pg.opacity))
   buf.write_string("/>\n")
@@ -462,21 +657,44 @@ fn render_path(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  buf.write_string(indent)
-  buf.write_string("<path d=\"\{p.d}\"")
-  write_displayable_class_attr(
-    buf,
+  let fill_value = active_fill_value(
     p.meta,
     p.fill.map(fill => fill.color.to_svg()),
-    scope,
   )
-  match p.fill {
-    Some(f) => buf.write_string(fill_attr(f.color))
+  let stroke_value = active_stroke_value(
+    p.meta,
+    p.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    p.meta,
+    p.stroke.map(stroke => stroke.width),
+  )
+  buf.write_string(indent)
+  buf.write_string("<path d=\"\{p.d}\"")
+  write_displayable_class_attr(buf, p.meta, fill_value, scope)
+  match fill_value {
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
   }
   match p.stroke {
-    Some(s) => buf.write_string(stroke_attrs(s))
-    None => buf.write_string(" stroke=\"none\"")
+    Some(s) =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      write_stroke_attr_from_base(
+        buf,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
   }
   buf.write_string(opacity_attr(p.opacity))
   buf.write_string("/>\n")
@@ -491,10 +709,11 @@ fn render_text(
 ) -> Unit {
   buf.write_string(indent)
   let s = t.style
-  buf.write_string(
-    "<text x=\"\{t.x}\" y=\"\{t.y}\" fill=\"\{s.fill.to_svg()}\"",
+  let fill_value = active_fill_value(t.meta, Some(s.fill.to_svg())).unwrap_or(
+    s.fill.to_svg(),
   )
-  write_displayable_class_attr(buf, t.meta, Some(s.fill.to_svg()), scope)
+  buf.write_string("<text x=\"\{t.x}\" y=\"\{t.y}\" fill=\"\{fill_value}\"")
+  write_displayable_class_attr(buf, t.meta, Some(fill_value), scope)
   buf.write_string(" font-size=\"\{s.font_size}\"")
   if s.font_family != "sans-serif" {
     buf.write_string(" font-family=\"\{s.font_family}\"")

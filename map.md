@@ -58,6 +58,8 @@ E:\yuecharts
 │   ├── radar.mbt
 │   ├── scatter.mbt
 │   ├── sunburst.mbt
+│   ├── themeRiver.mbt
+│   ├── tree.mbt
 │   └── treemap.mbt
 ├── cmd
 │   └── main
@@ -163,6 +165,9 @@ existing `.mbt` comments.
 - `zrender/src/svg/cssClassId.ts => svg/painter.mbt [partial]`: MoonBit now allocates deduplicated renderer class ids, but only inside the current simplified painter scope.
 - `zrender/src/svg/helper.ts => svg/painter.mbt [missing]`: helper-level renderer parity is still incomplete around non-color/pattern style emission dependencies.
 - `echarts/src/component/helper/MapDraw.ts => chart/map.mbt, component/geo.mbt, option/types.mbt, option/parse.mbt [partial]`: MoonBit now parses and applies the static subset of `silent`, normal partial `itemStyle`, and `emphasis/select/blur.itemStyle` for map data items and geo regions, but still lacks the full event/high-down/label-state pipeline from upstream `MapDraw`.
+- `echarts/src/component/helper/MapDraw.ts => chart/map.mbt, component/geo.mbt, option/types.mbt, option/parse.mbt [partial]`: MoonBit now parses and applies the static subset of `silent`, normal partial `itemStyle`, `label`, and `emphasis/select/blur.{itemStyle,label}` for map data items, map series, geo regions, and top-level geo, but still lacks the full event/high-down/label-layout pipeline from upstream `MapDraw`.
+- `zrender/src/graphic/Displayable.ts => graphic/element.mbt, svg/painter.mbt [partial]`: MoonBit now applies current `select` state styles to rendered SVG attrs for the static subset, but still lacks full zrender state-proxy/z2 behavior.
+- `echarts/src/coord/geo/GeoModel.ts => option/types.mbt, option/parse.mbt, coord/geo.mbt [partial]`: MoonBit now carries the static subset of top-level `geo.silent` plus `emphasis/select/blur.itemStyle` fallback used by `MapDraw`, but still lacks the upstream selected-mode, label formatter, and model-method parity.
 
 ```text
 zrender
@@ -265,7 +270,7 @@ E:\recharts\echarts\src
 │   ├── SeriesData.ts =>  [missing] Feature: series data container
 │   ├── SeriesDimensionDefine.ts =>  [missing] Feature: dimension schema
 │   ├── Source.ts =>  [missing] Feature: dataset source abstraction
-│   ├── Tree.ts =>  [missing] Feature: tree data structure
+│   ├── Tree.ts => chart/tree.mbt [partial] Feature: tree data structure
 │   └── helper
 │       ├── createDimensions.ts =>  [missing] Feature: dimension creation
 │       ├── dataProvider.ts =>  [missing] Feature: source data provider
@@ -662,7 +667,7 @@ E:\recharts\echarts\src
 │   ├── scatter.ts => chart/scatter.mbt [partial] Feature: scatter chart entry
 │   ├── sunburst.ts => chart/sunburst.mbt [partial] Feature: sunburst chart entry
 │   ├── themeRiver.ts => chart/install.mbt [partial] Feature: themeRiver chart entry
-│   ├── tree.ts =>  [missing] Feature: tree chart entry
+│   ├── tree.ts => chart/tree.mbt [partial] Feature: tree chart entry
 │   └── treemap.ts => chart/treemap.mbt [partial] Feature: treemap chart entry
 │   │
 │   ├── helper
@@ -816,14 +821,14 @@ E:\recharts\echarts\src
 │   │   └── SankeyView.ts =>  [missing] Feature: sankey renderer
 │   │
 │   ├── tree
-│   │   ├── install.ts =>  [missing] Feature: tree install
-│   │   ├── layoutHelper.ts =>  [missing] Feature: tree layout helper
-│   │   ├── traversalHelper.ts =>  [missing] Feature: tree traversal helper
+│   │   ├── install.ts => chart/install.mbt [partial] Feature: tree install
+│   │   ├── layoutHelper.ts => chart/tree.mbt [translated] Feature: tree layout helper (Reingold-Tilford)
+│   │   ├── traversalHelper.ts => chart/tree.mbt [translated] Feature: tree traversal helper
 │   │   ├── treeAction.ts =>  [missing] Feature: tree action
-│   │   ├── treeLayout.ts =>  [missing] Feature: tree layout
-│   │   ├── TreeSeries.ts =>  [missing] Feature: tree series model
-│   │   ├── treeVisual.ts =>  [missing] Feature: tree visual
-│   │   └── TreeView.ts =>  [missing] Feature: tree renderer
+│   │   ├── treeLayout.ts => chart/tree.mbt [translated] Feature: tree layout
+│   │   ├── TreeSeries.ts => chart/tree.mbt [partial] Feature: tree series model
+│   │   ├── treeVisual.ts => chart/tree.mbt [partial] Feature: tree visual
+│   │   └── TreeView.ts => chart/tree.mbt [partial] Feature: tree renderer
 │   │
 │   ├── themeRiver
 │   │   ├── install.ts =>  [missing] Feature: themeRiver install

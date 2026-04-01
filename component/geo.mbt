@@ -55,6 +55,14 @@ fn geo_region_silent(region_opt : @option.GeoRegionOption?) -> Bool {
 }
 
 ///|
+fn geo_region_is_selected(region_opt : @option.GeoRegionOption?) -> Bool {
+  match region_opt {
+    Some(region) => region.selected.unwrap_or(false)
+    None => false
+  }
+}
+
+///|
 fn geo_state_item_style(
   states : @option.GeoStatesOption,
   state_name : String,
@@ -88,11 +96,9 @@ fn geo_region_state_style(
 ) -> @graphic.DisplayStateStyle? {
   let style = match region_opt {
     Some(region) =>
-      match state_name {
-        "emphasis" => region.states.emphasis.bind(state => state.item_style)
-        "select" => region.states.select.bind(state => state.item_style)
-        "blur" => region.states.blur.bind(state => state.item_style)
-        _ => geo_state_item_style(geo_opt.states, state_name)
+      match geo_state_item_style(region.states, state_name) {
+        Some(style) => Some(style)
+        None => geo_state_item_style(geo_opt.states, state_name)
       }
     None => geo_state_item_style(geo_opt.states, state_name)
   }
@@ -160,6 +166,7 @@ fn render_geo_region_outline(
   border_color : String,
   border_width : Double,
   silent : Bool,
+  selected : Bool,
   emphasis_style : @graphic.DisplayStateStyle?,
   select_style : @graphic.DisplayStateStyle?,
 ) -> @graphic.Element {
@@ -175,9 +182,14 @@ fn render_geo_region_outline(
     Some(style) => element.with_emphasis_style(style)
     None => element
   }
-  match select_style {
+  let element = match select_style {
     Some(style) => element.with_select_style(style)
     None => element
+  }
+  if selected {
+    element.with_current_states(["select"])
+  } else {
+    element
   }
 }
 
@@ -226,6 +238,7 @@ pub fn render_geo_component(
     let border_color = geo_region_border_color(geo_opt, region_opt)
     let border_width = geo_region_border_width(geo_opt, region_opt)
     let silent = geo_opt.silent || geo_region_silent(region_opt)
+    let selected = geo_region_is_selected(region_opt)
     let emphasis_style = geo_region_state_style(geo_opt, region_opt, "emphasis")
     let select_style = geo_region_state_style(geo_opt, region_opt, "select")
     let mut polygon_index = 0
@@ -236,6 +249,7 @@ pub fn render_geo_component(
           border_color,
           border_width,
           silent,
+          selected,
           emphasis_style,
           select_style,
         ),
@@ -261,6 +275,11 @@ pub fn render_geo_component(
         geo_region_label_state_style(geo_opt, region_opt, "select") {
         Some(style) => label.with_select_style(style)
         None => label
+      }
+      let label = if selected {
+        label.with_current_states(["select"])
+      } else {
+        label
       }
       elems.push(label)
     }

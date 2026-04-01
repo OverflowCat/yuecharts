@@ -378,6 +378,11 @@ fn parse_geo_region_option(j : Json) -> GeoRegionOption {
       Some(value) => Some(parse_geo_item_style_patch_option(value))
       None => None
     },
+    selected: match j_field(j, "selected") {
+      Some(True) => Some(true)
+      Some(False) => Some(false)
+      _ => None
+    },
     silent: match j_field(j, "silent") {
       Some(True) => Some(true)
       Some(False) => Some(false)
@@ -1029,6 +1034,7 @@ fn parse_data_item(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1047,6 +1053,7 @@ fn parse_data_item(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1065,6 +1072,7 @@ fn parse_data_item(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1083,6 +1091,7 @@ fn parse_data_item(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1106,6 +1115,7 @@ fn parse_data_item(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1128,6 +1138,7 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     from_name: None,
     to_name: None,
     cursor: None,
+    selected: None,
     silent: None,
     label: None,
     item_style: None,
@@ -1160,6 +1171,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1183,6 +1195,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1202,6 +1215,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1225,6 +1239,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         from_name: None,
         to_name: None,
         cursor: None,
+        selected: None,
         silent: None,
         label: None,
         item_style: None,
@@ -1754,6 +1769,11 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
   let from_name = j_string_opt(j, "fromName")
   let to_name = j_string_opt(j, "toName")
   let cursor = j_string_opt(j, "cursor")
+  let selected = match j_field(j, "selected") {
+    Some(True) => Some(true)
+    Some(False) => Some(false)
+    _ => None
+  }
   let silent = match j_field(j, "silent") {
     Some(True) => Some(true)
     Some(False) => Some(false)
@@ -1783,6 +1803,7 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     from_name,
     to_name,
     cursor,
+    selected,
     silent,
     label,
     item_style,

@@ -1430,3 +1430,83 @@ test "geo label emphasis color feeds text hover css" {
   assert_true(svg.contains(">Alpha</text>"))
   assert_true(svg.contains("fill:#00ffff;"))
 }
+
+///|
+test "map selected item applies current select style in static svg" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "label": { "show": true, "color": "#111111" },
+    #|    "select": {
+    #|      "itemStyle": { "areaColor": "#ff8800" },
+    #|      "label": { "color": "#0088ff" }
+    #|    },
+    #|    "data": [{
+    #|      "name": "Alpha",
+    #|      "value": 1,
+    #|      "selected": true
+    #|    }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill=\"#ff8800\""))
+  assert_true(svg.contains("<text x=\"130\" y=\"90\" fill=\"#0088ff\""))
+}
+
+///|
+test "geo selected region applies current select style in static svg" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "label": { "show": true, "color": "#111111" },
+    #|    "select": {
+    #|      "itemStyle": { "borderColor": "#ff0000", "borderWidth": 2 },
+    #|      "label": { "color": "#00aa00" }
+    #|    },
+    #|    "regions": [{
+    #|      "name": "Alpha",
+    #|      "selected": true
+    #|    }]
+    #|  },
+    #|  "series": []
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("stroke=\"#ff0000\""))
+  assert_true(svg.contains("stroke-width=\"2\""))
+  assert_true(svg.contains("<text x=\"130\" y=\"90\" fill=\"#00aa00\""))
+}
