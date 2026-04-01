@@ -328,6 +328,7 @@ fn parse_geo_item_style_option(j : Json) -> GeoItemStyleOption {
 ///|
 fn parse_geo_item_style_patch_option(j : Json) -> GeoItemStylePatchOption {
   {
+    color: j_string_opt(j, "color"),
     area_color: j_string_opt(j, "areaColor"),
     border_color: j_string_opt(j, "borderColor"),
     border_width: j_number_opt(j, "borderWidth"),
@@ -415,6 +416,9 @@ fn parse_geo_label_option(j : Json) -> GeoLabelOption {
   {
     show: j_bool(j, "show", base.show),
     color: j_string(j, "color", base.color),
+    position: j_string_opt(j, "position"),
+    distance: j_number_opt(j, "distance"),
+    font_weight: j_string_opt(j, "fontWeight"),
   }
 }
 
@@ -427,6 +431,9 @@ fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
       _ => None
     },
     color: j_string_opt(j, "color"),
+    position: j_string_opt(j, "position"),
+    distance: j_number_opt(j, "distance"),
+    font_weight: j_string_opt(j, "fontWeight"),
   }
 }
 
@@ -787,6 +794,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "map" => SeriesType::Map
     "themeRiver" => SeriesType::ThemeRiver
     "tree" => SeriesType::Tree
+    "chord" => SeriesType::Chord
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -804,6 +812,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Map => SeriesOption::default_map()
     ThemeRiver => SeriesOption::default_theme_river()
     Tree => SeriesOption::default_tree()
+    Chord => SeriesOption::default_chord()
     _ => SeriesOption::default_line()
   }
   // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
@@ -814,7 +823,21 @@ fn parse_series_option(j : Json) -> SeriesOption {
       } else {
         arr.map(parse_data_item)
       }
+    None =>
+      match j_field(j, "nodes") {
+        Some(Array(arr)) => arr.map(parse_data_item)
+        _ => base.data
+      }
     _ => base.data
+  }
+  let link_data = match j_field(j, "links") {
+    Some(Array(arr)) => arr.map(parse_data_item)
+    None =>
+      match j_field(j, "edges") {
+        Some(Array(arr)) => arr.map(parse_data_item)
+        _ => base.link_data
+      }
+    _ => base.link_data
   }
   let name = j_string_opt(j, "name")
   let x_axis_index = j_int(j, "xAxisIndex", base.x_axis_index)
@@ -887,7 +910,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   }
   let label = match j_field(j, "label") {
     Some(value) => Some(parse_geo_label_option(value))
-    None => None
+    None => base.label
   }
   let area_style = match j_field(j, "areaStyle") {
     None => base.area_style
@@ -898,13 +921,23 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let smooth = j_bool(j, "smooth", base.smooth)
   let polyline = j_bool(j, "polyline", base.polyline)
   let line_style = j_field_or_self(j, "lineStyle")
-  let line_style_color = j_string_opt(line_style, "color")
-  let line_style_width = j_number_opt(line_style, "width")
-  let line_style_opacity = j_number_opt(line_style, "opacity")
+  let line_style_color = match j_string_opt(line_style, "color") {
+    Some(color) => Some(color)
+    None => base.line_style_color
+  }
+  let line_style_width = match j_number_opt(line_style, "width") {
+    Some(width) => Some(width)
+    None => base.line_style_width
+  }
+  let line_style_opacity = match j_number_opt(line_style, "opacity") {
+    Some(opacity) => Some(opacity)
+    None => base.line_style_opacity
+  }
   let line_style_curveness = j_number_opt(line_style, "curveness")
   let radius = j_stringish_array(j, "radius", base.radius)
   let center = j_stringish_array(j, "center", base.center)
   let min_angle = j_number(j, "minAngle", base.min_angle)
+  let pad_angle = j_number(j, "padAngle", base.pad_angle)
   let clockwise = j_bool(j, "clockwise", base.clockwise)
   let start_angle = j_number(j, "startAngle", base.start_angle)
   let end_angle = j_number(j, "endAngle", base.end_angle)
@@ -949,6 +982,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     series_type,
     name,
     data,
+    link_data,
     symbol,
     symbol_size_values,
     symbol_repeat,
@@ -997,6 +1031,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     radius,
     center,
     min_angle,
+    pad_angle,
     clockwise,
     start_angle,
     end_angle,
@@ -1028,7 +1063,10 @@ fn parse_data_item(j : Json) -> DataItem {
         value: DataValue::Num(n),
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: None,
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1047,7 +1085,10 @@ fn parse_data_item(j : Json) -> DataItem {
         value: DataValue::Null,
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: None,
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1066,7 +1107,10 @@ fn parse_data_item(j : Json) -> DataItem {
         value: DataValue::Num(1.0),
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: None,
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1085,7 +1129,10 @@ fn parse_data_item(j : Json) -> DataItem {
         value: DataValue::Num(0.0),
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: None,
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1109,7 +1156,10 @@ fn parse_data_item(j : Json) -> DataItem {
         value: DataValue::Null,
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: None,
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1132,7 +1182,10 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     value: parse_data_array_value(arr),
     raw_value_parts: Some(arr),
     raw_item: None,
+    id: None,
     name: None,
+    source: None,
+    target: None,
     symbol: None,
     coords: None,
     from_name: None,
@@ -1165,7 +1218,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         value: DataValue::DateValue(date, val),
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: Some(name),
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1189,7 +1245,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         value: DataValue::DateValue(key, val),
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: Some(name),
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1209,7 +1268,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         value: DataValue::DateValue(date, val),
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: None,
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1233,7 +1295,10 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         value: DataValue::DateValue(key, val),
         raw_value_parts: None,
         raw_item: None,
+        id: None,
         name: None,
+        source: None,
+        target: None,
         symbol: None,
         coords: None,
         from_name: None,
@@ -1763,7 +1828,10 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     Some(Array(arr)) => Some(arr)
     _ => None
   }
+  let id = j_string_or_number_as_string_opt(j, "id", None)
   let name = j_string_opt(j, "name")
+  let source = j_string_or_number_as_string_opt(j, "source", None)
+  let target = j_string_or_number_as_string_opt(j, "target", None)
   let symbol = j_string_opt(j, "symbol")
   let coords = parse_data_coords(j)
   let from_name = j_string_opt(j, "fromName")
@@ -1797,7 +1865,10 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     value,
     raw_value_parts,
     raw_item: Some(j),
+    id,
     name,
+    source,
+    target,
     symbol,
     coords,
     from_name,

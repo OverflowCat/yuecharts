@@ -120,22 +120,34 @@ pub impl Default for PolarOption with default() {
 pub(all) struct GeoLabelOption {
   show : Bool
   color : String
+  position : String?
+  distance : Double?
+  font_weight : String?
 }
 
 ///|
 pub impl Default for GeoLabelOption with default() {
-  { show: false, color: "#54555a" }
+  {
+    show: false,
+    color: "#54555a",
+    position: None,
+    distance: None,
+    font_weight: None,
+  }
 }
 
 ///|
 pub(all) struct GeoLabelPatchOption {
   show : Bool?
   color : String?
+  position : String?
+  distance : Double?
+  font_weight : String?
 }
 
 ///|
 pub impl Default for GeoLabelPatchOption with default() {
-  { show: None, color: None }
+  { show: None, color: None, position: None, distance: None, font_weight: None }
 }
 
 ///|
@@ -159,6 +171,7 @@ pub impl Default for GeoItemStyleOption with default() {
 
 ///|
 pub(all) struct GeoItemStylePatchOption {
+  color : String?
   area_color : String?
   border_color : String?
   border_width : Double?
@@ -166,7 +179,7 @@ pub(all) struct GeoItemStylePatchOption {
 
 ///|
 pub impl Default for GeoItemStylePatchOption with default() {
-  { area_color: None, border_color: None, border_width: None }
+  { color: None, area_color: None, border_color: None, border_width: None }
 }
 
 ///|
@@ -341,6 +354,7 @@ pub(all) enum SeriesType {
   Map
   ThemeRiver
   Tree
+  Chord
 } derive(Eq)
 
 ///|
@@ -358,7 +372,10 @@ pub(all) struct DataItem {
   value : DataValue
   raw_value_parts : Array[Json]?
   raw_item : Json?
+  id : String?
   name : String?
+  source : String?
+  target : String?
   symbol : String?
   coords : Array[Array[Double]]?
   from_name : String?
@@ -387,6 +404,7 @@ pub(all) struct SeriesOption {
   series_type : SeriesType
   name : String?
   data : Array[DataItem]
+  link_data : Array[DataItem]
   symbol : String?
   symbol_size_values : Array[String]?
   symbol_repeat : String?
@@ -439,6 +457,7 @@ pub(all) struct SeriesOption {
   center : Array[String]
   // For sunburst charts
   min_angle : Double // option degrees, default 0
+  pad_angle : Double // option degrees, default varies by series
   clockwise : Bool // default true
   // For gauge charts
   start_angle : Double // option degrees, default 225 (ECharts GaugeSeries.ts default)
@@ -469,6 +488,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     series_type: SeriesType::Line,
     name: None,
     data: [],
+    link_data: [],
     symbol: None,
     symbol_size_values: None,
     symbol_repeat: None,
@@ -517,6 +537,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     radius: [],
     center: [],
     min_angle: 0.0,
+    pad_angle: 0.0,
     clockwise: true,
     start_angle: 225.0,
     end_angle: -45.0,
@@ -660,6 +681,31 @@ pub fn SeriesOption::default_tree() -> SeriesOption {
     tree_node_scale_ratio: 0.4,
     line_style_curveness: Some(0.5),
     line_style_width: Some(1.5),
+  }
+}
+
+///|
+pub fn SeriesOption::default_chord() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Chord,
+    coordinate_system: Some("none"),
+    center: ["50%", "50%"],
+    radius: ["70%", "80%"],
+    clockwise: true,
+    start_angle: 90.0,
+    min_angle: 0.0,
+    pad_angle: 3.0,
+    line_style_color: Some("source"),
+    line_style_width: Some(0.0),
+    line_style_opacity: Some(0.2),
+    label: Some({
+      show: true,
+      color: "#54555a",
+      position: Some("outside"),
+      distance: Some(5.0),
+      font_weight: None,
+    }),
   }
 }
 

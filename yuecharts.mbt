@@ -97,7 +97,28 @@ fn filter_series_data_by_legend(
     }
     i += 1
   }
-  { ..series, data: filtered }
+  let filtered_links : Array[@option.DataItem] = []
+  if series.series_type == @option.SeriesType::Chord {
+    let mut link_index = 0
+    while link_index < series.link_data.length() {
+      let item = series.link_data[link_index]
+      let source_selected = is_legend_selected(opt, item.source)
+      let target_selected = is_legend_selected(opt, item.target)
+      if source_selected && target_selected {
+        filtered_links.push(item)
+      }
+      link_index += 1
+    }
+  }
+  {
+    ..series,
+    data: filtered,
+    link_data: if series.series_type == @option.SeriesType::Chord {
+      filtered_links
+    } else {
+      series.link_data
+    },
+  }
 }
 
 ///|

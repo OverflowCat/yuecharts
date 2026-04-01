@@ -158,6 +158,14 @@ pub impl @core.ChartViewLike for ThemeRiverChartView with render(_self, ctx) {
 }
 
 ///|
+struct ChordChartView {}
+
+///|
+pub impl @core.ChartViewLike for ChordChartView with render(_self, ctx) {
+  render_chords(ctx.option, ctx.coord)
+}
+
+///|
 fn register_chart(
   registry : @core.Registry,
   series_type : @option.SeriesType,
@@ -411,6 +419,18 @@ pub fn install_tree(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_chord(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/chord/install.ts
+  // echarts/src/chart/chord/ChordSeries.ts
+  // echarts/src/chart/chord/ChordView.ts
+  // layout: echarts/src/chart/chord/chordLayout.ts
+  // processor: echarts/src/processor/dataFilter.ts
+  register_chart(registry, @option.SeriesType::Chord, true, false, ChordChartView::{
+
+  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_bar(registry)
   install_heatmap(registry)
@@ -431,4 +451,5 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_gauge(registry)
   install_theme_river(registry)
   install_tree(registry)
+  install_chord(registry)
 }

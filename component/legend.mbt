@@ -56,7 +56,7 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
   while ci < opt.series.length() {
     let s = opt.series[ci]
     match s.series_type {
-      @option.Pie | @option.Funnel | @option.Sunburst =>
+      @option.Pie | @option.Funnel | @option.Sunburst | @option.Chord =>
         append_data_legend_items(items, lg, s, ci)
       _ =>
         match s.name {
