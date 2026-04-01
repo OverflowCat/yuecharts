@@ -341,6 +341,10 @@ fn parse_geo_state_option(j : Json) -> GeoStateOption {
       Some(value) => Some(parse_geo_item_style_patch_option(value))
       None => None
     },
+    label: match j_field(j, "label") {
+      Some(value) => Some(parse_geo_label_patch_option(value))
+      None => None
+    },
   }
 }
 
@@ -367,7 +371,7 @@ fn parse_geo_region_option(j : Json) -> GeoRegionOption {
   {
     name: j_string(j, "name", ""),
     label: match j_field(j, "label") {
-      Some(value) => Some(parse_geo_label_option(value))
+      Some(value) => Some(parse_geo_label_patch_option(value))
       None => None
     },
     item_style: match j_field(j, "itemStyle") {
@@ -406,6 +410,18 @@ fn parse_geo_label_option(j : Json) -> GeoLabelOption {
   {
     show: j_bool(j, "show", base.show),
     color: j_string(j, "color", base.color),
+  }
+}
+
+///|
+fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
+  {
+    show: match j_field(j, "show") {
+      Some(True) => Some(true)
+      Some(False) => Some(false)
+      _ => None
+    },
+    color: j_string_opt(j, "color"),
   }
 }
 
@@ -864,6 +880,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
       }
     _ => None
   }
+  let label = match j_field(j, "label") {
+    Some(value) => Some(parse_geo_label_option(value))
+    None => None
+  }
   let area_style = match j_field(j, "areaStyle") {
     None => base.area_style
     Some(Null) => base.area_style
@@ -962,6 +982,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     line_style_curveness,
     item_style,
     item_opacity,
+    label,
     geo_item_style,
     silent,
     states,
@@ -1009,6 +1030,7 @@ fn parse_data_item(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1026,6 +1048,7 @@ fn parse_data_item(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1043,6 +1066,7 @@ fn parse_data_item(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1060,6 +1084,7 @@ fn parse_data_item(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1082,6 +1107,7 @@ fn parse_data_item(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1103,6 +1129,7 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     to_name: None,
     cursor: None,
     silent: None,
+    label: None,
     item_style: None,
     states: GeoStatesOption::default(),
     children: [],
@@ -1134,6 +1161,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1156,6 +1184,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1174,6 +1203,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1196,6 +1226,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         to_name: None,
         cursor: None,
         silent: None,
+        label: None,
         item_style: None,
         states: GeoStatesOption::default(),
         children: [],
@@ -1728,6 +1759,10 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     Some(False) => Some(false)
     _ => None
   }
+  let label = match j_field(j, "label") {
+    Some(value) => Some(parse_geo_label_patch_option(value))
+    None => None
+  }
   let item_style = match j_field(j, "itemStyle") {
     Some(style) => Some(parse_geo_item_style_patch_option(style))
     None => None
@@ -1749,6 +1784,7 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     to_name,
     cursor,
     silent,
+    label,
     item_style,
     states: parse_geo_states_option(j),
     children,

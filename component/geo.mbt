@@ -68,6 +68,19 @@ fn geo_state_item_style(
 }
 
 ///|
+fn geo_state_label(
+  states : @option.GeoStatesOption,
+  state_name : String,
+) -> @option.GeoLabelPatchOption? {
+  match state_name {
+    "emphasis" => states.emphasis.bind(state => state.label)
+    "select" => states.select.bind(state => state.label)
+    "blur" => states.blur.bind(state => state.label)
+    _ => None
+  }
+}
+
+///|
 fn geo_region_state_style(
   geo_opt : @option.GeoOption,
   region_opt : @option.GeoRegionOption?,
@@ -98,7 +111,7 @@ fn geo_region_label_show(
 ) -> Bool {
   match region_opt {
     Some(region) =>
-      region.label.map(label => label.show).unwrap_or(geo_opt.label.show)
+      region.label.bind(label => label.show).unwrap_or(geo_opt.label.show)
     None => geo_opt.label.show
   }
 }
@@ -110,8 +123,34 @@ fn geo_region_label_color(
 ) -> String {
   match region_opt {
     Some(region) =>
-      region.label.map(label => label.color).unwrap_or(geo_opt.label.color)
+      region.label.bind(label => label.color).unwrap_or(geo_opt.label.color)
     None => geo_opt.label.color
+  }
+}
+
+///|
+fn geo_region_label_state_style(
+  geo_opt : @option.GeoOption,
+  region_opt : @option.GeoRegionOption?,
+  state_name : String,
+) -> @graphic.DisplayStateStyle? {
+  let label = match region_opt {
+    Some(region) =>
+      match geo_state_label(region.states, state_name) {
+        Some(label) => Some(label)
+        None => geo_state_label(geo_opt.states, state_name)
+      }
+    None => geo_state_label(geo_opt.states, state_name)
+  }
+  match label {
+    Some(label) =>
+      Some({
+        fill: label.color,
+        stroke: None,
+        line_width: None,
+        stroke_no_scale: false,
+      })
+    None => None
   }
 }
 
@@ -205,16 +244,25 @@ pub fn render_geo_component(
     }
     if geo_region_label_show(geo_opt, region_opt) {
       let center = region.screen_center(geo)
-      elems.push(
-        @graphic.Element::text_colored(
-          center.x,
-          center.y,
-          region.name,
-          @graphic.TextAnchor::Middle,
-          @graphic.TextBaseline::Middle,
-          geo_region_label_color(geo_opt, region_opt),
-        ).with_silent(silent),
-      )
+      let label = @graphic.Element::text_colored(
+        center.x,
+        center.y,
+        region.name,
+        @graphic.TextAnchor::Middle,
+        @graphic.TextBaseline::Middle,
+        geo_region_label_color(geo_opt, region_opt),
+      ).with_silent(silent)
+      let label = match
+        geo_region_label_state_style(geo_opt, region_opt, "emphasis") {
+        Some(style) => label.with_emphasis_style(style)
+        None => label
+      }
+      let label = match
+        geo_region_label_state_style(geo_opt, region_opt, "select") {
+        Some(style) => label.with_select_style(style)
+        None => label
+      }
+      elems.push(label)
     }
     region_index += 1
   }

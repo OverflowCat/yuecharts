@@ -103,6 +103,7 @@ fn tree_build(
     to_name: None,
     cursor: None,
     silent: None,
+    label: None,
     item_style: None,
     states: @option.GeoStatesOption::default(),
     children: data,

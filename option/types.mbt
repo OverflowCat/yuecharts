@@ -128,6 +128,17 @@ pub impl Default for GeoLabelOption with default() {
 }
 
 ///|
+pub(all) struct GeoLabelPatchOption {
+  show : Bool?
+  color : String?
+}
+
+///|
+pub impl Default for GeoLabelPatchOption with default() {
+  { show: None, color: None }
+}
+
+///|
 /// Corresponds to: echarts/src/coord/geo/GeoModel.ts
 pub(all) struct GeoNameMapEntry {
   from_name : String
@@ -161,11 +172,12 @@ pub impl Default for GeoItemStylePatchOption with default() {
 ///|
 pub(all) struct GeoStateOption {
   item_style : GeoItemStylePatchOption?
+  label : GeoLabelPatchOption?
 }
 
 ///|
 pub impl Default for GeoStateOption with default() {
-  { item_style: None }
+  { item_style: None, label: None }
 }
 
 ///|
@@ -183,7 +195,7 @@ pub impl Default for GeoStatesOption with default() {
 ///|
 pub(all) struct GeoRegionOption {
   name : String
-  label : GeoLabelOption?
+  label : GeoLabelPatchOption?
   item_style : GeoItemStylePatchOption?
   silent : Bool?
   states : GeoStatesOption
@@ -352,6 +364,7 @@ pub(all) struct DataItem {
   to_name : String?
   cursor : String?
   silent : Bool?
+  label : GeoLabelPatchOption?
   item_style : GeoItemStylePatchOption?
   states : GeoStatesOption
   children : Array[DataItem]
@@ -412,6 +425,7 @@ pub(all) struct SeriesOption {
   line_style_curveness : Double?
   item_style : String? // color override
   item_opacity : Double?
+  label : GeoLabelOption?
   geo_item_style : GeoItemStylePatchOption?
   silent : Bool
   states : GeoStatesOption
@@ -491,6 +505,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     line_style_curveness: None,
     item_style: None,
     item_opacity: None,
+    label: None,
     geo_item_style: None,
     silent: false,
     states: GeoStatesOption::default(),

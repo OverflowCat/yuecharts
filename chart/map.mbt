@@ -37,6 +37,19 @@ fn map_region_state_item_style(
 }
 
 ///|
+fn map_region_state_label(
+  states : @option.GeoStatesOption,
+  state_name : String,
+) -> @option.GeoLabelPatchOption? {
+  match state_name {
+    "emphasis" => states.emphasis.bind(state => state.label)
+    "select" => states.select.bind(state => state.label)
+    "blur" => states.blur.bind(state => state.label)
+    _ => None
+  }
+}
+
+///|
 fn map_series_group_key(
   opt : @option.ChartOption,
   series : @option.SeriesOption,
@@ -446,6 +459,49 @@ fn map_region_state_style(
 }
 
 ///|
+fn map_label_show(
+  series : @option.SeriesOption,
+  item : @option.DataItem?,
+) -> Bool {
+  item
+  .bind(data_item => data_item.label.bind(label => label.show))
+  .unwrap_or(series.label.map(label => label.show).unwrap_or(false))
+}
+
+///|
+fn map_label_color(
+  series : @option.SeriesOption,
+  item : @option.DataItem?,
+) -> String {
+  item
+  .bind(data_item => data_item.label.bind(label => label.color))
+  .unwrap_or(series.label.map(label => label.color).unwrap_or("#54555a"))
+}
+
+///|
+fn map_label_state_style(
+  series : @option.SeriesOption,
+  item : @option.DataItem?,
+  state_name : String,
+) -> @graphic.DisplayStateStyle? {
+  let label = match
+    item.bind(data_item => map_region_state_label(data_item.states, state_name)) {
+    Some(label) => Some(label)
+    None => map_region_state_label(series.states, state_name)
+  }
+  match label {
+    Some(label) =>
+      Some({
+        fill: label.color,
+        stroke: None,
+        line_width: None,
+        stroke_no_scale: false,
+      })
+    None => None
+  }
+}
+
+///|
 fn render_map_region_polygon(
   rings : Array[Array[@graphic.Point]],
   fill : String,
@@ -571,6 +627,27 @@ pub fn render_maps(
                 ),
               )
               polygon_index += 1
+            }
+            if map_label_show(series, item) {
+              let center = region.screen_center(geo)
+              let label = @graphic.Element::text_colored(
+                center.x,
+                center.y,
+                region.name,
+                @graphic.TextAnchor::Middle,
+                @graphic.TextBaseline::Middle,
+                map_label_color(series, item),
+              ).with_silent(silent)
+              let label = match
+                map_label_state_style(series, item, "emphasis") {
+                Some(style) => label.with_emphasis_style(style)
+                None => label
+              }
+              let label = match map_label_state_style(series, item, "select") {
+                Some(style) => label.with_select_style(style)
+                None => label
+              }
+              elems.push(label)
             }
             region_index += 1
           }

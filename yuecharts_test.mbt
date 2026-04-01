@@ -1365,3 +1365,68 @@ test "geo top-level silent feeds svg hover css" {
   let svg = @yuecharts.render(json_str)
   assert_true(svg.contains("pointer-events:none;"))
 }
+
+///|
+test "map label emphasis color feeds text hover css" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "label": { "show": true, "color": "#111111" },
+    #|    "emphasis": { "label": { "color": "#ff00ff" } },
+    #|    "data": [{ "name": "Alpha", "value": 1 }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Alpha</text>"))
+  assert_true(svg.contains("fill:#ff00ff;"))
+}
+
+///|
+test "geo label emphasis color feeds text hover css" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "label": { "show": true, "color": "#111111" },
+    #|    "emphasis": { "label": { "color": "#00ffff" } }
+    #|  },
+    #|  "series": []
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Alpha</text>"))
+  assert_true(svg.contains("fill:#00ffff;"))
+}
