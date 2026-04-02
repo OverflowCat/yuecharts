@@ -1416,8 +1416,7 @@ pub fn paint_utf8(
   background : @graphic.Color?,
   accessibility : SvgAccessibility?,
 ) -> Bytes {
-  xml_to_pretty_utf8(
-    paint_xml(elements, width, height, background, accessibility),
+  paint_xml(elements, width, height, background, accessibility).to_pretty_utf8(
     "  ",
   )
 }
@@ -1430,8 +1429,7 @@ pub fn paint_utf16le(
   background : @graphic.Color?,
   accessibility : SvgAccessibility?,
 ) -> Bytes {
-  xml_to_pretty_utf16le(
-    paint_xml(elements, width, height, background, accessibility),
+  paint_xml(elements, width, height, background, accessibility).to_pretty_utf16le(
     "  ",
   )
 }

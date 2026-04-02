@@ -9,7 +9,7 @@ test "xml builder escaped text and attrs" {
     [XmlNode::text_escaped("<hi>")],
   )
   assert_eq(
-    xml_to_string(node),
+    node.to_string(),
     "<text data-v=\"a&amp;b\" focusable>&lt;hi&gt;</text>",
   )
 }
@@ -20,7 +20,7 @@ test "xml builder raw text keeps cdata" {
     XmlNode::text_raw("<![CDATA[\n.a:hover { fill:red; }\n]]>"),
   ])
   assert_eq(
-    xml_to_string(node),
+    node.to_string(),
     "<style><![CDATA[\n.a:hover { fill:red; }\n]]></style>",
   )
 }
@@ -32,8 +32,8 @@ test "xml builder pretty utf8 matches pretty string" {
     [XmlAttr::new("xmlns", "http://www.w3.org/2000/svg")],
     [XmlNode::empty("rect", [XmlAttr::new("width", "10")])],
   )
-  let pretty = xml_to_pretty_string(node, "  ")
-  let utf8 = xml_to_pretty_utf8(node, "  ")
+  let pretty = node.to_pretty_string("  ")
+  let utf8 = node.to_pretty_utf8("  ")
   assert_eq(@utf8.decode_lossy(utf8[:]), pretty)
 }
 
@@ -42,8 +42,8 @@ test "xml builder utf16le decodes back" {
   let node = XmlNode::element("svg", [], [
     XmlNode::element("text", [], [XmlNode::text_escaped("A中")]),
   ])
-  let pretty = xml_to_pretty_string(node, "  ")
-  let utf16 = xml_to_pretty_utf16le(node, "  ")
+  let pretty = node.to_pretty_string("  ")
+  let utf16 = node.to_pretty_utf16le("  ")
   let decoded = @utf16.decode_lossy(
     utf16[:],
     ignore_bom=true,
