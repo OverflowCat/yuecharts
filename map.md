@@ -28,7 +28,23 @@ Excluded on purpose:
   - `translated`: there is a focused MoonBit file covering the file's core role
   - `partial`: the logic is merged into a broader `.mbt` file, or only a subset
     of the TS behavior exists
+
+## 2026-04-03 Polar Radius Axis Note
+
+- `coord/polar.mbt` now covers the current static subset of linear polar tick-to-coordinate mapping from `Polar.ts` / `RadiusAxis.ts`, so rendered tick positions use axis coordinates rather than raw data values.
+- `component/axis.mbt` now covers the current static subset of `RadiusAxisView.ts` / `AxisBuilder.ts` for radius-axis tick and label placement: both are offset along the axis normal (perpendicular to the axis line) instead of by increasing the radius.
+- Related blackbox coverage now includes a polar bar fixture that asserts `radiusAxis` split circles at `r=40/80/120/160` and label offsets at `x=292` for the default top-start axis.
+
+## 2026-04-02 Tree Note
+
+- `chart/tree.mbt` now covers the current static subset of `TreeSeries.ts` / `TreeView.ts` leaves-parentModel inheritance, per-node `itemStyle` / `label` / `lineStyle` / `symbolSize` overrides, radial label rotation, and `empty*` vs non-`empty*` tree symbol color semantics.
+- Related comparison fixtures now include `examples/tree-leaves.json`, `examples/tree-radial.json`, and `examples/tree-symbols.json`.
   - `missing`: no real port exists yet
+
+## 2026-04-02 Sankey Note
+
+- `chart/sankey.mbt` now covers the current static subset of `SankeySeries.ts` / `sankeyLayout.ts` / `SankeyView.ts` / `sankeyVisual.ts` for DAG node-edge construction, node value aggregation, breadth/depth layout, horizontal/vertical rendering, `nodeAlign`, series/level node and edge style inheritance, and static labels.
+- Related comparison fixtures now include `examples/sankey.json`, `examples/sankey-vertical.json`, and `examples/sankey-levels.json`.
 
 ## Current yuecharts tree
 
@@ -57,6 +73,7 @@ E:\yuecharts
 │   ├── pictorial_bar.mbt
 │   ├── pie.mbt
 │   ├── radar.mbt
+│   ├── sankey.mbt
 │   ├── scatter.mbt
 │   ├── sunburst.mbt
 │   ├── themeRiver.mbt
@@ -132,6 +149,9 @@ E:\yuecharts
 │   ├── polar-line2.jsgen.svg / .jsgen.ref.svg
 │   ├── parallel.json / .svg / .ref.svg
 │   ├── radar.json / .svg
+│   ├── sankey.json / .svg / .ref.svg
+│   ├── sankey-levels.json / .svg / .ref.svg
+│   ├── sankey-vertical.json / .svg / .ref.svg
 │   ├── scatter.json / .svg / .ref.svg
 │   ├── sunburst.json / .svg / .echarts.svg
 │   └── treemap.json / .svg / .ref.svg
@@ -144,7 +164,9 @@ E:\yuecharts
 │   └── interval_wbtest.mbt
 ├── svg
 │   ├── moon.pkg
-│   └── painter.mbt
+│   ├── painter.mbt
+│   ├── xml_node.mbt
+│   └── xml_node_wbtest.mbt
 ├── tools
 │   ├── compare.ps1
 │   ├── eval-option.js
@@ -167,9 +189,9 @@ dependencies for the current MoonBit port and are explicitly referenced by the
 existing `.mbt` comments.
 
 ### Current port gap: Hover-style
-- `zrender/src/svg/Painter.ts => svg/painter.mbt [partial]`: MoonBit now emits `<style><![CDATA[...]]></style>` for renderer-owned hover CSS, but still lacks full vnode/defs/animation parity.
-- `zrender/src/svg/core.ts => svg/painter.mbt [partial]`: MoonBit now has first-pass CSS rule serialization, but not the upstream vnode/attrs abstraction.
-- `zrender/src/svg/graphic.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now carries displayable state metadata into SVG serialization, but still lacks the broader brush/meta pipeline.
+- `zrender/src/svg/Painter.ts => svg/painter.mbt [partial]`: MoonBit covers the static SVG serialization path plus `paint_xml` / direct UTF-8 / UTF-16LE output helpers, but still lacks upstream DOM-mode refresh/patch flow, defs assembly parity, and animation wiring.
+- `zrender/src/svg/core.ts => svg/xml_node.mbt, svg/painter.mbt [partial]`: MoonBit now has a lightweight XML node / attr / text builder plus direct string and encoded-byte serializers, but not the full upstream `SVGVNode` shape, `createSVGVNode`, or browser DOM helpers.
+- `zrender/src/svg/graphic.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now carries displayable state metadata into both string serialization and XML-node construction, but still lacks the broader brush/meta pipeline, pattern/gradient/filter defs, and image handling parity.
 - `zrender/src/svg/cssEmphasis.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now emits `:hover` class rules from element emphasis state, but only for the current static color/stroke-width subset.
 - `zrender/src/svg/cssClassId.ts => svg/painter.mbt [partial]`: MoonBit now allocates deduplicated renderer class ids, but only inside the current simplified painter scope.
 - `zrender/src/svg/helper.ts => svg/painter.mbt [missing]`: helper-level renderer parity is still incomplete around non-color/pattern style emission dependencies.
@@ -191,7 +213,8 @@ zrender
 │   │   └── shape
 │   │       └── * => graphic/element.mbt [partial] Feature: rect/circle/line/polygon primitives
 │   ├── svg
-│   │   └── Painter.ts => svg/painter.mbt [translated] Feature: SVG serialization
+│   │   ├── core.ts => svg/xml_node.mbt, svg/painter.mbt [partial] Feature: lightweight vnode-like XML serialization subset
+│   │   └── Painter.ts => svg/painter.mbt [partial] Feature: static SVG serialization + XML node bridge
 │   └── tool
 │       └── color.ts => graphic/color.mbt [translated] Feature: color parsing and interpolation
 ```
@@ -672,7 +695,7 @@ E:\recharts\echarts\src
 │   ├── pictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar chart entry
 │   ├── pie.ts => chart/pie.mbt [partial] Feature: pie chart entry
 │   ├── radar.ts => chart/radar.mbt [partial] Feature: radar chart entry
-│   ├── sankey.ts =>  [missing] Feature: sankey chart entry
+│   ├── sankey.ts => chart/install.mbt, chart/sankey.mbt [partial] Feature: sankey chart entry
 │   ├── scatter.ts => chart/scatter.mbt [partial] Feature: scatter chart entry
 │   ├── sunburst.ts => chart/sunburst.mbt [partial] Feature: sunburst chart entry
 │   ├── themeRiver.ts => chart/install.mbt [partial] Feature: themeRiver chart entry
@@ -681,7 +704,7 @@ E:\recharts\echarts\src
 │   │
 │   ├── helper
 │   │   ├── createClipPathFromCoordSys.ts =>  [missing] Feature: series clip path helper
-│   │   ├── createGraphFromNodeEdge.ts => chart/chord.mbt [partial] Feature: graph/sankey/chord data builder
+│   │   ├── createGraphFromNodeEdge.ts => chart/chord.mbt, chart/sankey.mbt [partial] Feature: graph/sankey/chord data builder
 │   │   ├── createRenderPlanner.ts =>  [missing] Feature: progressive render planner
 │   │   ├── createSeriesData.ts =>  [missing] Feature: general series data creation
 │   │   ├── createSeriesDataSimply.ts =>  [missing] Feature: simple series data creation
@@ -823,11 +846,11 @@ E:\recharts\echarts\src
 │   │   └── install.ts => chart/install.mbt [partial] Feature: chord install
 │   │
 │   ├── sankey
-│   │   ├── install.ts =>  [missing] Feature: sankey install
-│   │   ├── sankeyLayout.ts =>  [missing] Feature: sankey layout
-│   │   ├── SankeySeries.ts =>  [missing] Feature: sankey series model
-│   │   ├── sankeyVisual.ts =>  [missing] Feature: sankey visual
-│   │   └── SankeyView.ts =>  [missing] Feature: sankey renderer
+│   │   ├── install.ts => chart/install.mbt [partial] Feature: sankey install
+│   │   ├── sankeyLayout.ts => chart/sankey.mbt [translated] Feature: sankey layout
+│   │   ├── SankeySeries.ts => chart/sankey.mbt, option/types.mbt, option/parse.mbt [partial] Feature: sankey series model
+│   │   ├── sankeyVisual.ts => chart/sankey.mbt [partial] Feature: sankey visual
+│   │   └── SankeyView.ts => chart/sankey.mbt [translated] Feature: sankey renderer
 │   │
 │   ├── tree
 │   │   ├── install.ts => chart/install.mbt [partial] Feature: tree install
@@ -887,7 +910,8 @@ E:\recharts\echarts\src
     │   ├── graphic/color.mbt [color parsing]
     │   ├── graphic/element.mbt [scene graph primitives]
     │   ├── graphic/transform.mbt [transform matrix subset]
-    │   └── svg/painter.mbt [SVG serialization]
+    │   ├── svg/painter.mbt [string serializer + XML-node-backed encoded output bridge]
+    │   └── svg/xml_node.mbt [lightweight XML node builder + UTF-8 / UTF-16LE serializers]
     └── Important parity gap:
         Most translated MoonBit files currently merge multiple TS files into one
         renderer-oriented `.mbt`, so many TS `SeriesModel` / `install.ts` /

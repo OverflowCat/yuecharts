@@ -157,7 +157,11 @@ pub fn PolarAxis::ticks(
 ) -> Array[@OverflowCat/yuecharts/scale.Tick] {
   match self.scale {
     Linear(scale) =>
-      scale.ticks(5).map(fn(tick) { { value: tick.value, label: tick.label } })
+      scale
+      .ticks(5)
+      .map(fn(tick) {
+        { value: scale.data_to_pixel(tick.value), label: tick.label }
+      })
     Ordinal(scale) =>
       scale.ticks().map(fn(tick) { { value: tick.value, label: tick.label } })
   }

@@ -414,31 +414,56 @@ fn render_radius_axis(
 ) -> Unit {
   let axis = polar.radius_axis
   let axis_angle = polar.angle_axis.extent_start
+  let axis_radian = axis_angle / 180.0 * @math.PI
+  let unit_x = @math.cos(axis_radian)
+  let unit_y = -@math.sin(axis_radian)
+  let tick_normal_x = unit_y
+  let tick_normal_y = -unit_x
   let radius_ticks = axis.ticks()
   let mut i = 0
   while i < radius_ticks.length() {
     let tick = radius_ticks[i]
     let radius = tick.value
-    let line_start = polar.coord_to_point(radius, axis_angle)
-    let line_end = polar.coord_to_point(radius + 4.0, axis_angle)
+    let axis_pt = polar.coord_to_point(radius, axis_angle)
+    let line_end : @graphic.Point = {
+      x: axis_pt.x + tick_normal_x * 5.0,
+      y: axis_pt.y + tick_normal_y * 5.0,
+    }
     elems.push(
       @graphic.Element::line_colored(
-        line_start.x,
-        line_start.y,
+        axis_pt.x,
+        axis_pt.y,
         line_end.x,
         line_end.y,
         axis_line_color,
         1.0,
       ),
     )
-    let label_pt = polar.coord_to_point(radius + 12.0, axis_angle)
+    let label_pt : @graphic.Point = {
+      x: axis_pt.x + tick_normal_x * 8.0,
+      y: axis_pt.y + tick_normal_y * 8.0,
+    }
+    let anchor : @graphic.TextAnchor = if tick_normal_x.abs() < 0.3 {
+      @graphic.TextAnchor::Middle
+    } else if tick_normal_x > 0.0 {
+      @graphic.TextAnchor::Start
+    } else {
+      @graphic.TextAnchor::End
+    }
+    let baseline : @graphic.TextBaseline = if tick_normal_y.abs() < 0.3 {
+      @graphic.TextBaseline::Middle
+    } else if tick_normal_y > 0.0 {
+      @graphic.TextBaseline::Top
+    } else {
+      @graphic.TextBaseline::Bottom
+    }
     elems.push(
       @graphic.Element::text_colored(
         label_pt.x,
         label_pt.y,
         tick.label,
-        @graphic.TextAnchor::Start,
-        @graphic.TextBaseline::Middle,
+        anchor,
+        baseline,
         axis_line_color,
       ),
     )

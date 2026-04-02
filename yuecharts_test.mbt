@@ -1030,6 +1030,33 @@ test "lines polar series uses sector clip path when clip is true" {
 }
 
 ///|
+/// Polar radius axis ticks/labels should use mapped coords and perpendicular offset like RadiusAxisView.
+test "polar radius axis uses mapped coords and perpendicular label offset" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "polar": {},
+    #|  "angleAxis": {
+    #|    "type": "category",
+    #|    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    #|  },
+    #|  "radiusAxis": {},
+    #|  "series": [{
+    #|    "type": "bar",
+    #|    "coordinateSystem": "polar",
+    #|    "data": [120, 200, 150, 80, 70, 110, 130]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("<circle cx=\"300\" cy=\"200\" r=\"40\""))
+  assert_true(svg.contains("<circle cx=\"300\" cy=\"200\" r=\"160\""))
+  assert_true(svg.contains("<text x=\"292\" y=\"200\""))
+  assert_true(svg.contains("<text x=\"292\" y=\"40\""))
+  assert_true(!svg.contains("<text x=\"300\" y=\"188\""))
+}
+
+///|
 test "lines series renders static labels on non-polyline paths" {
   let json_str =
     #|{
