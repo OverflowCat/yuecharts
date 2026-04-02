@@ -1,0 +1,29 @@
+{
+  "width": 360,
+  "height": 240,
+  "xAxis": { "type": "value", "min": 0, "max": 10 },
+  "yAxis": { "type": "value", "min": 0, "max": 10 },
+  "series": [
+    {
+      "type": "lines",
+      "coordinateSystem": "cartesian2d",
+      "label": { "show": true, "position": "end" },
+      "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.8 },
+      "data": [
+        { "name": "Arrive", "coords": [[1, 1], [8, 7]] },
+        {
+          "name": "Depart",
+          "coords": [[2, 8], [7, 3]],
+          "label": { "position": "start", "color": "#dd4444" },
+          "lineStyle": { "color": "#dd4444", "opacity": 0.9 }
+        },
+        {
+          "name": "Arc",
+          "coords": [[1, 6], [9, 6]],
+          "label": { "position": "middle", "distance": 10, "fontWeight": "bold" },
+          "lineStyle": { "color": "#73c0de", "curveness": 0.35, "opacity": 0.7 }
+        }
+      ]
+    }
+  ]
+}

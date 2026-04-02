@@ -111,8 +111,10 @@ E:\yuecharts
 │   ├── heatmap.json / .svg / .ref.svg
 │   ├── line.json / .svg / .ref.svg
 │   ├── lines-cartesian.json / .svg / .ref.svg
+│   ├── lines-flat.json / .svg / .ref.svg
 │   ├── lines-polar.json / .svg / .ref.svg
 │   ├── lines-polar-clip.json / .svg / .ref.svg
+│   ├── lines-labels.json / .svg / .ref.svg
 │   ├── lines-symbols.json / .svg / .ref.svg
 │   ├── mixed.json / .svg / .ref.svg
 │   ├── multibar.json / .svg
@@ -690,7 +692,7 @@ E:\recharts\echarts\src
 │   │   ├── labelHelper.ts => chart/pie.mbt [partial] Feature: chart label helper
 │   │   ├── LargeLineDraw.ts =>  [missing] Feature: large line draw
 │   │   ├── LargeSymbolDraw.ts =>  [missing] Feature: large symbol draw
-│   │   ├── Line.ts =>  [missing] Feature: line primitive helper
+│   │   ├── Line.ts => chart/lines.mbt [partial] Feature: line primitive helper incl. static label/symbol layout subset
 │   │   ├── LineDraw.ts =>  [missing] Feature: line draw helper
 │   │   ├── LinePath.ts =>  [missing] Feature: line path helper
 │   │   ├── multipleGraphEdgeHelper.ts =>  [missing] Feature: multi-edge graph helper

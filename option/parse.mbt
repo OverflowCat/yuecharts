@@ -820,6 +820,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(Array(arr)) =>
       if series_type == SeriesType::ThemeRiver {
         arr.map(parse_data_item_theme_river)
+      } else if series_type == SeriesType::Lines &&
+        arr.length() > 0 &&
+        arr[0] is Number(_, ..) {
+        parse_lines_flat_data(arr)
       } else {
         arr.map(parse_data_item)
       }
@@ -1833,6 +1837,60 @@ fn pair_symbol_bounding_data(arr : Array[Json]) -> SymbolBoundingData? {
       Some(Pair(json_number_or_zero(first), json_number_or_zero(second)))
     _ => None
   }
+}
+
+///|
+fn empty_data_item_with_coords(coords : Array[Array[Double]]) -> DataItem {
+  {
+    value: DataValue::Null,
+    raw_value_parts: None,
+    raw_item: None,
+    id: None,
+    name: None,
+    source: None,
+    target: None,
+    symbol: None,
+    coords: Some(coords),
+    from_name: None,
+    to_name: None,
+    cursor: None,
+    selected: None,
+    silent: None,
+    label: None,
+    item_style: None,
+    states: GeoStatesOption::default(),
+    children: [],
+    collapsed: None,
+  }
+}
+
+///|
+fn parse_lines_flat_data(arr : Array[Json]) -> Array[DataItem] {
+  let result : Array[DataItem] = []
+  let mut i = 0
+  while i < arr.length() {
+    let count = match arr[i] {
+      Number(n, ..) => n.to_int()
+      _ => 0
+    }
+    i += 1
+    if count <= 0 {
+      continue
+    }
+    let coords : Array[Array[Double]] = []
+    let mut k = 0
+    while k < count && i + 1 < arr.length() {
+      coords.push([json_number_or_zero(arr[i]), json_number_or_zero(arr[i + 1])])
+      i += 2
+      k += 1
+    }
+    if coords.length() == count {
+      result.push(empty_data_item_with_coords(coords))
+    } else {
+      return result
+    }
+  }
+  result
 }
 
 ///|

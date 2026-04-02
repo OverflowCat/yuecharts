@@ -497,6 +497,15 @@ pub fn Element::group_transformed(
 }
 
 ///|
+pub fn Element::group_transformed_opacity(
+  children : Array[Element],
+  transform : Matrix,
+  opacity : Double,
+) -> Element {
+  Group({ ..GroupData::new(children), transform: Some(transform), opacity })
+}
+
+///|
 pub fn Element::group_clipped(
   children : Array[Element],
   clip_rect : BBox,

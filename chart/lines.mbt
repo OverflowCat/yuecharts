@@ -1,6 +1,7 @@
 // Corresponds to: echarts/src/chart/lines/LinesSeries.ts
 //                  echarts/src/chart/lines/linesLayout.ts
 //                  echarts/src/chart/lines/LinesView.ts
+//                  echarts/src/chart/helper/Line.ts
 //                  echarts/src/chart/lines/install.ts
 
 ///|
@@ -217,6 +218,119 @@ fn lines_chart_symbol_size_pair(
 }
 
 ///|
+fn lines_chart_label_show(
+  item : @option.DataItem,
+  series : @option.SeriesOption,
+) -> Bool {
+  match item.label {
+    Some(label) => label.show.unwrap_or(series.label.map_or(false, l => l.show))
+    None => series.label.map_or(false, l => l.show)
+  }
+}
+
+///|
+fn lines_chart_label_position(
+  item : @option.DataItem,
+  series : @option.SeriesOption,
+) -> String {
+  match item.label {
+    Some(label) =>
+      match label.position {
+        Some(position) => position
+        None => series.label.map_or("end", l => l.position.unwrap_or("end"))
+      }
+    None => series.label.map_or("end", l => l.position.unwrap_or("end"))
+  }
+}
+
+///|
+fn lines_chart_label_distance(
+  item : @option.DataItem,
+  series : @option.SeriesOption,
+) -> Double {
+  match item.label {
+    Some(label) =>
+      match label.distance {
+        Some(distance) => distance
+        None => series.label.map_or(5.0, l => l.distance.unwrap_or(5.0))
+      }
+    None => series.label.map_or(5.0, l => l.distance.unwrap_or(5.0))
+  }
+}
+
+///|
+fn lines_chart_label_weight(
+  item : @option.DataItem,
+  series : @option.SeriesOption,
+) -> String {
+  match item.label {
+    Some(label) =>
+      match label.font_weight {
+        Some(weight) => weight
+        None =>
+          series.label.map_or("normal", l => l.font_weight.unwrap_or("normal"))
+      }
+    None =>
+      series.label.map_or("normal", l => l.font_weight.unwrap_or("normal"))
+  }
+}
+
+///|
+fn lines_chart_series_label_color(
+  series : @option.SeriesOption,
+  fallback : String,
+) -> String {
+  match series.label {
+    Some(label) =>
+      if label.color != @option.GeoLabelOption::default().color {
+        label.color
+      } else {
+        fallback
+      }
+    None => fallback
+  }
+}
+
+///|
+fn lines_chart_label_color(
+  item : @option.DataItem,
+  series : @option.SeriesOption,
+  fallback : String,
+) -> String {
+  match item.label {
+    Some(label) =>
+      match label.color {
+        Some(color) => color
+        None => lines_chart_series_label_color(series, fallback)
+      }
+    None => lines_chart_series_label_color(series, fallback)
+  }
+}
+
+///|
+fn lines_chart_label_number_text(value : Double) -> String {
+  let int_value = value.to_int()
+  if int_value.to_double() == value {
+    int_value.to_string()
+  } else {
+    value.to_string()
+  }
+}
+
+///|
+fn lines_chart_label_text(item : @option.DataItem) -> String? {
+  match item.name {
+    Some(name) if name != "" => Some(name)
+    _ =>
+      match item.value {
+        Num(value) => Some(lines_chart_label_number_text(value))
+        DateValue(text, _) => Some(text)
+        _ => None
+      }
+  }
+}
+
+///|
 fn lines_chart_item_coords(item : @option.DataItem) -> Array[Array[Double]]? {
   match item.coords {
     Some(coords) if coords.length() >= 2 => Some(coords)
@@ -373,6 +487,226 @@ fn lines_chart_endpoint_direction(
       } else {
         (points[1].x - points[0].x, points[1].y - points[0].y)
       }
+  }
+}
+
+///|
+fn lines_chart_normalized_direction(
+  dx : Double,
+  dy : Double,
+) -> (Double, Double) {
+  let length = (dx * dx + dy * dy).sqrt()
+  if length <= 0.000001 {
+    (1.0, 0.0)
+  } else {
+    (dx / length, dy / length)
+  }
+}
+
+///|
+fn lines_chart_midpoint(
+  start : @graphic.Point,
+  end : @graphic.Point,
+) -> @graphic.Point {
+  @graphic.Point::new((start.x + end.x) / 2.0, (start.y + end.y) / 2.0)
+}
+
+///|
+fn lines_chart_curve_point_at(
+  start : @graphic.Point,
+  control : @graphic.Point,
+  end : @graphic.Point,
+  t : Double,
+) -> @graphic.Point {
+  let one_minus_t = 1.0 - t
+  @graphic.Point::new(
+    one_minus_t * one_minus_t * start.x +
+    2.0 * one_minus_t * t * control.x +
+    t * t * end.x,
+    one_minus_t * one_minus_t * start.y +
+    2.0 * one_minus_t * t * control.y +
+    t * t * end.y,
+  )
+}
+
+///|
+fn lines_chart_curve_tangent_at(
+  start : @graphic.Point,
+  control : @graphic.Point,
+  end : @graphic.Point,
+  t : Double,
+) -> (Double, Double) {
+  let one_minus_t = 1.0 - t
+  (
+    2.0 * one_minus_t * (control.x - start.x) + 2.0 * t * (end.x - control.x),
+    2.0 * one_minus_t * (control.y - start.y) + 2.0 * t * (end.y - control.y),
+  )
+}
+
+///|
+fn lines_chart_text_anchor(align : String) -> @graphic.TextAnchor {
+  match align {
+    "right" => @graphic.TextAnchor::End
+    "center" => @graphic.TextAnchor::Middle
+    _ => @graphic.TextAnchor::Start
+  }
+}
+
+///|
+fn lines_chart_text_baseline(vertical_align : String) -> @graphic.TextBaseline {
+  match vertical_align {
+    "top" => @graphic.TextBaseline::Top
+    "bottom" => @graphic.TextBaseline::Bottom
+    _ => @graphic.TextBaseline::Middle
+  }
+}
+
+///|
+fn lines_chart_label_element(
+  item : @option.DataItem,
+  series : @option.SeriesOption,
+  points : Array[@graphic.Point],
+  color : String,
+  opacity : Double,
+  control? : @graphic.Point? = None,
+) -> @graphic.Element? {
+  if points.length() < 2 ||
+    series.polyline ||
+    points.length() > 2 ||
+    !lines_chart_label_show(item, series) {
+    return None
+  }
+  match lines_chart_label_text(item) {
+    Some(text) => {
+      let from_pos = points[0]
+      let to_pos = points[points.length() - 1]
+      let (dir_dx, dir_dy) = lines_chart_normalized_direction(
+        to_pos.x - from_pos.x,
+        to_pos.y - from_pos.y,
+      )
+      let (raw_tangent_x, raw_tangent_y, center_point) = match control {
+        Some(cp) => {
+          let midpoint = lines_chart_curve_point_at(from_pos, cp, to_pos, 0.5)
+          let (tx, ty) = lines_chart_curve_tangent_at(from_pos, cp, to_pos, 0.5)
+          (tx, ty, midpoint)
+        }
+        None =>
+          (
+            to_pos.x - from_pos.x,
+            to_pos.y - from_pos.y,
+            lines_chart_midpoint(from_pos, to_pos),
+          )
+      }
+      let (tangent_x, tangent_y) = lines_chart_normalized_direction(
+        raw_tangent_x, raw_tangent_y,
+      )
+      let position = lines_chart_label_position(item, series)
+      let distance = lines_chart_label_distance(item, series)
+      let distance_x = distance
+      let distance_y = distance
+      let dir = if tangent_x < 0.0 { -1.0 } else { 1.0 }
+      let mut x = center_point.x
+      let mut y = center_point.y
+      let mut align = "center"
+      let mut vertical_align = "middle"
+      let mut rotation = 0.0
+      if position != "start" && position != "end" {
+        rotation = -@math.atan2(tangent_y, tangent_x)
+        if to_pos.x < from_pos.x {
+          rotation = @math.PI + rotation
+        }
+      }
+      let dy = match position {
+        "insideStartTop" | "insideMiddleTop" | "insideEndTop" | "middle" => {
+          vertical_align = "bottom"
+          -distance_y
+        }
+        "insideStartBottom" | "insideMiddleBottom" | "insideEndBottom" => {
+          vertical_align = "top"
+          distance_y
+        }
+        _ => 0.0
+      }
+      match position {
+        "end" => {
+          x = dir_dx * distance_x + to_pos.x
+          y = dir_dy * distance_y + to_pos.y
+          align = if dir_dx > 0.8 {
+            "left"
+          } else if dir_dx < -0.8 {
+            "right"
+          } else {
+            "center"
+          }
+          vertical_align = if dir_dy > 0.8 {
+            "top"
+          } else if dir_dy < -0.8 {
+            "bottom"
+          } else {
+            "middle"
+          }
+        }
+        "start" => {
+          x = -dir_dx * distance_x + from_pos.x
+          y = -dir_dy * distance_y + from_pos.y
+          align = if dir_dx > 0.8 {
+            "right"
+          } else if dir_dx < -0.8 {
+            "left"
+          } else {
+            "center"
+          }
+          vertical_align = if dir_dy > 0.8 {
+            "bottom"
+          } else if dir_dy < -0.8 {
+            "top"
+          } else {
+            "middle"
+          }
+        }
+        "insideStartTop" | "insideStart" | "insideStartBottom" => {
+          x = distance_x * dir + from_pos.x
+          y = from_pos.y + dy
+          align = if tangent_x < 0.0 { "right" } else { "left" }
+        }
+        "insideMiddleTop" | "insideMiddle" | "insideMiddleBottom" | "middle" => {
+          x = center_point.x
+          y = center_point.y + dy
+          align = "center"
+        }
+        "insideEndTop" | "insideEnd" | "insideEndBottom" => {
+          x = -distance_x * dir + to_pos.x
+          y = to_pos.y + dy
+          align = if tangent_x >= 0.0 { "right" } else { "left" }
+        }
+        _ => {
+          x = center_point.x
+          y = center_point.y + dy
+          align = "center"
+        }
+      }
+      let text_elem = @graphic.Element::text_custom(
+        0.0,
+        0.0,
+        text,
+        lines_chart_text_anchor(align),
+        lines_chart_text_baseline(vertical_align),
+        lines_chart_label_color(item, series, color),
+        12.0,
+        "sans-serif",
+        lines_chart_label_weight(item, series),
+      )
+      Some(
+        @graphic.Element::group_transformed_opacity(
+          [text_elem],
+          @graphic.Matrix::translate(x, y).then(
+            @graphic.Matrix::rotate(rotation),
+          ),
+          opacity,
+        ),
+      )
+    }
+    None => None
   }
 }
 
@@ -557,6 +891,18 @@ pub fn render_lines_chart_series(
             control=Some(control),
           ),
         )
+        match
+          lines_chart_label_element(
+            item,
+            series,
+            points,
+            color,
+            opacity,
+            control=Some(control),
+          ) {
+          Some(elem) => line_elems.push(elem)
+          None => ()
+        }
       } else {
         line_elems.push(
           @graphic.Element::polyline_custom_opacity(
@@ -571,6 +917,10 @@ pub fn render_lines_chart_series(
         line_elems.append(
           lines_chart_endpoint_symbols(item, series, points, color, opacity),
         )
+        match lines_chart_label_element(item, series, points, color, opacity) {
+          Some(elem) => line_elems.push(elem)
+          None => ()
+        }
       }
     }
     di += 1

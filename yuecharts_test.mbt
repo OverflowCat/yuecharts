@@ -870,6 +870,69 @@ test "lines polar series uses sector clip path when clip is true" {
 }
 
 ///|
+test "lines series renders static labels on non-polyline paths" {
+  let json_str =
+    #|{
+    #|  "width": 360,
+    #|  "height": 240,
+    #|  "xAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "yAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "series": [{
+    #|    "type": "lines",
+    #|    "coordinateSystem": "cartesian2d",
+    #|    "label": { "show": true, "position": "end" },
+    #|    "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.8 },
+    #|    "data": [
+    #|      { "name": "Arrive", "coords": [[1, 1], [8, 7]] },
+    #|      {
+    #|        "name": "Depart",
+    #|        "coords": [[2, 8], [7, 3]],
+    #|        "label": { "position": "start", "color": "#dd4444" },
+    #|        "lineStyle": { "color": "#dd4444", "opacity": 0.9 }
+    #|      },
+    #|      {
+    #|        "name": "Arc",
+    #|        "coords": [[1, 6], [9, 6]],
+    #|        "label": { "position": "middle", "distance": 10, "fontWeight": "bold" },
+    #|        "lineStyle": { "color": "#73c0de", "curveness": 0.35, "opacity": 0.7 }
+    #|      }
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Arrive</text>"))
+  assert_true(svg.contains(">Depart</text>"))
+  assert_true(svg.contains(">Arc</text>"))
+  assert_true(svg.contains("fill=\"#5070dd\""))
+  assert_true(svg.contains("fill=\"#dd4444\""))
+  assert_true(svg.contains("font-weight=\"bold\""))
+  assert_true(count_substring(svg, "transform=\"matrix(") >= 3)
+}
+
+///|
+test "lines series parses flat coords array data" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 220,
+    #|  "xAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "yAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "series": [{
+    #|    "type": "lines",
+    #|    "coordinateSystem": "cartesian2d",
+    #|    "clip": true,
+    #|    "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.7 },
+    #|    "data": [2, 1, 1, 9, 7, 3, 2, 8, 5, 5, 8, 2]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("clip-path=\"url(#clip-0)\""))
+  assert_eq(count_substring(svg, "stroke=\"#5070dd\""), 2)
+  assert_true(svg.contains("<polyline points=\"72,132.5 264,87.5\""))
+  assert_true(svg.contains("<polyline points=\"96,80 168,102.5 240,125\""))
+}
+
+///|
 test "geo nameMap and regions override labels and style" {
   let json_str =
     #|{

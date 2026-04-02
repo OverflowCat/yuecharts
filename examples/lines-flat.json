@@ -1,0 +1,16 @@
+{
+  "width": 320,
+  "height": 220,
+  "xAxis": { "type": "value", "min": 0, "max": 10 },
+  "yAxis": { "type": "value", "min": 0, "max": 10 },
+  "series": [
+    {
+      "type": "lines",
+      "coordinateSystem": "cartesian2d",
+      "dimensions": ["value"],
+      "clip": true,
+      "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.7 },
+      "data": [2, 1, 1, 9, 7, 3, 2, 8, 5, 5, 8, 2]
+    }
+  ]
+}

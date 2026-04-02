@@ -207,15 +207,15 @@ pub fn Polar::point_to_coord(
   } else {
     max_angle = min_angle + 360.0
   }
-  let radius = @math.pow(dx * dx + dy * dy, 0.5)
+  let radius = (dx * dx + dy * dy).sqrt()
   if radius != 0.0 {
-    dx = dx / radius
-    dy = dy / radius
+    dx /= radius
+    dy /= radius
   }
   let mut angle = @math.atan2(-dy, dx) / @math.PI * 180.0
   let dir = if angle < min_angle { 1.0 } else { -1.0 }
   while angle < min_angle || angle > max_angle {
-    angle = angle + dir * 360.0
+    angle += dir * 360.0
   }
   (radius, angle)
 }
