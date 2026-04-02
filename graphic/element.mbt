@@ -173,12 +173,13 @@ pub struct GroupData {
   children : Array[Element]
   transform : Matrix?
   clip_rect : BBox?
+  clip_path : String?
   opacity : Double
 }
 
 ///|
 pub fn GroupData::new(children : Array[Element]) -> GroupData {
-  { children, transform: None, clip_rect: None, opacity: 1.0 }
+  { children, transform: None, clip_rect: None, clip_path: None, opacity: 1.0 }
 }
 
 ///|
@@ -501,6 +502,14 @@ pub fn Element::group_clipped(
   clip_rect : BBox,
 ) -> Element {
   Group({ ..GroupData::new(children), clip_rect: Some(clip_rect) })
+}
+
+///|
+pub fn Element::group_clipped_path(
+  children : Array[Element],
+  clip_path : String,
+) -> Element {
+  Group({ ..GroupData::new(children), clip_path: Some(clip_path) })
 }
 
 ///|

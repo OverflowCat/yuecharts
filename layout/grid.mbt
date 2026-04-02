@@ -81,8 +81,10 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
       Category =>
         @coord.XScale::make_ordinal(make_ordinal_x_scale(ax.data, bbox))
       Value | Log | Time => {
-        let (dmin, dmax) = series_x_range(opt, 0)
-        @coord.XScale::make_linear(make_linear_x_scale(dmin, dmax, bbox))
+        let (dmin, dmax) = series_x_range(opt, xi - 1)
+        let lo = ax.min.unwrap_or(dmin.min(0.0))
+        let hi = ax.max.unwrap_or(dmax)
+        @coord.XScale::make_linear(make_linear_x_scale(lo, hi, bbox))
       }
     }
     x_scales.push(xs)
@@ -97,14 +99,8 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
         let (dmin, dmax) = series_y_range(opt, yi)
         // ECharts default: scale=false means include 0 in the extent.
         // If data min is positive, start axis from 0 (matches ECharts behavior).
-        let lo = match ax.min {
-          Some(v) => v
-          None => if dmin > 0.0 { 0.0 } else { dmin }
-        }
-        let hi = match ax.max {
-          Some(v) => v
-          None => dmax
-        }
+        let lo = ax.min.unwrap_or(if dmin > 0.0 { 0.0 } else { dmin })
+        let hi = ax.max.unwrap_or(dmax)
         @coord.YScale::make_linear(make_linear_y_scale(lo, hi, bbox))
       }
       Category =>

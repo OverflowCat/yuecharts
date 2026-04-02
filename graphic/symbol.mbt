@@ -54,6 +54,39 @@ pub fn normalized_path_symbol_with_bounds(
 }
 
 ///|
+fn triangle_path(x : Double, y : Double, w : Double, h : Double) -> String {
+  let cx = x + w / 2.0
+  let top = y
+  let right = x + w
+  let bottom = y + h
+  let left = x
+  "M \{cx} \{top} L \{right} \{bottom} L \{left} \{bottom} Z"
+}
+
+///|
+fn diamond_path(x : Double, y : Double, w : Double, h : Double) -> String {
+  let cx = x + w / 2.0
+  let cy = y + h / 2.0
+  let right = x + w
+  let bottom = y + h
+  let left = x
+  "M \{cx} \{y} L \{right} \{cy} L \{cx} \{bottom} L \{left} \{cy} Z"
+}
+
+///|
+fn arrow_path(x : Double, y : Double, w : Double, h : Double) -> String {
+  let cy = y + h / 2.0
+  let right = x + w
+  let left = x
+  let stem = x + w / 3.0
+  let top = y
+  let bottom = y + h
+  let notch_top = y + h * 0.25
+  let notch_bottom = y + h * 0.75
+  "M \{right} \{cy} L \{stem} \{top} L \{stem} \{notch_top} L \{left} \{notch_top} L \{left} \{notch_bottom} L \{stem} \{notch_bottom} L \{stem} \{bottom} Z"
+}
+
+///|
 /// Create a symbol element of the given type at (x, y, w, h).
 /// Corresponds to createSymbol() in echarts/src/util/symbol.ts.
 pub fn make_symbol(
@@ -67,6 +100,10 @@ pub fn make_symbol(
 ) -> Element {
   match symbol {
     "rect" => Element::rect_colored_opacity(x, y, w, h, color, opacity)
+    "triangle" =>
+      Element::path_filled(triangle_path(x, y, w, h), color, opacity)
+    "diamond" => Element::path_filled(diamond_path(x, y, w, h), color, opacity)
+    "arrow" => Element::path_filled(arrow_path(x, y, w, h), color, opacity)
     "roundRect" => {
       let d = round_rect_path(
         x,

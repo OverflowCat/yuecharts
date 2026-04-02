@@ -705,6 +705,171 @@ test "lines series supports geo named regions and polyline" {
 }
 
 ///|
+test "lines cartesian series clips and honors item lineStyle" {
+  let json_str =
+    #|{
+    #|  "width": 360,
+    #|  "height": 240,
+    #|  "xAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "yAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "series": [
+    #|    {
+    #|      "type": "lines",
+    #|      "coordinateSystem": "cartesian2d",
+    #|      "clip": true,
+    #|      "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.35 },
+    #|      "data": [
+    #|        {
+    #|          "coords": [[-2, 2], [5, 5]],
+    #|          "lineStyle": {
+    #|            "color": "#dd4444",
+    #|            "width": 3,
+    #|            "opacity": 0.9,
+    #|            "curveness": 0.25
+    #|          }
+    #|        },
+    #|        { "coords": [[1, 1], [9, 8]] }
+    #|      ]
+    #|    },
+    #|    {
+    #|      "type": "lines",
+    #|      "coordinateSystem": "cartesian2d",
+    #|      "clip": false,
+    #|      "polyline": true,
+    #|      "lineStyle": { "color": "#73c0de", "width": 1.5, "opacity": 0.8 },
+    #|      "data": [{ "coords": [[1, 8], [4, 9], [8, 7], [12, 6]] }]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_eq(count_substring(svg, "<clipPath id=\"clip-"), 1)
+  assert_true(svg.contains("stroke=\"#dd4444\""))
+  assert_true(svg.contains("stroke-width=\"3\""))
+  assert_true(svg.contains("opacity=\"0.9\""))
+  assert_true(svg.contains(" Q "))
+  assert_true(svg.contains("stroke=\"#5070dd\""))
+  assert_true(svg.contains("opacity=\"0.35\""))
+  assert_true(svg.contains("stroke=\"#73c0de\""))
+}
+
+///|
+test "lines polar series renders curved and polyline paths" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 240,
+    #|  "polar": {},
+    #|  "angleAxis": { "type": "value", "min": 0, "max": 360, "startAngle": 90 },
+    #|  "radiusAxis": { "type": "value", "min": 0, "max": 100 },
+    #|  "series": [
+    #|    {
+    #|      "type": "lines",
+    #|      "coordinateSystem": "polar",
+    #|      "clip": false,
+    #|      "lineStyle": { "width": 2, "opacity": 0.5 },
+    #|      "data": [
+    #|        {
+    #|          "coords": [[20, 20], [75, 120]],
+    #|          "lineStyle": {
+    #|            "color": "#dd4444",
+    #|            "width": 3,
+    #|            "opacity": 0.85,
+    #|            "curveness": 0.2
+    #|          }
+    #|        }
+    #|      ]
+    #|    },
+    #|    {
+    #|      "type": "lines",
+    #|      "coordinateSystem": "polar",
+    #|      "clip": false,
+    #|      "polyline": true,
+    #|      "lineStyle": { "color": "#5070dd", "width": 1.5, "opacity": 0.6 },
+    #|      "data": [{ "coords": [[10, 200], [25, 220], [80, 300]] }]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("stroke=\"#dd4444\""))
+  assert_true(svg.contains("stroke-width=\"3\""))
+  assert_true(svg.contains("opacity=\"0.85\""))
+  assert_true(svg.contains(" Q "))
+  assert_true(svg.contains("<polyline points=\""))
+  assert_true(svg.contains("stroke=\"#5070dd\""))
+  assert_true(svg.contains("opacity=\"0.6\""))
+}
+
+///|
+test "lines series renders endpoint symbols with item overrides" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 220,
+    #|  "xAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "yAxis": { "type": "value", "min": 0, "max": 10 },
+    #|  "series": [{
+    #|    "type": "lines",
+    #|    "coordinateSystem": "cartesian2d",
+    #|    "symbol": ["circle", "arrow"],
+    #|    "symbolSize": [10, 16],
+    #|    "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.6 },
+    #|    "data": [
+    #|      { "coords": [[1, 1], [9, 7]] },
+    #|      {
+    #|        "coords": [[2, 8], [8, 2]],
+    #|        "symbol": ["diamond", "rect"],
+    #|        "symbolSize": [12, 18],
+    #|        "lineStyle": { "color": "#dd4444", "curveness": 0.2, "opacity": 0.9 }
+    #|      }
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("stroke=\"#5070dd\""))
+  assert_true(svg.contains("stroke=\"#dd4444\""))
+  assert_true(svg.contains("<circle cx=\"0\" cy=\"0\" r=\"5\""))
+  assert_true(svg.contains("fill=\"#5070dd\""))
+  assert_true(count_substring(svg, "fill=\"#dd4444\"") >= 2)
+  assert_true(count_substring(svg, "transform=\"matrix(") >= 4)
+}
+
+///|
+test "lines polar series uses sector clip path when clip is true" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 240,
+    #|  "polar": {},
+    #|  "angleAxis": { "type": "value", "min": 0, "max": 180, "startAngle": 90 },
+    #|  "radiusAxis": { "type": "value", "min": 0, "max": 100 },
+    #|  "series": [{
+    #|    "type": "lines",
+    #|    "coordinateSystem": "polar",
+    #|    "clip": true,
+    #|    "symbol": ["circle", "arrow"],
+    #|    "symbolSize": [8, 14],
+    #|    "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.6 },
+    #|    "data": [
+    #|      { "coords": [[20, 20], [110, 140]] },
+    #|      {
+    #|        "coords": [[15, 160], [45, 200], [90, 300]],
+    #|        "symbol": ["diamond", "rect"],
+    #|        "symbolSize": [10, 16],
+    #|        "lineStyle": { "color": "#dd4444", "opacity": 0.9 }
+    #|      }
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_eq(count_substring(svg, "<clipPath id=\"clip-"), 1)
+  assert_true(svg.contains("<clipPath id=\"clip-0\">"))
+  assert_true(svg.contains("<path d=\"M "))
+  assert_true(svg.contains("clip-path=\"url(#clip-0)\""))
+  assert_true(svg.contains("A 96 96"))
+  assert_true(svg.contains("stroke=\"#5070dd\""))
+}
+
+///|
 test "geo nameMap and regions override labels and style" {
   let json_str =
     #|{

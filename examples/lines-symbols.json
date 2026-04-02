@@ -1,0 +1,24 @@
+{
+  "width": 320,
+  "height": 220,
+  "xAxis": { "type": "value", "min": 0, "max": 10 },
+  "yAxis": { "type": "value", "min": 0, "max": 10 },
+  "series": [
+    {
+      "type": "lines",
+      "coordinateSystem": "cartesian2d",
+      "symbol": ["circle", "arrow"],
+      "symbolSize": [10, 16],
+      "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.6 },
+      "data": [
+        { "coords": [[1, 1], [9, 7]] },
+        {
+          "coords": [[2, 8], [8, 2]],
+          "symbol": ["diamond", "rect"],
+          "symbolSize": [12, 18],
+          "lineStyle": { "color": "#dd4444", "curveness": 0.2, "opacity": 0.9 }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "width": 360,
+  "height": 240,
+  "xAxis": { "type": "value", "min": 0, "max": 10 },
+  "yAxis": { "type": "value", "min": 0, "max": 10 },
+  "series": [
+    {
+      "type": "lines",
+      "coordinateSystem": "cartesian2d",
+      "clip": true,
+      "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.35 },
+      "data": [
+        {
+          "coords": [[-2, 2], [5, 5]],
+          "lineStyle": {
+            "color": "#dd4444",
+            "width": 3,
+            "opacity": 0.9,
+            "curveness": 0.25
+          }
+        },
+        { "coords": [[1, 1], [9, 8]] }
+      ]
+    },
+    {
+      "type": "lines",
+      "coordinateSystem": "cartesian2d",
+      "clip": false,
+      "polyline": true,
+      "lineStyle": { "color": "#73c0de", "width": 1.5, "opacity": 0.8 },
+      "data": [
+        { "coords": [[1, 8], [4, 9], [8, 7], [12, 6]] }
+      ]
+    }
+  ]
+}

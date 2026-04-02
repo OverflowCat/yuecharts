@@ -388,8 +388,8 @@ fn render_group(
   scope : Ref[BrushScope],
 ) -> Unit {
   let next = indent + "  "
-  match g.clip_rect {
-    Some(cr) => {
+  match (g.clip_rect, g.clip_path) {
+    (Some(cr), _) => {
       let clip_id = "clip-\{clip_counter.val}"
       clip_counter.val = clip_counter.val + 1
       buf.write_string(indent)
@@ -414,7 +414,30 @@ fn render_group(
       }
       buf.write_string(indent + "</g>\n")
     }
-    None => {
+    (None, Some(path_d)) => {
+      let clip_id = "clip-\{clip_counter.val}"
+      clip_counter.val = clip_counter.val + 1
+      buf.write_string(indent)
+      buf.write_string("<clipPath id=\"\{clip_id}\">\n")
+      buf.write_string(next)
+      buf.write_string("<path d=\"\{path_d}\"/>\n")
+      buf.write_string(indent + "</clipPath>\n")
+      buf.write_string(indent)
+      buf.write_string("<g clip-path=\"url(#\{clip_id})\"")
+      match g.transform {
+        Some(m) => buf.write_string(" transform=\"\{m}\"")
+        None => ()
+      }
+      if g.opacity < 1.0 {
+        buf.write_string(" opacity=\"\{g.opacity}\"")
+      }
+      buf.write_string(">\n")
+      for child in g.children {
+        render_element(buf, child, next, clip_counter, scope)
+      }
+      buf.write_string(indent + "</g>\n")
+    }
+    (None, None) => {
       buf.write_string(indent)
       buf.write_string("<g")
       match g.transform {

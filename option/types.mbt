@@ -406,6 +406,7 @@ pub(all) struct SeriesOption {
   data : Array[DataItem]
   link_data : Array[DataItem]
   symbol : String?
+  symbol_values : Array[String]?
   symbol_size_values : Array[String]?
   symbol_repeat : String?
   symbol_repeat_count : Int?
@@ -437,6 +438,7 @@ pub(all) struct SeriesOption {
   boundary_gap : Array[String]
   smooth : Bool
   polyline : Bool
+  clip : Bool
   symbol_size : Double
   color : String?
   line_style_color : String?
@@ -490,6 +492,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     data: [],
     link_data: [],
     symbol: None,
+    symbol_values: None,
     symbol_size_values: None,
     symbol_repeat: None,
     symbol_repeat_count: None,
@@ -519,6 +522,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     boundary_gap: [],
     smooth: false,
     polyline: false,
+    clip: false,
     symbol_size: 4.0,
     color: None,
     line_style_color: None,
@@ -590,7 +594,9 @@ pub fn SeriesOption::default_lines() -> SeriesOption {
     series_type: SeriesType::Lines,
     coordinate_system: Some("geo"),
     polyline: false,
+    clip: true,
     symbol: Some("none"),
+    symbol_values: Some(["none", "none"]),
     symbol_size_values: Some(["10", "10"]),
   }
 }

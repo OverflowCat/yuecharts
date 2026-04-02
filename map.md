@@ -46,6 +46,7 @@ E:\yuecharts
 │   ├── bar.mbt
 │   ├── boxplot.mbt
 │   ├── candlestick.mbt
+│   ├── chord.mbt
 │   ├── effect_scatter.mbt
 │   ├── funnel.mbt
 │   ├── gauge.mbt
@@ -101,12 +102,18 @@ E:\yuecharts
 │   ├── bar.json / .svg / .ref.svg
 │   ├── boxplot.json / .svg / .ref.svg
 │   ├── candlestick.json / .svg / .ref.svg
+│   ├── chord.json / .svg / .ref.svg
+│   ├── chord-minAngle.json / .svg / .ref.svg
 │   ├── donut.json / .svg
 │   ├── effectscatter.json / .svg / .ref.svg
 │   ├── funnel.json / .svg / .ref.svg
 │   ├── gauge.json / .svg
 │   ├── heatmap.json / .svg / .ref.svg
 │   ├── line.json / .svg / .ref.svg
+│   ├── lines-cartesian.json / .svg / .ref.svg
+│   ├── lines-polar.json / .svg / .ref.svg
+│   ├── lines-polar-clip.json / .svg / .ref.svg
+│   ├── lines-symbols.json / .svg / .ref.svg
 │   ├── mixed.json / .svg / .ref.svg
 │   ├── multibar.json / .svg
 │   ├── pictorialbar.json / .svg / .ref.svg
@@ -649,7 +656,7 @@ E:\recharts\echarts\src
 │   ├── bar.ts => chart/bar.mbt [partial] Feature: bar chart entry
 │   ├── boxplot.ts => chart/boxplot.mbt [partial] Feature: boxplot chart entry
 │   ├── candlestick.ts => chart/candlestick.mbt [partial] Feature: candlestick chart entry
-│   ├── chord.ts =>  [missing] Feature: chord chart entry
+│   ├── chord.ts => chart/install.mbt, chart/chord.mbt [partial] Feature: chord chart entry
 │   ├── custom.ts =>  [missing] Feature: custom chart entry
 │   ├── effectScatter.ts => chart/effect_scatter.mbt [partial] Feature: effectScatter chart entry
 │   ├── funnel.ts => chart/funnel.mbt [partial] Feature: funnel chart entry
@@ -672,7 +679,7 @@ E:\recharts\echarts\src
 │   │
 │   ├── helper
 │   │   ├── createClipPathFromCoordSys.ts =>  [missing] Feature: series clip path helper
-│   │   ├── createGraphFromNodeEdge.ts =>  [missing] Feature: graph/sankey/chord data builder
+│   │   ├── createGraphFromNodeEdge.ts => chart/chord.mbt [partial] Feature: graph/sankey/chord data builder
 │   │   ├── createRenderPlanner.ts =>  [missing] Feature: progressive render planner
 │   │   ├── createSeriesData.ts =>  [missing] Feature: general series data creation
 │   │   ├── createSeriesDataSimply.ts =>  [missing] Feature: simple series data creation
@@ -806,12 +813,12 @@ E:\recharts\echarts\src
 │   │   └── simpleLayoutHelper.ts =>  [missing] Feature: graph simple layout helper
 │   │
 │   ├── chord
-│   │   ├── ChordEdge.ts =>  [missing] Feature: chord edge shape
-│   │   ├── chordLayout.ts =>  [missing] Feature: chord layout
-│   │   ├── ChordPiece.ts =>  [missing] Feature: chord piece shape
-│   │   ├── ChordSeries.ts =>  [missing] Feature: chord series model
-│   │   ├── ChordView.ts =>  [missing] Feature: chord renderer
-│   │   └── install.ts =>  [missing] Feature: chord install
+│   │   ├── ChordEdge.ts => chart/chord.mbt [partial] Feature: chord edge shape
+│   │   ├── chordLayout.ts => chart/chord.mbt [translated] Feature: chord layout
+│   │   ├── ChordPiece.ts => chart/chord.mbt [partial] Feature: chord piece shape
+│   │   ├── ChordSeries.ts => chart/chord.mbt, option/types.mbt, option/parse.mbt [partial] Feature: chord series model
+│   │   ├── ChordView.ts => chart/chord.mbt [translated] Feature: chord renderer
+│   │   └── install.ts => chart/install.mbt [partial] Feature: chord install
 │   │
 │   ├── sankey
 │   │   ├── install.ts =>  [missing] Feature: sankey install
@@ -843,11 +850,11 @@ E:\recharts\echarts\src
 │   │   └── ParallelView.ts => chart/parallel.mbt [translated] Feature: parallel chart renderer
 │   │
 │   ├── lines
-│   │   ├── install.ts =>  [missing] Feature: lines install
-│   │   ├── linesLayout.ts =>  [missing] Feature: lines layout
-│   │   ├── LinesSeries.ts =>  [missing] Feature: lines series model
-│   │   ├── linesVisual.ts =>  [missing] Feature: lines visual
-│   │   └── LinesView.ts =>  [missing] Feature: lines renderer
+│   │   ├── install.ts => chart/install.mbt [partial] Feature: lines install
+│   │   ├── linesLayout.ts => chart/lines.mbt [partial] Feature: lines layout
+│   │   ├── LinesSeries.ts => option/types.mbt, option/parse.mbt, chart/lines.mbt [partial] Feature: lines series model
+│   │   ├── linesVisual.ts => option/types.mbt, option/parse.mbt, chart/lines.mbt [partial] Feature: lines visual
+│   │   └── LinesView.ts => chart/lines.mbt [partial] Feature: lines renderer
 │   │
 │   ├── map
 │   │   ├── install.ts =>  [missing] Feature: map install

@@ -1,0 +1,26 @@
+{
+  "width": 320,
+  "height": 240,
+  "polar": {},
+  "angleAxis": { "type": "value", "min": 0, "max": 180, "startAngle": 90 },
+  "radiusAxis": { "type": "value", "min": 0, "max": 100 },
+  "series": [
+    {
+      "type": "lines",
+      "coordinateSystem": "polar",
+      "clip": true,
+      "symbol": ["circle", "arrow"],
+      "symbolSize": [8, 14],
+      "lineStyle": { "color": "#5070dd", "width": 2, "opacity": 0.6 },
+      "data": [
+        { "coords": [[20, 20], [110, 140]] },
+        {
+          "coords": [[15, 160], [45, 200], [90, 300]],
+          "symbol": ["diamond", "rect"],
+          "symbolSize": [10, 16],
+          "lineStyle": { "color": "#dd4444", "opacity": 0.9 }
+        }
+      ]
+    }
+  ]
+}

@@ -853,6 +853,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let radar_index = j_int(j, "radarIndex", base.radar_index)
   let map_name = j_string_opt(j, "map")
   let boundary_gap = j_stringish_array(j, "boundaryGap", base.boundary_gap)
+  let symbol_values = parse_symbol_values(j)
   let symbol_size_values = parse_symbol_size_values(j)
   let symbol_size = j_number(j, "symbolSize", base.symbol_size)
   let symbol = j_string_or_number_as_string_opt(j, "symbol", base.symbol)
@@ -920,6 +921,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let stack = j_string_opt(j, "stack")
   let smooth = j_bool(j, "smooth", base.smooth)
   let polyline = j_bool(j, "polyline", base.polyline)
+  let clip = j_bool(j, "clip", base.clip)
   let line_style = j_field_or_self(j, "lineStyle")
   let line_style_color = match j_string_opt(line_style, "color") {
     Some(color) => Some(color)
@@ -984,6 +986,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     data,
     link_data,
     symbol,
+    symbol_values,
     symbol_size_values,
     symbol_repeat,
     symbol_repeat_count,
@@ -1013,6 +1016,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     boundary_gap,
     smooth,
     polyline,
+    clip,
     symbol_size,
     color,
     line_style_color,
@@ -1639,6 +1643,15 @@ fn parse_symbol_bounding_data(j : Json) -> SymbolBoundingData? {
 ///|
 fn parse_symbol_size_values(j : Json) -> Array[String]? {
   j_stringish_pair_opt(j, "symbolSize")
+}
+
+///|
+fn parse_symbol_values(j : Json) -> Array[String]? {
+  match j_field(j, "symbol") {
+    Some(String(s)) => Some([s, s])
+    Some(Array(arr)) => pair_strings_from_json(arr)
+    _ => None
+  }
 }
 
 ///|
