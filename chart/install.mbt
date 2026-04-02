@@ -166,6 +166,14 @@ pub impl @core.ChartViewLike for ChordChartView with render(_self, ctx) {
 }
 
 ///|
+struct SankeyChartView {}
+
+///|
+pub impl @core.ChartViewLike for SankeyChartView with render(_self, ctx) {
+  render_sankeys(ctx.option, ctx.coord)
+}
+
+///|
 fn register_chart(
   registry : @core.Registry,
   series_type : @option.SeriesType,
@@ -431,6 +439,18 @@ pub fn install_chord(registry : @core.Registry) -> Unit {
 }
 
 ///|
+pub fn install_sankey(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/sankey/install.ts
+  // echarts/src/chart/sankey/SankeySeries.ts
+  // echarts/src/chart/sankey/SankeyView.ts
+  // layout: echarts/src/chart/sankey/sankeyLayout.ts
+  // visual: echarts/src/chart/sankey/sankeyVisual.ts
+  register_chart(registry, @option.SeriesType::Sankey, false, false, SankeyChartView::{
+
+  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_bar(registry)
   install_heatmap(registry)
@@ -452,4 +472,5 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_theme_river(registry)
   install_tree(registry)
   install_chord(registry)
+  install_sankey(registry)
 }

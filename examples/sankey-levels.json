@@ -1,0 +1,48 @@
+{
+  "width": 700,
+  "height": 420,
+  "title": {
+    "text": "Sankey Diagram"
+  },
+  "series": [
+    {
+      "type": "sankey",
+      "data": [
+        { "name": "srcA", "depth": 0 },
+        { "name": "srcB", "depth": 0 },
+        { "name": "midA", "depth": 1 },
+        { "name": "midB", "depth": 1 },
+        { "name": "dstA", "depth": 2 },
+        { "name": "dstB", "depth": 2 }
+      ],
+      "links": [
+        { "source": "srcA", "target": "midA", "value": 7 },
+        { "source": "srcA", "target": "midB", "value": 2 },
+        { "source": "srcB", "target": "midB", "value": 6 },
+        { "source": "midA", "target": "dstA", "value": 5 },
+        { "source": "midA", "target": "dstB", "value": 2 },
+        { "source": "midB", "target": "dstB", "value": 8 }
+      ],
+      "levels": [
+        {
+          "depth": 0,
+          "itemStyle": { "color": "#fbb4ae" },
+          "lineStyle": { "color": "source", "opacity": 0.6 }
+        },
+        {
+          "depth": 1,
+          "itemStyle": { "color": "#b3cde3", "borderColor": "#5f7992", "borderWidth": 1.5 },
+          "lineStyle": { "color": "source", "opacity": 0.6 }
+        },
+        {
+          "depth": 2,
+          "itemStyle": { "color": "#ccebc5" },
+          "lineStyle": { "color": "source", "opacity": 0.6 }
+        }
+      ],
+      "lineStyle": {
+        "curveness": 0.5
+      }
+    }
+  ]
+}

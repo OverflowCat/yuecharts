@@ -373,6 +373,7 @@ pub(all) enum SeriesType {
   ThemeRiver
   Tree
   Chord
+  Sankey
 } derive(Eq)
 
 ///|
@@ -392,6 +393,7 @@ pub(all) struct DataItem {
   raw_item : Json?
   id : String?
   name : String?
+  depth : Int?
   source : String?
   target : String?
   symbol : String?
@@ -412,6 +414,20 @@ pub(all) struct DataItem {
 pub enum SymbolBoundingData {
   Single(Double)
   Pair(Double, Double)
+}
+
+///|
+
+///|
+/// Corresponds to: echarts/src/chart/sankey/SankeySeries.ts
+pub(all) struct SankeyLevelOption {
+  depth : Int
+  label : GeoLabelPatchOption?
+  item_style : GeoItemStylePatchOption?
+  line_style_color : String?
+  line_style_width : Double?
+  line_style_opacity : Double?
+  line_style_curveness : Double?
 }
 
 ///|
@@ -508,6 +524,19 @@ pub(all) struct SeriesOption {
   tree_leaves_line_style_width : Double?
   tree_leaves_line_style_opacity : Double?
   tree_leaves_line_style_curveness : Double?
+  // sankey chart options
+  sankey_orient : String
+  sankey_node_width : Double
+  sankey_node_gap : Double
+  sankey_layout_iterations : Int
+  sankey_node_align : String
+  sankey_left : SizeSpec?
+  sankey_top : SizeSpec?
+  sankey_right : SizeSpec?
+  sankey_bottom : SizeSpec?
+  sankey_width : SizeSpec?
+  sankey_height : SizeSpec?
+  sankey_levels : Array[SankeyLevelOption]
 }
 
 ///|
@@ -597,6 +626,18 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     tree_leaves_line_style_width: None,
     tree_leaves_line_style_opacity: None,
     tree_leaves_line_style_curveness: None,
+    sankey_orient: "horizontal",
+    sankey_node_width: 20.0,
+    sankey_node_gap: 8.0,
+    sankey_layout_iterations: 32,
+    sankey_node_align: "justify",
+    sankey_left: None,
+    sankey_top: None,
+    sankey_right: None,
+    sankey_bottom: None,
+    sankey_width: None,
+    sankey_height: None,
+    sankey_levels: [],
   }
 }
 
@@ -751,6 +792,32 @@ pub fn SeriesOption::default_chord() -> SeriesOption {
       font_size: 12.0,
       font_family: "sans-serif",
     }),
+  }
+}
+
+///|
+pub fn SeriesOption::default_sankey() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Sankey,
+    coordinate_system: Some("view"),
+    line_style_color: Some("#86878c"),
+    line_style_opacity: Some(0.2),
+    line_style_curveness: Some(0.5),
+    label: Some({
+      show: true,
+      color: "#333333",
+      position: Some("right"),
+      distance: None,
+      font_weight: None,
+      rotate: None,
+      font_size: 12.0,
+      font_family: "sans-serif",
+    }),
+    sankey_left: Some(SizeSpec::Pct(5.0)),
+    sankey_top: Some(SizeSpec::Pct(5.0)),
+    sankey_right: Some(SizeSpec::Pct(20.0)),
+    sankey_bottom: Some(SizeSpec::Pct(5.0)),
   }
 }
 

@@ -412,14 +412,30 @@ fn parse_geo_name_map(j : Json) -> Array[GeoNameMapEntry] {
 
 ///|
 fn parse_geo_label_option(j : Json) -> GeoLabelOption {
-  let base = GeoLabelOption::default()
+  parse_geo_label_option_with_base(j, GeoLabelOption::default())
+}
+
+///|
+fn parse_geo_label_option_with_base(
+  j : Json,
+  base : GeoLabelOption,
+) -> GeoLabelOption {
   {
     show: j_bool(j, "show", base.show),
     color: j_string(j, "color", base.color),
-    position: j_string_opt(j, "position"),
-    distance: j_number_opt(j, "distance"),
-    font_weight: j_string_opt(j, "fontWeight"),
-    rotate: j_number_opt(j, "rotate"),
+    position: j_string_or_number_as_string_opt(j, "position", base.position),
+    distance: match j_number_opt(j, "distance") {
+      Some(v) => Some(v)
+      None => base.distance
+    },
+    font_weight: match j_string_opt(j, "fontWeight") {
+      Some(v) => Some(v)
+      None => base.font_weight
+    },
+    rotate: match j_number_opt(j, "rotate") {
+      Some(v) => Some(v)
+      None => base.rotate
+    },
     font_size: j_number(j, "fontSize", base.font_size),
     font_family: j_string(j, "fontFamily", base.font_family),
   }
@@ -779,6 +795,37 @@ fn parse_size_spec_opt(
 }
 
 ///|
+fn parse_sankey_level_option(j : Json) -> SankeyLevelOption {
+  {
+    depth: j_int(j, "depth", 0),
+    label: match j_field(j, "label") {
+      Some(value) => Some(parse_geo_label_patch_option(value))
+      None => None
+    },
+    item_style: match j_field(j, "itemStyle") {
+      Some(value) => Some(parse_geo_item_style_patch_option(value))
+      None => None
+    },
+    line_style_color: match j_field(j, "lineStyle") {
+      Some(value) => j_string_opt(value, "color")
+      None => None
+    },
+    line_style_width: match j_field(j, "lineStyle") {
+      Some(value) => j_number_opt(value, "width")
+      None => None
+    },
+    line_style_opacity: match j_field(j, "lineStyle") {
+      Some(value) => j_number_opt(value, "opacity")
+      None => None
+    },
+    line_style_curveness: match j_field(j, "lineStyle") {
+      Some(value) => j_number_opt(value, "curveness")
+      None => None
+    },
+  }
+}
+
+///|
 fn parse_series_option(j : Json) -> SeriesOption {
   let series_type = match j_string(j, "type", "line") {
     "line" => SeriesType::Line
@@ -801,6 +848,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "themeRiver" => SeriesType::ThemeRiver
     "tree" => SeriesType::Tree
     "chord" => SeriesType::Chord
+    "sankey" => SeriesType::Sankey
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -819,6 +867,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     ThemeRiver => SeriesOption::default_theme_river()
     Tree => SeriesOption::default_tree()
     Chord => SeriesOption::default_chord()
+    Sankey => SeriesOption::default_sankey()
     _ => SeriesOption::default_line()
   }
   // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
@@ -920,7 +969,13 @@ fn parse_series_option(j : Json) -> SeriesOption {
     _ => None
   }
   let label = match j_field(j, "label") {
-    Some(value) => Some(parse_geo_label_option(value))
+    Some(value) =>
+      Some(
+        parse_geo_label_option_with_base(
+          value,
+          base.label.unwrap_or(GeoLabelOption::default()),
+        ),
+      )
     None => base.label
   }
   let area_style = match j_field(j, "areaStyle") {
@@ -1035,6 +1090,22 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(style) => j_number_opt(style, "curveness")
     None => None
   }
+  let sankey_orient = j_string(j, "orient", base.sankey_orient)
+  let sankey_node_width = j_number(j, "nodeWidth", base.sankey_node_width)
+  let sankey_node_gap = j_number(j, "nodeGap", base.sankey_node_gap)
+  let sankey_layout_iterations = j_int(
+    j,
+    "layoutIterations",
+    base.sankey_layout_iterations,
+  )
+  let sankey_node_align = j_string(j, "nodeAlign", base.sankey_node_align)
+  let sankey_left = parse_size_spec_opt(j, "left", base.sankey_left)
+  let sankey_top = parse_size_spec_opt(j, "top", base.sankey_top)
+  let sankey_right = parse_size_spec_opt(j, "right", base.sankey_right)
+  let sankey_bottom = parse_size_spec_opt(j, "bottom", base.sankey_bottom)
+  let sankey_width = parse_size_spec_opt(j, "width", base.sankey_width)
+  let sankey_height = parse_size_spec_opt(j, "height", base.sankey_height)
+  let sankey_levels = j_parse_array(j, "levels", parse_sankey_level_option, [])
   {
     series_type,
     name,
@@ -1119,6 +1190,18 @@ fn parse_series_option(j : Json) -> SeriesOption {
     tree_leaves_line_style_width,
     tree_leaves_line_style_opacity,
     tree_leaves_line_style_curveness,
+    sankey_orient,
+    sankey_node_width,
+    sankey_node_gap,
+    sankey_layout_iterations,
+    sankey_node_align,
+    sankey_left,
+    sankey_top,
+    sankey_right,
+    sankey_bottom,
+    sankey_width,
+    sankey_height,
+    sankey_levels,
   }
 }
 
@@ -1132,6 +1215,7 @@ fn parse_data_item(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: None,
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1154,6 +1238,7 @@ fn parse_data_item(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: None,
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1176,6 +1261,7 @@ fn parse_data_item(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: None,
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1198,6 +1284,7 @@ fn parse_data_item(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: None,
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1225,6 +1312,7 @@ fn parse_data_item(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: None,
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1251,6 +1339,7 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     raw_item: None,
     id: None,
     name: None,
+    depth: None,
     source: None,
     target: None,
     symbol: None,
@@ -1287,6 +1376,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: Some(name),
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1314,6 +1404,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: Some(name),
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1337,6 +1428,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: None,
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1364,6 +1456,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         raw_item: None,
         id: None,
         name: None,
+        depth: None,
         source: None,
         target: None,
         symbol: None,
@@ -1906,6 +1999,7 @@ fn empty_data_item_with_coords(coords : Array[Array[Double]]) -> DataItem {
     raw_item: None,
     id: None,
     name: None,
+    depth: None,
     source: None,
     target: None,
     symbol: None,
@@ -1960,6 +2054,10 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
   }
   let id = j_string_or_number_as_string_opt(j, "id", None)
   let name = j_string_opt(j, "name")
+  let depth = match j_field(j, "depth") {
+    Some(Number(n, ..)) => Some(n.to_int())
+    _ => None
+  }
   let source = j_string_or_number_as_string_opt(j, "source", None)
   let target = j_string_or_number_as_string_opt(j, "target", None)
   let symbol = j_string_opt(j, "symbol")
@@ -1997,6 +2095,7 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     raw_item: Some(j),
     id,
     name,
+    depth,
     source,
     target,
     symbol,

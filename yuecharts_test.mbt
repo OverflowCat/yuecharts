@@ -1898,3 +1898,70 @@ test "geo selected region applies current select style in static svg" {
   assert_true(svg.contains("stroke-width=\"2\""))
   assert_true(svg.contains("<text x=\"130\" y=\"90\" fill=\"#00aa00\""))
 }
+
+///|
+test "sankey renders node rects and edge bands" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "series": [{
+    #|    "type": "sankey",
+    #|    "data": [
+    #|      {"name": "a"},
+    #|      {"name": "b"},
+    #|      {"name": "a1"},
+    #|      {"name": "a2"},
+    #|      {"name": "b1"},
+    #|      {"name": "c"}
+    #|    ],
+    #|    "links": [
+    #|      {"source": "a", "target": "a1", "value": 5},
+    #|      {"source": "a", "target": "a2", "value": 3},
+    #|      {"source": "b", "target": "b1", "value": 8},
+    #|      {"source": "a", "target": "b1", "value": 3},
+    #|      {"source": "b1", "target": "a1", "value": 1},
+    #|      {"source": "b1", "target": "c", "value": 2}
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill=\"#86878c\""))
+  assert_true(count_substring(svg, "<rect") >= 6)
+  assert_true(count_substring(svg, "<path") >= 6)
+  assert_true(svg.contains(">a</text>"))
+  assert_true(svg.contains(">b1</text>"))
+}
+
+///|
+test "sankey vertical labels and levels styles render" {
+  let json_str =
+    #|{
+    #|  "width": 640,
+    #|  "height": 420,
+    #|  "series": [{
+    #|    "type": "sankey",
+    #|    "orient": "vertical",
+    #|    "label": {"position": "top"},
+    #|    "data": [
+    #|      {"name": "src", "depth": 0},
+    #|      {"name": "mid", "depth": 1},
+    #|      {"name": "dst", "depth": 2}
+    #|    ],
+    #|    "links": [
+    #|      {"source": "src", "target": "mid", "value": 6},
+    #|      {"source": "mid", "target": "dst", "value": 4}
+    #|    ],
+    #|    "levels": [
+    #|      {"depth": 0, "itemStyle": {"color": "#fbb4ae"}, "lineStyle": {"color": "source", "opacity": 0.6}},
+    #|      {"depth": 1, "itemStyle": {"color": "#b3cde3", "borderColor": "#5f7992", "borderWidth": 1.5}}
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill=\"#fbb4ae\""))
+  assert_true(svg.contains("fill=\"#b3cde3\""))
+  assert_true(svg.contains("stroke=\"#5f7992\""))
+  assert_true(svg.contains(">src</text>"))
+  assert_true(svg.contains(">mid</text>"))
+}

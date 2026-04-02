@@ -360,7 +360,7 @@ pub fn render_treemap_series(
   let margin_right = 20.0
   let margin_top = 50.0
   let margin_bottom = 50.0
-  let root_rect = {
+  let root_rect : TreemapRect = {
     x: margin_left,
     y: margin_top,
     width: chart_width - margin_left - margin_right,

@@ -96,6 +96,7 @@ fn tree_build(
     raw_item: None,
     id: None,
     name: series_name,
+    depth: None,
     source: None,
     target: None,
     symbol: None,
