@@ -419,6 +419,9 @@ fn parse_geo_label_option(j : Json) -> GeoLabelOption {
     position: j_string_opt(j, "position"),
     distance: j_number_opt(j, "distance"),
     font_weight: j_string_opt(j, "fontWeight"),
+    rotate: j_number_opt(j, "rotate"),
+    font_size: j_number(j, "fontSize", base.font_size),
+    font_family: j_string(j, "fontFamily", base.font_family),
   }
 }
 
@@ -434,6 +437,9 @@ fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
     position: j_string_opt(j, "position"),
     distance: j_number_opt(j, "distance"),
     font_weight: j_string_opt(j, "fontWeight"),
+    rotate: j_number_opt(j, "rotate"),
+    font_size: j_number_opt(j, "fontSize"),
+    font_family: j_string_opt(j, "fontFamily"),
   }
 }
 
@@ -984,6 +990,47 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "nodeScaleRatio",
     base.tree_node_scale_ratio,
   )
+  let tree_leaves = j_field(j, "leaves")
+  let tree_leaves_label = match tree_leaves {
+    Some(leaves) =>
+      match j_field(leaves, "label") {
+        Some(value) => Some(parse_geo_label_patch_option(value))
+        None => None
+      }
+    None => None
+  }
+  let tree_leaves_geo_item_style = match tree_leaves {
+    Some(leaves) =>
+      match j_field(leaves, "itemStyle") {
+        Some(value) => Some(parse_geo_item_style_patch_option(value))
+        None => None
+      }
+    None => None
+  }
+  let tree_leaves_symbol_size = match tree_leaves {
+    Some(leaves) => j_number_opt(leaves, "symbolSize")
+    None => None
+  }
+  let tree_leaves_line_style = match tree_leaves {
+    Some(leaves) => j_field(leaves, "lineStyle")
+    None => None
+  }
+  let tree_leaves_line_style_color = match tree_leaves_line_style {
+    Some(style) => j_string_opt(style, "color")
+    None => None
+  }
+  let tree_leaves_line_style_width = match tree_leaves_line_style {
+    Some(style) => j_number_opt(style, "width")
+    None => None
+  }
+  let tree_leaves_line_style_opacity = match tree_leaves_line_style {
+    Some(style) => j_number_opt(style, "opacity")
+    None => None
+  }
+  let tree_leaves_line_style_curveness = match tree_leaves_line_style {
+    Some(style) => j_number_opt(style, "curveness")
+    None => None
+  }
   {
     series_type,
     name,
@@ -1060,6 +1107,13 @@ fn parse_series_option(j : Json) -> SeriesOption {
     tree_right,
     tree_bottom,
     tree_node_scale_ratio,
+    tree_leaves_label,
+    tree_leaves_geo_item_style,
+    tree_leaves_symbol_size,
+    tree_leaves_line_style_color,
+    tree_leaves_line_style_width,
+    tree_leaves_line_style_opacity,
+    tree_leaves_line_style_curveness,
   }
 }
 

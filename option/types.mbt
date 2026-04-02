@@ -123,6 +123,9 @@ pub(all) struct GeoLabelOption {
   position : String?
   distance : Double?
   font_weight : String?
+  rotate : Double?
+  font_size : Double
+  font_family : String
 }
 
 ///|
@@ -133,6 +136,9 @@ pub impl Default for GeoLabelOption with default() {
     position: None,
     distance: None,
     font_weight: None,
+    rotate: None,
+    font_size: 12.0,
+    font_family: "sans-serif",
   }
 }
 
@@ -143,11 +149,23 @@ pub(all) struct GeoLabelPatchOption {
   position : String?
   distance : Double?
   font_weight : String?
+  rotate : Double?
+  font_size : Double?
+  font_family : String?
 }
 
 ///|
 pub impl Default for GeoLabelPatchOption with default() {
-  { show: None, color: None, position: None, distance: None, font_weight: None }
+  {
+    show: None,
+    color: None,
+    position: None,
+    distance: None,
+    font_weight: None,
+    rotate: None,
+    font_size: None,
+    font_family: None,
+  }
 }
 
 ///|
@@ -482,6 +500,13 @@ pub(all) struct SeriesOption {
   tree_expand_and_collapse : Bool
   tree_initial_depth : Int
   tree_node_scale_ratio : Double
+  tree_leaves_label : GeoLabelPatchOption?
+  tree_leaves_geo_item_style : GeoItemStylePatchOption?
+  tree_leaves_symbol_size : Double?
+  tree_leaves_line_style_color : String?
+  tree_leaves_line_style_width : Double?
+  tree_leaves_line_style_opacity : Double?
+  tree_leaves_line_style_curveness : Double?
 }
 
 ///|
@@ -563,6 +588,13 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     tree_right: "12%",
     tree_bottom: "12%",
     tree_node_scale_ratio: 0.4,
+    tree_leaves_label: None,
+    tree_leaves_geo_item_style: None,
+    tree_leaves_symbol_size: None,
+    tree_leaves_line_style_color: None,
+    tree_leaves_line_style_width: None,
+    tree_leaves_line_style_opacity: None,
+    tree_leaves_line_style_curveness: None,
   }
 }
 
@@ -687,6 +719,7 @@ pub fn SeriesOption::default_tree() -> SeriesOption {
     tree_node_scale_ratio: 0.4,
     line_style_curveness: Some(0.5),
     line_style_width: Some(1.5),
+    label: Some({ ..GeoLabelOption::default(), show: true }),
   }
 }
 
@@ -711,6 +744,9 @@ pub fn SeriesOption::default_chord() -> SeriesOption {
       position: Some("outside"),
       distance: Some(5.0),
       font_weight: None,
+      rotate: None,
+      font_size: 12.0,
+      font_family: "sans-serif",
     }),
   }
 }

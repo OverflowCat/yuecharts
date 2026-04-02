@@ -1,0 +1,97 @@
+{
+  "width": 800,
+  "height": 500,
+  "series": [
+    {
+      "type": "tree",
+      "top": "8%",
+      "left": "10%",
+      "bottom": "8%",
+      "right": "20%",
+      "symbolSize": 7,
+      "orient": "LR",
+      "edgeShape": "curve",
+      "expandAndCollapse": false,
+      "itemStyle": {
+        "color": "#6a8f3a",
+        "borderWidth": 2
+      },
+      "lineStyle": {
+        "color": "#c9cdd4",
+        "width": 1.5,
+        "curveness": 0.5
+      },
+      "label": {
+        "show": true,
+        "color": "#333333",
+        "distance": 6
+      },
+      "leaves": {
+        "symbolSize": 11,
+        "label": {
+          "color": "#aa336a",
+          "position": "right",
+          "rotate": 0,
+          "fontSize": 14,
+          "fontWeight": "bold"
+        },
+        "itemStyle": {
+          "color": "#ffcc00",
+          "borderColor": "#aa336a",
+          "borderWidth": 3
+        },
+        "lineStyle": {
+          "color": "#aa336a",
+          "width": 2.5,
+          "opacity": 0.8
+        }
+      },
+      "data": [
+        {
+          "name": "Root",
+          "itemStyle": {
+            "color": "#4c78dd"
+          },
+          "children": [
+            {
+              "name": "Branch Left",
+              "lineStyle": {
+                "color": "#2f4f4f",
+                "width": 4
+              },
+              "children": [
+                {
+                  "name": "Leaf A"
+                },
+                {
+                  "name": "Leaf B",
+                  "itemStyle": {
+                    "color": "#00aaff",
+                    "borderColor": "#003355",
+                    "borderWidth": 1.5
+                  },
+                  "symbolSize": 15,
+                  "label": {
+                    "color": "#003355",
+                    "position": "left"
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Branch Right",
+              "label": {
+                "position": "right"
+              },
+              "children": [
+                {
+                  "name": "Leaf C"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

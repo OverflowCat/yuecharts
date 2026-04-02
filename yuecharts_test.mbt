@@ -194,6 +194,100 @@ test "themeRiver ignores unnamed items" {
 }
 
 ///|
+/// Tree leaves config should behave like TreeSeries leavesModel for static label/item/line style inheritance.
+test "tree leaves styles and node overrides render" {
+  let json_str =
+    #|{
+    #|  "width": 800,
+    #|  "height": 500,
+    #|  "series": [{
+    #|    "type": "tree",
+    #|    "top": "8%",
+    #|    "left": "10%",
+    #|    "bottom": "8%",
+    #|    "right": "20%",
+    #|    "symbolSize": 7,
+    #|    "orient": "LR",
+    #|    "edgeShape": "curve",
+    #|    "expandAndCollapse": false,
+    #|    "itemStyle": {"color": "#6a8f3a", "borderWidth": 2},
+    #|    "lineStyle": {"color": "#c9cdd4", "width": 1.5, "curveness": 0.5},
+    #|    "label": {"show": true, "color": "#333333", "distance": 6},
+    #|    "leaves": {
+    #|      "symbolSize": 11,
+    #|      "label": {"color": "#aa336a", "position": "right", "rotate": 0, "fontSize": 14, "fontWeight": "bold"},
+    #|      "itemStyle": {"color": "#ffcc00", "borderColor": "#aa336a", "borderWidth": 3},
+    #|      "lineStyle": {"color": "#aa336a", "width": 2.5, "opacity": 0.8}
+    #|    },
+    #|    "data": [{
+    #|      "name": "Root",
+    #|      "itemStyle": {"color": "#4c78dd"},
+    #|      "children": [
+    #|        {
+    #|          "name": "Branch Left",
+    #|          "lineStyle": {"color": "#2f4f4f", "width": 4},
+    #|          "children": [
+    #|            {"name": "Leaf A"},
+    #|            {
+    #|              "name": "Leaf B",
+    #|              "itemStyle": {"color": "#00aaff", "borderColor": "#003355", "borderWidth": 1.5},
+    #|              "symbolSize": 15,
+    #|              "label": {"color": "#003355", "position": "left"}
+    #|            }
+    #|          ]
+    #|        },
+    #|        {
+    #|          "name": "Branch Right",
+    #|          "label": {"position": "right"},
+    #|          "children": [{"name": "Leaf C"}]
+    #|        }
+    #|      ]
+    #|    }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("stroke=\"#aa336a\" stroke-width=\"2.5\""))
+  assert_true(svg.contains("stroke=\"#aa336a\" stroke-width=\"3\""))
+  assert_true(svg.contains("stroke=\"#003355\" stroke-width=\"1.5\""))
+  assert_true(svg.contains("fill=\"#aa336a\" font-size=\"14\""))
+  assert_true(svg.contains("font-weight=\"bold\""))
+  assert_true(svg.contains("fill=\"#003355\""))
+}
+
+///|
+/// Radial tree labels should be emitted as rotated transformed text groups.
+test "tree radial labels use transformed groups" {
+  let json_str =
+    #|{
+    #|  "width": 800,
+    #|  "height": 500,
+    #|  "series": [{
+    #|    "type": "tree",
+    #|    "layout": "radial",
+    #|    "top": "8%",
+    #|    "left": "8%",
+    #|    "bottom": "8%",
+    #|    "right": "8%",
+    #|    "symbolSize": 8,
+    #|    "expandAndCollapse": false,
+    #|    "data": [{
+    #|      "name": "Root",
+    #|      "children": [
+    #|        {"name": "North", "children": [{"name": "North-1"}, {"name": "North-2"}]},
+    #|        {"name": "East", "children": [{"name": "East-1"}, {"name": "East-2"}]},
+    #|        {"name": "South", "children": [{"name": "South-1"}]},
+    #|        {"name": "West", "children": [{"name": "West-1"}, {"name": "West-2"}]}
+    #|      ]
+    #|    }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("<g transform=\"matrix("))
+  assert_true(svg.contains(">North-1</text>"))
+  assert_true(svg.contains(">West-2</text>"))
+}
+
+///|
 /// Mixed bar+line: bar gets palette[0], line gets palette[1].
 test "mixed bar+line uses palette[0] and palette[1]" {
   let json_str =

@@ -1,43 +1,69 @@
 {
-  "width": 600,
-  "height": 600,
+  "width": 800,
+  "height": 500,
   "series": [
     {
       "type": "tree",
+      "layout": "radial",
+      "top": "8%",
+      "left": "8%",
+      "bottom": "8%",
+      "right": "8%",
+      "symbolSize": 8,
+      "expandAndCollapse": false,
+      "lineStyle": {
+        "color": "#b8bec8",
+        "width": 1.5,
+        "curveness": 0.5
+      },
       "data": [
         {
-          "name": "Core",
+          "name": "Root",
           "children": [
             {
-              "name": "Alpha",
+              "name": "North",
               "children": [
-                { "name": "a1" },
-                { "name": "a2" }
+                {
+                  "name": "North-1"
+                },
+                {
+                  "name": "North-2"
+                }
               ]
             },
             {
-              "name": "Beta",
+              "name": "East",
               "children": [
-                { "name": "b1" },
-                { "name": "b2" },
-                { "name": "b3" }
+                {
+                  "name": "East-1"
+                },
+                {
+                  "name": "East-2"
+                }
               ]
             },
             {
-              "name": "Gamma",
+              "name": "South",
               "children": [
-                { "name": "g1" }
+                {
+                  "name": "South-1"
+                }
+              ]
+            },
+            {
+              "name": "West",
+              "children": [
+                {
+                  "name": "West-1"
+                },
+                {
+                  "name": "West-2"
+                }
               ]
             }
           ]
         }
-      ],
-      "layout": "radial",
-      "top": "10%",
-      "left": "10%",
-      "bottom": "10%",
-      "right": "10%",
-      "expandAndCollapse": false
+      ]
     }
   ]
 }

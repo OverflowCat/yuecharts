@@ -14,7 +14,6 @@ priv struct TreeNode {
   mut depth : Int
   mut height : Int
   mut parent_node : TreeNode?
-  mut data_index : Int
   children : Array[TreeNode]
   mut is_expand : Bool
   // layout result
@@ -43,7 +42,6 @@ fn TreeNode::new(name : String, item : @option.DataItem) -> TreeNode {
     depth: 0,
     height: 0,
     parent_node: None,
-    data_index: -1,
     children: [],
     is_expand: false,
     layout_x: 0.0,
@@ -117,19 +115,6 @@ fn tree_build(
   let virtual_root = tree_build_hierarchy(wrapper_item, all_nodes)
   virtual_root.is_expand = true
   virtual_root.update_depth_and_height(0)
-  // assign data_index in preorder (using unconditional traversal)
-  let mut idx = 0
-  let stack : Array[TreeNode] = [virtual_root]
-  while stack.length() > 0 {
-    let node = stack.pop().unwrap()
-    node.data_index = idx
-    idx += 1
-    let mut i = node.children.length() - 1
-    while i >= 0 {
-      stack.push(node.children[i])
-      i -= 1
-    }
-  }
   virtual_root
 }
 
@@ -780,6 +765,389 @@ fn tree_parse_percent(s : String, base : Double) -> Double {
   }
 }
 
+///|
+priv struct TreeResolvedNodeStyle {
+  visual_color : String
+  stroke_color : String
+  stroke_width : Double
+  symbol_size : Double
+}
+
+///|
+priv struct TreeResolvedLineStyle {
+  color : String
+  width : Double
+  opacity : Double
+  curveness : Double
+}
+
+///|
+priv struct TreeResolvedLabelStyle {
+  show : Bool
+  color : String
+  position : String?
+  distance : Double
+  font_weight : String
+  rotate : Double?
+  font_size : Double
+  font_family : String
+}
+
+///|
+fn tree_json_field(j : Json, key : String) -> Json? {
+  match j {
+    Object(map) => map.get(key)
+    _ => None
+  }
+}
+
+///|
+fn tree_raw_field(item : @option.DataItem, key : String) -> Json? {
+  match item.raw_item {
+    Some(raw) => tree_json_field(raw, key)
+    None => None
+  }
+}
+
+///|
+fn tree_raw_number_opt(item : @option.DataItem, key : String) -> Double? {
+  match tree_raw_field(item, key) {
+    Some(Number(n, ..)) => Some(n)
+    _ => None
+  }
+}
+
+///|
+fn tree_raw_style_string_opt(
+  item : @option.DataItem,
+  style_key : String,
+  key : String,
+) -> String? {
+  match tree_raw_field(item, style_key) {
+    Some(style_json) =>
+      match tree_json_field(style_json, key) {
+        Some(String(s)) => Some(s)
+        _ => None
+      }
+    None => None
+  }
+}
+
+///|
+fn tree_raw_style_number_opt(
+  item : @option.DataItem,
+  style_key : String,
+  key : String,
+) -> Double? {
+  match tree_raw_field(item, style_key) {
+    Some(style_json) =>
+      match tree_json_field(style_json, key) {
+        Some(Number(n, ..)) => Some(n)
+        _ => None
+      }
+    None => None
+  }
+}
+
+///|
+fn tree_uses_leaves_model(node : TreeNode) -> Bool {
+  node.children.length() == 0 || not(node.is_expand)
+}
+
+///|
+fn tree_patch_visual_color(style : @option.GeoItemStylePatchOption?) -> String? {
+  match style {
+    Some(patch) =>
+      match patch.color {
+        Some(color) => Some(color)
+        None => patch.area_color
+      }
+    None => None
+  }
+}
+
+///|
+fn tree_patch_border_color(style : @option.GeoItemStylePatchOption?) -> String? {
+  match style {
+    Some(patch) => patch.border_color
+    None => None
+  }
+}
+
+///|
+fn tree_patch_border_width(style : @option.GeoItemStylePatchOption?) -> Double? {
+  match style {
+    Some(patch) => patch.border_width
+    None => None
+  }
+}
+
+///|
+fn tree_resolve_node_style(
+  series : @option.SeriesOption,
+  node : TreeNode,
+) -> TreeResolvedNodeStyle {
+  let leaves_style = if tree_uses_leaves_model(node) {
+    series.tree_leaves_geo_item_style
+  } else {
+    None
+  }
+  let series_visual_color = tree_patch_visual_color(series.geo_item_style).unwrap_or(
+    series.item_style.unwrap_or("#b0c4de"),
+  )
+  let visual_color = tree_patch_visual_color(node.item.item_style).unwrap_or(
+    tree_patch_visual_color(leaves_style).unwrap_or(series_visual_color),
+  )
+  let stroke_color = tree_patch_border_color(node.item.item_style).unwrap_or(
+    tree_patch_border_color(leaves_style).unwrap_or(
+      tree_patch_border_color(series.geo_item_style).unwrap_or(visual_color),
+    ),
+  )
+  let stroke_width = tree_patch_border_width(node.item.item_style).unwrap_or(
+    tree_patch_border_width(leaves_style).unwrap_or(
+      tree_patch_border_width(series.geo_item_style).unwrap_or(1.5),
+    ),
+  )
+  let symbol_size = tree_raw_number_opt(node.item, "symbolSize").unwrap_or(
+    if tree_uses_leaves_model(node) {
+      series.tree_leaves_symbol_size.unwrap_or(series.symbol_size)
+    } else {
+      series.symbol_size
+    },
+  )
+  { visual_color, stroke_color, stroke_width, symbol_size }
+}
+
+///|
+fn tree_resolve_line_style(
+  series : @option.SeriesOption,
+  node : TreeNode,
+) -> TreeResolvedLineStyle {
+  let use_leaves = tree_uses_leaves_model(node)
+  let color = tree_raw_style_string_opt(node.item, "lineStyle", "color").unwrap_or(
+    if use_leaves {
+      series.tree_leaves_line_style_color.unwrap_or(
+        series.line_style_color.unwrap_or("#cfd2d7"),
+      )
+    } else {
+      series.line_style_color.unwrap_or("#cfd2d7")
+    },
+  )
+  let width = tree_raw_style_number_opt(node.item, "lineStyle", "width").unwrap_or(
+    if use_leaves {
+      series.tree_leaves_line_style_width.unwrap_or(
+        series.line_style_width.unwrap_or(1.5),
+      )
+    } else {
+      series.line_style_width.unwrap_or(1.5)
+    },
+  )
+  let opacity = tree_raw_style_number_opt(node.item, "lineStyle", "opacity").unwrap_or(
+    if use_leaves {
+      series.tree_leaves_line_style_opacity.unwrap_or(
+        series.line_style_opacity.unwrap_or(1.0),
+      )
+    } else {
+      series.line_style_opacity.unwrap_or(1.0)
+    },
+  )
+  let curveness = tree_raw_style_number_opt(node.item, "lineStyle", "curveness").unwrap_or(
+    if use_leaves {
+      series.tree_leaves_line_style_curveness.unwrap_or(
+        series.line_style_curveness.unwrap_or(0.5),
+      )
+    } else {
+      series.line_style_curveness.unwrap_or(0.5)
+    },
+  )
+  { color, width, opacity, curveness }
+}
+
+///|
+fn tree_apply_label_patch(
+  base : TreeResolvedLabelStyle,
+  patch : @option.GeoLabelPatchOption?,
+) -> TreeResolvedLabelStyle {
+  match patch {
+    Some(p) =>
+      {
+        show: p.show.unwrap_or(base.show),
+        color: p.color.unwrap_or(base.color),
+        position: match p.position {
+          Some(position) => Some(position)
+          None => base.position
+        },
+        distance: p.distance.unwrap_or(base.distance),
+        font_weight: p.font_weight.unwrap_or(base.font_weight),
+        rotate: match p.rotate {
+          Some(rotate) => Some(rotate)
+          None => base.rotate
+        },
+        font_size: p.font_size.unwrap_or(base.font_size),
+        font_family: p.font_family.unwrap_or(base.font_family),
+      }
+    None => base
+  }
+}
+
+///|
+fn tree_resolve_label_style(
+  series : @option.SeriesOption,
+  node : TreeNode,
+) -> TreeResolvedLabelStyle {
+  let base_label = match series.label {
+    Some(label) => label
+    None => { ..@option.GeoLabelOption::default(), show: true }
+  }
+  let base = {
+    show: base_label.show,
+    color: base_label.color,
+    position: base_label.position,
+    distance: base_label.distance.unwrap_or(5.0),
+    font_weight: base_label.font_weight.unwrap_or("normal"),
+    rotate: base_label.rotate,
+    font_size: base_label.font_size,
+    font_family: base_label.font_family,
+  }
+  let with_leaves = if tree_uses_leaves_model(node) {
+    tree_apply_label_patch(base, series.tree_leaves_label)
+  } else {
+    base
+  }
+  tree_apply_label_patch(with_leaves, node.item.label)
+}
+
+///|
+fn tree_label_position(
+  x : Double,
+  y : Double,
+  half_size : Double,
+  distance : Double,
+  position : String,
+) -> (Double, Double, @graphic.TextAnchor, @graphic.TextBaseline) {
+  let offset = half_size + distance
+  match position {
+    "left" =>
+      (x - offset, y, @graphic.TextAnchor::End, @graphic.TextBaseline::Middle)
+    "right" =>
+      (x + offset, y, @graphic.TextAnchor::Start, @graphic.TextBaseline::Middle)
+    "top" =>
+      (
+        x,
+        y - offset,
+        @graphic.TextAnchor::Middle,
+        @graphic.TextBaseline::Bottom,
+      )
+    "bottom" =>
+      (
+        x,
+        y + offset,
+        @graphic.TextAnchor::Middle,
+        @graphic.TextBaseline::Hanging,
+      )
+    "inside" =>
+      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
+    "middle" =>
+      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
+    "center" =>
+      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
+    _ =>
+      (x + offset, y, @graphic.TextAnchor::Start, @graphic.TextBaseline::Middle)
+  }
+}
+
+///|
+fn tree_radial_direction(
+  real_root : TreeNode,
+  node : TreeNode,
+) -> (Bool, Double) {
+  let root_x = real_root.layout_x
+  let root_y = real_root.layout_y
+  let target_x = node.layout_x
+  let target_y = node.layout_y
+  let mut rad = 0.0
+  let mut is_left = false
+  if target_x == root_x && node.is_expand && real_root.children.length() > 0 {
+    let length = real_root.children.length()
+    let center_x = (
+        real_root.children[0].layout_x + real_root.children[length - 1].layout_x
+      ) /
+      2.0
+    let center_y = (
+        real_root.children[0].layout_y + real_root.children[length - 1].layout_y
+      ) /
+      2.0
+    rad = @math.atan2(center_y - root_y, center_x - root_x)
+    if rad < 0.0 {
+      rad = 2.0 * @math.PI + rad
+    }
+    is_left = center_x < root_x
+    if is_left {
+      rad = rad - @math.PI
+    }
+  } else {
+    rad = @math.atan2(target_y - root_y, target_x - root_x)
+    if rad < 0.0 {
+      rad = 2.0 * @math.PI + rad
+    }
+    if node.children.length() == 0 ||
+      (node.children.length() != 0 && not(node.is_expand)) {
+      is_left = target_x < root_x
+      if is_left {
+        rad = rad - @math.PI
+      }
+    } else {
+      is_left = target_x > root_x
+      if not(is_left) {
+        rad = rad - @math.PI
+      }
+    }
+  }
+  (is_left, rad)
+}
+
+///|
+fn tree_make_label_element(
+  x : Double,
+  y : Double,
+  text : String,
+  label_style : TreeResolvedLabelStyle,
+  anchor : @graphic.TextAnchor,
+  baseline : @graphic.TextBaseline,
+  rotation_rad : Double?,
+) -> @graphic.Element {
+  let text_elem = @graphic.Element::text_custom(
+    0.0,
+    0.0,
+    text,
+    anchor,
+    baseline,
+    label_style.color,
+    label_style.font_size,
+    label_style.font_family,
+    label_style.font_weight,
+  )
+  match rotation_rad {
+    Some(rot) =>
+      @graphic.Element::group_transformed(
+        [text_elem],
+        @graphic.Matrix::translate(x, y).then(@graphic.Matrix::rotate(rot)),
+      )
+    None =>
+      @graphic.Element::text_custom(
+        x,
+        y,
+        text,
+        anchor,
+        baseline,
+        label_style.color,
+        label_style.font_size,
+        label_style.font_family,
+        label_style.font_weight,
+      )
+  }
+}
+
 // ----- Render function (corresponds to TreeView.ts render) -----
 
 ///|
@@ -819,7 +1187,7 @@ pub fn render_trees(
 ///|
 fn render_tree_series(
   series : @option.SeriesOption,
-  series_index : Int,
+  _series_index : Int,
   chart_width : Double,
   chart_height : Double,
 ) -> Array[@graphic.Element] {
@@ -856,11 +1224,7 @@ fn render_tree_series(
   // Run layout
   tree_common_layout(virtual_root, lx, ly, lw, lh, layout, orient)
   // Rendering
-  let curvature = series.line_style_curveness.unwrap_or(0.5)
-  let line_width = series.line_style_width.unwrap_or(1.5)
   let edge_shape = series.tree_edge_shape
-  let edge_color = series.line_style_color.unwrap_or("#cfd2d7") // tokens.color.borderTint
-  let symbol_size = series.symbol_size
   let fork_pct = tree_parse_percent(series.tree_edge_fork_position, 1.0)
   // Draw edges first, then nodes on top
   // curve edges: from parent to each child
@@ -871,11 +1235,12 @@ fn render_tree_series(
         while ci < node.children.length() {
           let child = node.children[ci]
           ci += 1
+          let line_style = tree_resolve_line_style(series, child)
           let path_d = if layout == "radial" {
             let cx = lx + lw / 2.0
             let cy = ly + lh / 2.0
             tree_get_edge_shape_curve_radial(
-              curvature,
+              line_style.curveness,
               node.raw_x,
               node.raw_y,
               child.raw_x,
@@ -886,7 +1251,7 @@ fn render_tree_series(
           } else {
             tree_get_edge_shape_curve(
               orient,
-              curvature,
+              line_style.curveness,
               node.layout_x,
               node.layout_y,
               child.layout_x,
@@ -895,7 +1260,12 @@ fn render_tree_series(
           }
           elems.push(
             @graphic.Element::path_stroke_custom(
-              path_d, edge_color, line_width, "butt", "miter", 1.0,
+              path_d,
+              line_style.color,
+              line_style.width,
+              "butt",
+              "miter",
+              line_style.opacity,
             ),
           )
         }
@@ -905,6 +1275,7 @@ fn render_tree_series(
     // polyline edges: from parent node, fan out to all children
     tree_each_before(real_root, fn(node) {
       if node.is_expand && node.children.length() > 0 {
+        let line_style = tree_resolve_line_style(series, node)
         let child_points : Array[(Double, Double)] = []
         let mut ci = 0
         while ci < node.children.length() {
@@ -921,7 +1292,12 @@ fn render_tree_series(
         )
         elems.push(
           @graphic.Element::path_stroke_custom(
-            path_d, edge_color, line_width, "butt", "miter", 1.0,
+            path_d,
+            line_style.color,
+            line_style.width,
+            "butt",
+            "miter",
+            line_style.opacity,
           ),
         )
       }
@@ -931,78 +1307,92 @@ fn render_tree_series(
   tree_each_before(real_root, fn(node) {
     let x = node.layout_x
     let y = node.layout_y
+    let node_style = tree_resolve_node_style(series, node)
+    let label_style = tree_resolve_label_style(series, node)
     // symbolInnerColor: collapsed non-leaf → visualColor, otherwise → neutral00
     let is_collapsed_nonleaf = not(node.is_expand) && node.children.length() > 0
     let fill_color = if is_collapsed_nonleaf {
-      "#b0c4de" // lightsteelblue (default itemStyle.color)
+      node_style.visual_color
     } else {
       "#fff" // tokens.color.neutral00
     }
-    let stroke_color = "#b0c4de" // lightsteelblue (default itemStyle.color / visualColor)
     let is_leaf = node.children.length() == 0
-    let half_size = symbol_size / 2.0
-    if layout == "radial" {
-      let cx = lx + lw / 2.0
-      let cy = ly + lh / 2.0
-      elems.push(
-        tree_circle_fill_stroke(
-          x + cx,
-          y + cy,
-          half_size,
-          fill_color,
-          stroke_color,
-          1.5,
-        ),
-      )
-    } else {
-      elems.push(
-        tree_circle_fill_stroke(x, y, half_size, fill_color, stroke_color, 1.5),
-      )
-    }
+    let half_size = node_style.symbol_size / 2.0
+    elems.push(
+      tree_circle_fill_stroke(
+        x,
+        y,
+        half_size,
+        fill_color,
+        node_style.stroke_color,
+        node_style.stroke_width,
+      ),
+    )
     // Node label
     let label_text = node.name
-    if label_text.length() > 0 {
-      let (lbl_x, lbl_y, anchor) : (Double, Double, @graphic.TextAnchor) = if layout ==
-        "radial" {
-        let cx = lx + lw / 2.0
-        let cy = ly + lh / 2.0
-        (x + cx, y + cy - half_size - 4.0, @graphic.TextAnchor::Middle)
-      } else if orient == "LR" || orient == "RL" {
-        if is_leaf {
-          if orient == "LR" {
-            (x + half_size + 5.0, y, @graphic.TextAnchor::Start)
+    if label_text.length() > 0 && label_style.show {
+      if layout == "radial" {
+        let (is_left, default_rad) = tree_radial_direction(real_root, node)
+        let default_position = if is_left { "left" } else { "right" }
+        let position = label_style.position.unwrap_or(default_position)
+        let (lbl_x, lbl_y, anchor, baseline) = tree_label_position(
+          x,
+          y,
+          half_size,
+          label_style.distance,
+          position,
+        )
+        let rotation_rad = match label_style.rotate {
+          Some(deg) => Some(deg * @math.PI / 180.0)
+          None => Some(-default_rad)
+        }
+        elems.push(
+          tree_make_label_element(
+            lbl_x, lbl_y, label_text, label_style, anchor, baseline, rotation_rad,
+          ),
+        )
+      } else {
+        let default_position = if orient == "LR" || orient == "RL" {
+          if is_leaf {
+            if orient == "LR" {
+              "right"
+            } else {
+              "left"
+            }
+          } else if orient == "LR" {
+            "left"
           } else {
-            (x - half_size - 5.0, y, @graphic.TextAnchor::End)
+            "right"
           }
-        } else if orient == "LR" {
-          (x - half_size - 5.0, y, @graphic.TextAnchor::End)
+        } else if is_leaf {
+          if orient == "TB" {
+            "bottom"
+          } else {
+            "top"
+          }
+        } else if orient == "TB" {
+          "top"
         } else {
-          (x + half_size + 5.0, y, @graphic.TextAnchor::Start)
+          "bottom"
         }
-        // TB or BT
-      } else if is_leaf {
-        if orient == "TB" {
-          (x, y + half_size + 12.0, @graphic.TextAnchor::Middle)
-        } else {
-          (x, y - half_size - 4.0, @graphic.TextAnchor::Middle)
+        let position = label_style.position.unwrap_or(default_position)
+        let (lbl_x, lbl_y, anchor, baseline) = tree_label_position(
+          x,
+          y,
+          half_size,
+          label_style.distance,
+          position,
+        )
+        let rotation_rad = match label_style.rotate {
+          Some(deg) => Some(deg * @math.PI / 180.0)
+          None => None
         }
-      } else if orient == "TB" {
-        (x, y - half_size - 4.0, @graphic.TextAnchor::Middle)
-      } else {
-        (x, y + half_size + 12.0, @graphic.TextAnchor::Middle)
+        elems.push(
+          tree_make_label_element(
+            lbl_x, lbl_y, label_text, label_style, anchor, baseline, rotation_rad,
+          ),
+        )
       }
-      let baseline : @graphic.TextBaseline = if layout == "radial" ||
-        orient == "LR" ||
-        orient == "RL" {
-        @graphic.TextBaseline::Middle
-      } else {
-        @graphic.TextBaseline::Auto
-      }
-      elems.push(
-        @graphic.Element::text_colored(
-          lbl_x, lbl_y, label_text, anchor, baseline, "#333",
-        ),
-      )
     }
   })
   elems
