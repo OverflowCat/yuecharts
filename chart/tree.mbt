@@ -734,20 +734,6 @@ fn tree_r4(v : Double) -> String {
 }
 
 ///|
-fn tree_circle_fill_stroke(
-  cx : Double,
-  cy : Double,
-  r : Double,
-  fill_str : String,
-  stroke_str : String,
-  stroke_width : Double,
-) -> @graphic.Element {
-  @graphic.Element::circle_fill_stroke(
-    cx, cy, r, fill_str, stroke_str, stroke_width,
-  )
-}
-
-///|
 fn tree_parse_percent(s : String, base : Double) -> Double {
   if s.length() > 0 && s[s.length() - 1] == '%' {
     let pct_str = s[:s.length() - 1].to_string()
@@ -767,8 +753,9 @@ fn tree_parse_percent(s : String, base : Double) -> Double {
 
 ///|
 priv struct TreeResolvedNodeStyle {
+  symbol : String
   visual_color : String
-  stroke_color : String
+  border_color : String?
   stroke_width : Double
   symbol_size : Double
 }
@@ -883,10 +870,49 @@ fn tree_patch_border_width(style : @option.GeoItemStylePatchOption?) -> Double? 
 }
 
 ///|
+fn tree_is_empty_symbol(symbol : String) -> Bool {
+  match symbol {
+    "emptyCircle" => true
+    "emptyRect" => true
+    "emptyRoundRect" => true
+    "emptyTriangle" => true
+    "emptyDiamond" => true
+    "emptyPin" => true
+    "emptyArrow" => true
+    _ => false
+  }
+}
+
+///|
+fn tree_base_symbol(symbol : String) -> String {
+  match symbol {
+    "emptyCircle" => "circle"
+    "emptyRect" => "rect"
+    "emptyRoundRect" => "roundRect"
+    "emptyTriangle" => "triangle"
+    "emptyDiamond" => "diamond"
+    "emptyPin" => "pin"
+    "emptyArrow" => "arrow"
+    _ => symbol
+  }
+}
+
+///|
 fn tree_resolve_node_style(
   series : @option.SeriesOption,
   node : TreeNode,
 ) -> TreeResolvedNodeStyle {
+  let symbol = match node.item.symbol {
+    Some(symbol) => symbol
+    None =>
+      if tree_uses_leaves_model(node) {
+        series.tree_leaves_symbol.unwrap_or(
+          series.symbol.unwrap_or("emptyCircle"),
+        )
+      } else {
+        series.symbol.unwrap_or("emptyCircle")
+      }
+  }
   let leaves_style = if tree_uses_leaves_model(node) {
     series.tree_leaves_geo_item_style
   } else {
@@ -898,11 +924,14 @@ fn tree_resolve_node_style(
   let visual_color = tree_patch_visual_color(node.item.item_style).unwrap_or(
     tree_patch_visual_color(leaves_style).unwrap_or(series_visual_color),
   )
-  let stroke_color = tree_patch_border_color(node.item.item_style).unwrap_or(
-    tree_patch_border_color(leaves_style).unwrap_or(
-      tree_patch_border_color(series.geo_item_style).unwrap_or(visual_color),
-    ),
-  )
+  let border_color = match tree_patch_border_color(node.item.item_style) {
+    Some(color) => Some(color)
+    None =>
+      match tree_patch_border_color(leaves_style) {
+        Some(color) => Some(color)
+        None => tree_patch_border_color(series.geo_item_style)
+      }
+  }
   let stroke_width = tree_patch_border_width(node.item.item_style).unwrap_or(
     tree_patch_border_width(leaves_style).unwrap_or(
       tree_patch_border_width(series.geo_item_style).unwrap_or(1.5),
@@ -915,7 +944,7 @@ fn tree_resolve_node_style(
       series.symbol_size
     },
   )
-  { visual_color, stroke_color, stroke_width, symbol_size }
+  { symbol, visual_color, border_color, stroke_width, symbol_size }
 }
 
 ///|
@@ -1311,23 +1340,58 @@ fn render_tree_series(
     let label_style = tree_resolve_label_style(series, node)
     // symbolInnerColor: collapsed non-leaf → visualColor, otherwise → neutral00
     let is_collapsed_nonleaf = not(node.is_expand) && node.children.length() > 0
-    let fill_color = if is_collapsed_nonleaf {
+    let empty_inner_color = if is_collapsed_nonleaf {
       node_style.visual_color
     } else {
       "#fff" // tokens.color.neutral00
     }
+    let symbol = tree_base_symbol(node_style.symbol)
     let is_leaf = node.children.length() == 0
     let half_size = node_style.symbol_size / 2.0
-    elems.push(
-      tree_circle_fill_stroke(
-        x,
-        y,
-        half_size,
-        fill_color,
-        node_style.stroke_color,
-        node_style.stroke_width,
-      ),
-    )
+    if tree_is_empty_symbol(node_style.symbol) {
+      elems.push(
+        @graphic.make_symbol_fill_stroke(
+          symbol,
+          x - half_size,
+          y - half_size,
+          node_style.symbol_size,
+          node_style.symbol_size,
+          empty_inner_color,
+          node_style.visual_color,
+          2.0,
+          1.0,
+        ),
+      )
+    } else {
+      match node_style.border_color {
+        Some(border_color) =>
+          elems.push(
+            @graphic.make_symbol_fill_stroke(
+              symbol,
+              x - half_size,
+              y - half_size,
+              node_style.symbol_size,
+              node_style.symbol_size,
+              node_style.visual_color,
+              border_color,
+              node_style.stroke_width,
+              1.0,
+            ),
+          )
+        None =>
+          elems.push(
+            @graphic.make_symbol(
+              symbol,
+              x - half_size,
+              y - half_size,
+              node_style.symbol_size,
+              node_style.symbol_size,
+              node_style.visual_color,
+              1.0,
+            ),
+          )
+      }
+    }
     // Node label
     let label_text = node.name
     if label_text.length() > 0 && label_style.show {

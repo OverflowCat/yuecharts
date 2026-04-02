@@ -502,6 +502,7 @@ pub(all) struct SeriesOption {
   tree_node_scale_ratio : Double
   tree_leaves_label : GeoLabelPatchOption?
   tree_leaves_geo_item_style : GeoItemStylePatchOption?
+  tree_leaves_symbol : String?
   tree_leaves_symbol_size : Double?
   tree_leaves_line_style_color : String?
   tree_leaves_line_style_width : Double?
@@ -590,6 +591,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     tree_node_scale_ratio: 0.4,
     tree_leaves_label: None,
     tree_leaves_geo_item_style: None,
+    tree_leaves_symbol: None,
     tree_leaves_symbol_size: None,
     tree_leaves_line_style_color: None,
     tree_leaves_line_style_width: None,
@@ -705,6 +707,7 @@ pub fn SeriesOption::default_tree() -> SeriesOption {
   {
     ..SeriesOption::default_line(),
     series_type: SeriesType::Tree,
+    symbol: Some("emptyCircle"),
     symbol_size: 7.0,
     tree_layout: "orthogonal",
     tree_orient: "LR",

@@ -247,11 +247,12 @@ test "tree leaves styles and node overrides render" {
     #|}
   let svg = @yuecharts.render(json_str)
   assert_true(svg.contains("stroke=\"#aa336a\" stroke-width=\"2.5\""))
-  assert_true(svg.contains("stroke=\"#aa336a\" stroke-width=\"3\""))
-  assert_true(svg.contains("stroke=\"#003355\" stroke-width=\"1.5\""))
+  assert_true(svg.contains("stroke=\"#ffcc00\""))
+  assert_true(svg.contains("stroke=\"#00aaff\""))
   assert_true(svg.contains("fill=\"#aa336a\" font-size=\"14\""))
   assert_true(svg.contains("font-weight=\"bold\""))
   assert_true(svg.contains("fill=\"#003355\""))
+  assert_true(!svg.contains("stroke=\"#aa336a\" stroke-width=\"3\""))
 }
 
 ///|
@@ -285,6 +286,71 @@ test "tree radial labels use transformed groups" {
   assert_true(svg.contains("<g transform=\"matrix("))
   assert_true(svg.contains(">North-1</text>"))
   assert_true(svg.contains(">West-2</text>"))
+}
+
+///|
+/// Tree symbols should follow series -> leaves -> item symbol precedence.
+test "tree symbol shapes render from series leaves and item overrides" {
+  let json_str =
+    #|{
+    #|  "width": 800,
+    #|  "height": 500,
+    #|  "series": [{
+    #|    "type": "tree",
+    #|    "top": "10%",
+    #|    "left": "10%",
+    #|    "bottom": "10%",
+    #|    "right": "20%",
+    #|    "orient": "LR",
+    #|    "expandAndCollapse": false,
+    #|    "symbol": "diamond",
+    #|    "symbolSize": 14,
+    #|    "itemStyle": {"color": "#cc88ff", "borderColor": "#442266", "borderWidth": 2},
+    #|    "leaves": {
+    #|      "symbol": "rect",
+    #|      "symbolSize": 16,
+    #|      "itemStyle": {"color": "#ffee88", "borderColor": "#663300", "borderWidth": 2}
+    #|    },
+    #|    "data": [{
+    #|      "name": "Root",
+    #|      "children": [
+    #|        {
+    #|          "name": "Branch A",
+    #|          "children": [
+    #|            {"name": "Leaf Rect"},
+    #|            {
+    #|              "name": "Leaf Triangle",
+    #|              "symbol": "triangle",
+    #|              "symbolSize": 18,
+    #|              "itemStyle": {"color": "#88ddff", "borderColor": "#224466", "borderWidth": 2}
+    #|            }
+    #|          ]
+    #|        },
+    #|        {
+    #|          "name": "Branch B",
+    #|          "symbol": "roundRect",
+    #|          "children": [
+    #|            {
+    #|              "name": "Leaf Path",
+    #|              "symbol": "path://M0 -120 L104 60 L-104 60 Z",
+    #|              "symbolSize": 20,
+    #|              "itemStyle": {"color": "#99e0aa", "borderColor": "#225533", "borderWidth": 2}
+    #|            }
+    #|          ]
+    #|        }
+    #|      ]
+    #|    }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("<rect "))
+  assert_true(svg.contains("fill=\"#cc88ff\""))
+  assert_true(svg.contains("fill=\"#ffee88\""))
+  assert_true(svg.contains("fill=\"#88ddff\""))
+  assert_true(svg.contains("fill=\"#99e0aa\""))
+  assert_true(svg.contains("stroke=\"#442266\""))
+  assert_true(svg.contains("stroke=\"#224466\""))
+  assert_true(svg.contains("stroke=\"#225533\""))
 }
 
 ///|

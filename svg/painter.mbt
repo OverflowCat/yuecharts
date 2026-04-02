@@ -1,5 +1,6 @@
 // Corresponds to: zrender/src/svg/Painter.ts, zrender/src/svg/core.ts,
-// zrender/src/svg/cssEmphasis.ts
+// zrender/src/svg/graphic.ts, zrender/src/svg/cssEmphasis.ts,
+// zrender/src/svg/cssClassId.ts
 // Renders graphic elements to SVG output
 
 ///|
@@ -43,33 +44,6 @@ fn points_to_svg(points : Array[@graphic.Point]) -> String {
     buf.write_string("\{p.x},\{p.y}")
   }
   buf.to_string()
-}
-
-///|
-fn stroke_attrs(s : @graphic.StrokeStyle) -> String {
-  let buf = StringBuilder::new()
-  buf.write_string(" stroke=\"\{s.color.to_svg()}\"")
-  buf.write_string(" stroke-width=\"\{s.width}\"")
-  if s.dash.length() > 0 {
-    let dash_str = s.dash
-      .iter()
-      .map(fn(d) { d.to_string() })
-      .collect()
-      .join(",")
-    buf.write_string(" stroke-dasharray=\"\{dash_str}\"")
-  }
-  if s.line_cap != "butt" {
-    buf.write_string(" stroke-linecap=\"\{s.line_cap}\"")
-  }
-  if s.line_join != "miter" {
-    buf.write_string(" stroke-linejoin=\"\{s.line_join}\"")
-  }
-  buf.to_string()
-}
-
-///|
-fn fill_attr(color : @graphic.Color) -> String {
-  " fill=\"\{color.to_svg()}\""
 }
 
 ///|
@@ -337,12 +311,11 @@ fn emphasis_hover_properties(
 }
 
 ///|
-fn write_displayable_class_attr(
-  buf : StringBuilder,
+fn displayable_class_value(
   meta : @graphic.DisplayableMeta,
   normal_fill : String?,
   scope : Ref[BrushScope],
-) -> Unit {
+) -> String? {
   let class_names : Array[String] = []
   match meta.class_name {
     Some(class_name) => class_names.push(class_name)
@@ -355,7 +328,22 @@ fn write_displayable_class_attr(
     }
   }
   if class_names.length() > 0 {
-    buf.write_string(" class=\"\{css_join_classes(class_names)}\"")
+    Some(css_join_classes(class_names))
+  } else {
+    None
+  }
+}
+
+///|
+fn write_displayable_class_attr(
+  buf : StringBuilder,
+  meta : @graphic.DisplayableMeta,
+  normal_fill : String?,
+  scope : Ref[BrushScope],
+) -> Unit {
+  match displayable_class_value(meta, normal_fill, scope) {
+    Some(class_value) => buf.write_string(" class=\"\{class_value}\"")
+    None => ()
   }
 }
 
@@ -754,7 +742,7 @@ fn render_text(
   }
   buf.write_string(opacity_attr(t.opacity))
   buf.write_string(">")
-  buf.write_string(xml_escape(t.content))
+  buf.write_string(painter_xml_escape(t.content))
   buf.write_string("</text>\n")
 }
 
@@ -787,7 +775,7 @@ fn css_nodes_to_string(css_nodes : Array[CssNode]) -> String {
 }
 
 ///|
-fn xml_escape(s : String) -> String {
+fn painter_xml_escape(s : String) -> String {
   let buf = StringBuilder::new()
   for c in s {
     match c {
@@ -800,6 +788,540 @@ fn xml_escape(s : String) -> String {
     }
   }
   buf.to_string()
+}
+
+///|
+fn push_xml_attr(attrs : Array[XmlAttr], name : String, value : String) -> Unit {
+  attrs.push(XmlAttr::new(name, value))
+}
+
+///|
+fn push_xml_attr_opt(
+  attrs : Array[XmlAttr],
+  name : String,
+  value : String?,
+) -> Unit {
+  match value {
+    Some(value) => attrs.push(XmlAttr::new(name, value))
+    None => ()
+  }
+}
+
+///|
+fn push_stroke_attrs_from_base(
+  attrs : Array[XmlAttr],
+  stroke_color : String?,
+  stroke_width : Double?,
+  dash : Array[Double],
+  line_cap : String,
+  line_join : String,
+) -> Unit {
+  match stroke_color {
+    Some(stroke_color) => {
+      push_xml_attr(attrs, "stroke", stroke_color)
+      match stroke_width {
+        Some(stroke_width) =>
+          push_xml_attr(attrs, "stroke-width", stroke_width.to_string())
+        None => ()
+      }
+      if dash.length() > 0 {
+        let dash_str = dash
+          .iter()
+          .map(fn(d) { d.to_string() })
+          .collect()
+          .join(",")
+        push_xml_attr(attrs, "stroke-dasharray", dash_str)
+      }
+      if line_cap != "butt" {
+        push_xml_attr(attrs, "stroke-linecap", line_cap)
+      }
+      if line_join != "miter" {
+        push_xml_attr(attrs, "stroke-linejoin", line_join)
+      }
+    }
+    None => push_xml_attr(attrs, "stroke", "none")
+  }
+}
+
+///|
+fn build_element_nodes(
+  elem : @graphic.Element,
+  clip_counter : Ref[Int],
+  scope : Ref[BrushScope],
+) -> Array[XmlNode] {
+  match elem {
+    Group(g) => build_group_nodes(g, clip_counter, scope)
+    Rect(r) => [build_rect_node(r, scope)]
+    Circle(c) => [build_circle_node(c, scope)]
+    Line(l) => [build_line_node(l, scope)]
+    Polyline(pl) => [build_polyline_node(pl, scope)]
+    Polygon(pg) => [build_polygon_node(pg, scope)]
+    Path(p) => [build_path_node(p, scope)]
+    Text(t) => [build_text_node(t, scope)]
+  }
+}
+
+///|
+fn append_xml_nodes(dst : Array[XmlNode], src : Array[XmlNode]) -> Unit {
+  for node in src {
+    dst.push(node)
+  }
+}
+
+///|
+fn build_group_nodes(
+  g : @graphic.GroupData,
+  clip_counter : Ref[Int],
+  scope : Ref[BrushScope],
+) -> Array[XmlNode] {
+  let attrs : Array[XmlAttr] = []
+  match g.transform {
+    Some(m) => push_xml_attr(attrs, "transform", "\{m}")
+    None => ()
+  }
+  if g.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", g.opacity.to_string())
+  }
+  let children : Array[XmlNode] = []
+  for child in g.children {
+    append_xml_nodes(children, build_element_nodes(child, clip_counter, scope))
+  }
+  match (g.clip_rect, g.clip_path) {
+    (Some(cr), _) => {
+      let clip_id = "clip-\{clip_counter.val}"
+      clip_counter.val = clip_counter.val + 1
+      let clip_rect_attrs : Array[XmlAttr] = []
+      push_xml_attr(clip_rect_attrs, "x", cr.x.to_string())
+      push_xml_attr(clip_rect_attrs, "y", cr.y.to_string())
+      push_xml_attr(clip_rect_attrs, "width", cr.width.to_string())
+      push_xml_attr(clip_rect_attrs, "height", cr.height.to_string())
+      let clip_node = XmlNode::element(
+        "clipPath",
+        [XmlAttr::new("id", clip_id)],
+        [XmlNode::empty("rect", clip_rect_attrs)],
+      )
+      let group_attrs : Array[XmlAttr] = [
+        XmlAttr::new("clip-path", "url(#\{clip_id})"),
+      ]
+      for attr in attrs {
+        group_attrs.push(attr)
+      }
+      [clip_node, XmlNode::element("g", group_attrs, children)]
+    }
+    (None, Some(path_d)) => {
+      let clip_id = "clip-\{clip_counter.val}"
+      clip_counter.val = clip_counter.val + 1
+      let clip_path_node = XmlNode::element(
+        "clipPath",
+        [XmlAttr::new("id", clip_id)],
+        [XmlNode::empty("path", [XmlAttr::new("d", path_d)])],
+      )
+      let group_attrs : Array[XmlAttr] = [
+        XmlAttr::new("clip-path", "url(#\{clip_id})"),
+      ]
+      for attr in attrs {
+        group_attrs.push(attr)
+      }
+      [clip_path_node, XmlNode::element("g", group_attrs, children)]
+    }
+    (None, None) => [XmlNode::element("g", attrs, children)]
+  }
+}
+
+///|
+fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
+  let fill_value = active_fill_value(
+    r.meta,
+    r.fill.map(fill => fill.color.to_svg()),
+  )
+  let stroke_value = active_stroke_value(
+    r.meta,
+    r.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    r.meta,
+    r.stroke.map(stroke => stroke.width),
+  )
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "x", r.bbox.x.to_string())
+  push_xml_attr(attrs, "y", r.bbox.y.to_string())
+  push_xml_attr(attrs, "width", r.bbox.width.to_string())
+  push_xml_attr(attrs, "height", r.bbox.height.to_string())
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(r.meta, fill_value, scope),
+  )
+  if r.rx > 0.0 {
+    push_xml_attr(attrs, "rx", r.rx.to_string())
+  }
+  if r.ry > 0.0 {
+    push_xml_attr(attrs, "ry", r.ry.to_string())
+  }
+  match fill_value {
+    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    None => push_xml_attr(attrs, "fill", "none")
+  }
+  match r.stroke {
+    Some(s) =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
+  }
+  if r.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", r.opacity.to_string())
+  }
+  XmlNode::empty("rect", attrs)
+}
+
+///|
+fn build_circle_node(
+  c : @graphic.CircleData,
+  scope : Ref[BrushScope],
+) -> XmlNode {
+  let fill_value = active_fill_value(
+    c.meta,
+    c.fill.map(fill => fill.color.to_svg()),
+  )
+  let stroke_value = active_stroke_value(
+    c.meta,
+    c.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    c.meta,
+    c.stroke.map(stroke => stroke.width),
+  )
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "cx", c.cx.to_string())
+  push_xml_attr(attrs, "cy", c.cy.to_string())
+  push_xml_attr(attrs, "r", c.r.to_string())
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(c.meta, fill_value, scope),
+  )
+  match fill_value {
+    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    None => push_xml_attr(attrs, "fill", "none")
+  }
+  match c.stroke {
+    Some(s) =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
+  }
+  if c.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", c.opacity.to_string())
+  }
+  XmlNode::empty("circle", attrs)
+}
+
+///|
+fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
+  let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color.to_svg()))
+  let stroke_width = active_line_width_value(l.meta, Some(l.stroke.width))
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "x1", l.x1.to_string())
+  push_xml_attr(attrs, "y1", l.y1.to_string())
+  push_xml_attr(attrs, "x2", l.x2.to_string())
+  push_xml_attr(attrs, "y2", l.y2.to_string())
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(l.meta, None, scope),
+  )
+  push_stroke_attrs_from_base(
+    attrs,
+    stroke_value,
+    stroke_width,
+    l.stroke.dash,
+    l.stroke.line_cap,
+    l.stroke.line_join,
+  )
+  push_xml_attr(attrs, "fill", "none")
+  if l.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", l.opacity.to_string())
+  }
+  XmlNode::empty("line", attrs)
+}
+
+///|
+fn build_polyline_node(
+  pl : @graphic.PolylineData,
+  scope : Ref[BrushScope],
+) -> XmlNode {
+  let fill_value = active_fill_value(pl.meta, Some(pl.fill.to_svg()))
+  let stroke_value = active_stroke_value(
+    pl.meta,
+    Some(pl.stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(pl.meta, Some(pl.stroke.width))
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "points", points_to_svg(pl.points))
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(pl.meta, fill_value, scope),
+  )
+  match fill_value {
+    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    None => push_xml_attr(attrs, "fill", "none")
+  }
+  push_stroke_attrs_from_base(
+    attrs,
+    stroke_value,
+    stroke_width,
+    pl.stroke.dash,
+    pl.stroke.line_cap,
+    pl.stroke.line_join,
+  )
+  if pl.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", pl.opacity.to_string())
+  }
+  XmlNode::empty("polyline", attrs)
+}
+
+///|
+fn build_polygon_node(
+  pg : @graphic.PolygonData,
+  scope : Ref[BrushScope],
+) -> XmlNode {
+  let fill_value = active_fill_value(
+    pg.meta,
+    pg.fill.map(fill => fill.color.to_svg()),
+  )
+  let stroke_value = active_stroke_value(
+    pg.meta,
+    pg.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    pg.meta,
+    pg.stroke.map(stroke => stroke.width),
+  )
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "points", points_to_svg(pg.points))
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(pg.meta, fill_value, scope),
+  )
+  match fill_value {
+    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    None => push_xml_attr(attrs, "fill", "none")
+  }
+  match pg.stroke {
+    Some(s) =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
+  }
+  if pg.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", pg.opacity.to_string())
+  }
+  XmlNode::empty("polygon", attrs)
+}
+
+///|
+fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
+  let fill_value = active_fill_value(
+    p.meta,
+    p.fill.map(fill => fill.color.to_svg()),
+  )
+  let stroke_value = active_stroke_value(
+    p.meta,
+    p.stroke.map(stroke => stroke.color.to_svg()),
+  )
+  let stroke_width = active_line_width_value(
+    p.meta,
+    p.stroke.map(stroke => stroke.width),
+  )
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "d", p.d)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(p.meta, fill_value, scope),
+  )
+  match fill_value {
+    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    None => push_xml_attr(attrs, "fill", "none")
+  }
+  match p.stroke {
+    Some(s) =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        s.dash,
+        s.line_cap,
+        s.line_join,
+      )
+    None =>
+      push_stroke_attrs_from_base(
+        attrs,
+        stroke_value,
+        stroke_width,
+        [],
+        "butt",
+        "miter",
+      )
+  }
+  if p.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", p.opacity.to_string())
+  }
+  XmlNode::empty("path", attrs)
+}
+
+///|
+fn build_text_node(t : @graphic.TextData, scope : Ref[BrushScope]) -> XmlNode {
+  let s = t.style
+  let fill_value = active_fill_value(t.meta, Some(s.fill.to_svg())).unwrap_or(
+    s.fill.to_svg(),
+  )
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "x", t.x.to_string())
+  push_xml_attr(attrs, "y", t.y.to_string())
+  push_xml_attr(attrs, "fill", fill_value)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(t.meta, Some(fill_value), scope),
+  )
+  push_xml_attr(attrs, "font-size", s.font_size.to_string())
+  if s.font_family != "sans-serif" {
+    push_xml_attr(attrs, "font-family", s.font_family)
+  }
+  if s.font_weight != "normal" {
+    push_xml_attr(attrs, "font-weight", s.font_weight)
+  }
+  let anchor_str = s.anchor.to_svg()
+  if anchor_str != "start" {
+    push_xml_attr(attrs, "text-anchor", anchor_str)
+  }
+  let baseline_str = s.baseline.to_svg()
+  if baseline_str != "alphabetic" {
+    push_xml_attr(attrs, "dominant-baseline", baseline_str)
+  }
+  if t.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", t.opacity.to_string())
+  }
+  XmlNode::element("text", attrs, [XmlNode::text_escaped(t.content)])
+}
+
+///|
+pub fn paint_xml(
+  elements : Array[@graphic.Element],
+  width : Double,
+  height : Double,
+  background : @graphic.Color?,
+  accessibility : SvgAccessibility?,
+) -> XmlNode {
+  let clip_counter : Ref[Int] = Ref::new(0)
+  let scope : Ref[BrushScope] = Ref::new(BrushScope::new())
+  let children : Array[XmlNode] = []
+  match accessibility {
+    Some(acc) => {
+      match acc.title {
+        Some(title) =>
+          children.push(
+            XmlNode::element("title", [], [XmlNode::text_escaped(title)]),
+          )
+        None => ()
+      }
+      match acc.desc {
+        Some(desc) =>
+          children.push(
+            XmlNode::element("desc", [], [XmlNode::text_escaped(desc)]),
+          )
+        None => ()
+      }
+    }
+    None => ()
+  }
+  match background {
+    Some(bg) =>
+      children.push(
+        XmlNode::empty("rect", [
+          XmlAttr::new("x", "0"),
+          XmlAttr::new("y", "0"),
+          XmlAttr::new("width", width.to_string()),
+          XmlAttr::new("height", height.to_string()),
+          XmlAttr::new("fill", bg.to_svg()),
+        ]),
+      )
+    None => ()
+  }
+  let body_children : Array[XmlNode] = []
+  for elem in elements {
+    append_xml_nodes(
+      body_children,
+      build_element_nodes(elem, clip_counter, scope),
+    )
+  }
+  let css_text = css_nodes_to_string(scope.val.css_nodes)
+  if css_text != "" {
+    children.push(XmlNode::element("style", [], [XmlNode::text_raw(css_text)]))
+  }
+  append_xml_nodes(children, body_children)
+  let svg_attrs : Array[XmlAttr] = [
+    XmlAttr::new("xmlns", "http://www.w3.org/2000/svg"),
+    XmlAttr::new("width", width.to_string()),
+    XmlAttr::new("height", height.to_string()),
+    XmlAttr::new("viewBox", "0 0 \{width} \{height}"),
+  ]
+  match accessibility {
+    Some(acc) => {
+      push_xml_attr(svg_attrs, "role", acc.role)
+      match acc.aria_label {
+        Some(label) => push_xml_attr(svg_attrs, "aria-label", label)
+        None => ()
+      }
+    }
+    None => ()
+  }
+  XmlNode::element("svg", svg_attrs, children)
 }
 
 ///|
@@ -846,7 +1368,8 @@ pub fn paint(
     Some(acc) => {
       buf.write_string(" role=\"\{acc.role}\"")
       match acc.aria_label {
-        Some(label) => buf.write_string(" aria-label=\"\{xml_escape(label)}\"")
+        Some(label) =>
+          buf.write_string(" aria-label=\"\{painter_xml_escape(label)}\"")
         None => ()
       }
     }
@@ -857,11 +1380,12 @@ pub fn paint(
     Some(acc) => {
       match acc.title {
         Some(title) =>
-          buf.write_string("  <title>\{xml_escape(title)}</title>\n")
+          buf.write_string("  <title>\{painter_xml_escape(title)}</title>\n")
         None => ()
       }
       match acc.desc {
-        Some(desc) => buf.write_string("  <desc>\{xml_escape(desc)}</desc>\n")
+        Some(desc) =>
+          buf.write_string("  <desc>\{painter_xml_escape(desc)}</desc>\n")
         None => ()
       }
     }
@@ -882,4 +1406,43 @@ pub fn paint(
   buf.write_string(body_buf.to_string())
   buf.write_string("</svg>")
   buf.to_string()
+}
+
+///|
+pub fn paint_utf8(
+  elements : Array[@graphic.Element],
+  width : Double,
+  height : Double,
+  background : @graphic.Color?,
+  accessibility : SvgAccessibility?,
+) -> Bytes {
+  xml_to_pretty_utf8(
+    paint_xml(elements, width, height, background, accessibility),
+    "  ",
+  )
+}
+
+///|
+pub fn paint_utf16le(
+  elements : Array[@graphic.Element],
+  width : Double,
+  height : Double,
+  background : @graphic.Color?,
+  accessibility : SvgAccessibility?,
+) -> Bytes {
+  xml_to_pretty_utf16le(
+    paint_xml(elements, width, height, background, accessibility),
+    "  ",
+  )
+}
+
+///|
+pub fn paint_utf16(
+  elements : Array[@graphic.Element],
+  width : Double,
+  height : Double,
+  background : @graphic.Color?,
+  accessibility : SvgAccessibility?,
+) -> Bytes {
+  paint_utf16le(elements, width, height, background, accessibility)
 }

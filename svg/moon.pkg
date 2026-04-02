@@ -1,3 +1,6 @@
 import {
   "OverflowCat/yuecharts/graphic" @graphic,
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf16",
+  "moonbitlang/core/encoding/utf8",
 }

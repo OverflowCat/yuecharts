@@ -1007,6 +1007,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
       }
     None => None
   }
+  let tree_leaves_symbol = match tree_leaves {
+    Some(leaves) => j_string_or_number_as_string_opt(leaves, "symbol", None)
+    None => None
+  }
   let tree_leaves_symbol_size = match tree_leaves {
     Some(leaves) => j_number_opt(leaves, "symbolSize")
     None => None
@@ -1109,6 +1113,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     tree_node_scale_ratio,
     tree_leaves_label,
     tree_leaves_geo_item_style,
+    tree_leaves_symbol,
     tree_leaves_symbol_size,
     tree_leaves_line_style_color,
     tree_leaves_line_style_width,
