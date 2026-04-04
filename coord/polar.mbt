@@ -3,6 +3,7 @@
 //                  echarts/src/coord/polar/RadiusAxis.ts
 //                  echarts/src/coord/polar/PolarModel.ts
 //                  echarts/src/coord/polar/AxisModel.ts
+//                  echarts/src/coord/polar/prepareCustom.ts
 
 ///|
 pub(all) enum PolarAxisScale {
@@ -242,4 +243,61 @@ pub fn Polar::get_area(self : Polar) -> PolarArea {
     end_angle: -self.angle_axis.extent_end / 180.0 * @math.PI,
     clockwise: self.angle_axis.inverse,
   }
+}
+
+///|
+pub(all) struct PolarPrepareCoordSysInfo {
+  type_name : String
+  cx : Double
+  cy : Double
+  r : Double
+  r0 : Double
+}
+
+///|
+pub(all) struct PolarPreparedCustom {
+  coord_sys : PolarPrepareCoordSysInfo
+}
+
+///|
+pub fn Polar::prepare_custom(self : Polar) -> PolarPreparedCustom {
+  let radius = self.radius_axis.get_extent()
+  let r0 = if radius.0 < radius.1 { radius.0 } else { radius.1 }
+  let r = if radius.0 < radius.1 { radius.1 } else { radius.0 }
+  { coord_sys: { type_name: "polar", cx: self.cx, cy: self.cy, r, r0 } }
+}
+
+///|
+pub fn Polar::data_to_coord_size(
+  self : Polar,
+  data_size : Array[Double],
+  data_item : Array[Double]?,
+) -> Array[Double] {
+  let item = match data_item {
+    Some(value) => value
+    None => [0.0, 0.0]
+  }
+  let result : Array[Double] = []
+  let mut idx = 0
+  while idx < 2 {
+    let axis = if idx == 0 { self.radius_axis } else { self.angle_axis }
+    let val = if idx < item.length() { item[idx] } else { 0.0 }
+    let half_size = if idx < data_size.length() {
+      data_size[idx] / 2.0
+    } else {
+      0.0
+    }
+    let mut size = match axis.scale {
+      Ordinal(scale) => scale.band_width()
+      Linear(scale) =>
+        (scale.data_to_pixel(val - half_size) -
+        scale.data_to_pixel(val + half_size)).abs()
+    }
+    if idx == 1 {
+      size = size * @math.PI / 180.0
+    }
+    result.push(size)
+    idx += 1
+  }
+  result
 }

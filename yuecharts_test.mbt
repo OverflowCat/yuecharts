@@ -1057,6 +1057,119 @@ test "polar radius axis uses mapped coords and perpendicular label offset" {
 }
 
 ///|
+test "polar bar stack shares stack layout across series" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "angleAxis": {},
+    #|  "radiusAxis": {
+    #|    "type": "category",
+    #|    "data": ["Mon", "Tue", "Wed", "Thu"]
+    #|  },
+    #|  "polar": {},
+    #|  "series": [
+    #|    { "type": "bar", "coordinateSystem": "polar", "name": "A", "stack": "a", "data": [1, 2, 3, 4] },
+    #|    { "type": "bar", "coordinateSystem": "polar", "name": "B", "stack": "a", "data": [2, 4, 6, 8] },
+    #|    { "type": "bar", "coordinateSystem": "polar", "name": "C", "stack": "a", "data": [1, 2, 3, 4] }
+    #|  ],
+    #|  "legend": { "show": true, "data": ["A", "B", "C"] }
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">A</text>"))
+  assert_true(svg.contains(">B</text>"))
+  assert_true(svg.contains(">C</text>"))
+  assert_true(svg.contains("#5070dd"))
+  assert_true(svg.contains("#b6d634"))
+  assert_true(svg.contains("#505372"))
+}
+
+///|
+test "polar bar real estate keeps transparent stacks invisible" {
+  let json_str =
+    #|{
+    #|  "width": 800,
+    #|  "height": 500,
+    #|  "angleAxis": { "type": "category", "data": ["A", "B", "C"] },
+    #|  "radiusAxis": {},
+    #|  "polar": {},
+    #|  "series": [
+    #|    {
+    #|      "type": "bar",
+    #|      "coordinateSystem": "polar",
+    #|      "stack": "Min Max",
+    #|      "silent": true,
+    #|      "itemStyle": { "color": "transparent" },
+    #|      "data": [10, 20, 30]
+    #|    },
+    #|    {
+    #|      "type": "bar",
+    #|      "coordinateSystem": "polar",
+    #|      "name": "Range",
+    #|      "stack": "Min Max",
+    #|      "data": [5, 10, 15]
+    #|    },
+    #|    {
+    #|      "type": "bar",
+    #|      "coordinateSystem": "polar",
+    #|      "stack": "Average",
+    #|      "silent": true,
+    #|      "itemStyle": { "color": "transparent" },
+    #|      "data": [40, 50, 60]
+    #|    },
+    #|    {
+    #|      "type": "bar",
+    #|      "coordinateSystem": "polar",
+    #|      "name": "Average",
+    #|      "stack": "Average",
+    #|      "barGap": "-100%",
+    #|      "data": [7, 8, 9]
+    #|    }
+    #|  ],
+    #|  "legend": { "show": true, "data": ["Range", "Average"] }
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Range</text>"))
+  assert_true(svg.contains(">Average</text>"))
+  assert_true(svg.contains("#b6d634"))
+  assert_true(svg.contains("#ff994d"))
+  assert_true(count_substring(svg, "fill=\"none\"") >= 2)
+}
+
+///|
+/// Polar prepareCustom should expose the coord sys bounds used by custom series.
+test "polar prepareCustom exposes coord sys bounds" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "polar": {},
+    #|  "angleAxis": {
+    #|    "type": "category",
+    #|    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    #|  },
+    #|  "radiusAxis": {},
+    #|  "series": [{
+    #|    "type": "bar",
+    #|    "coordinateSystem": "polar",
+    #|    "data": [120, 200, 150, 80, 70, 110, 130]
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  match @layout.build_polar(opt) {
+    Some(polar) => {
+      let prepared = polar.prepare_custom()
+      assert_eq(prepared.coord_sys.type_name, "polar")
+      assert_eq(prepared.coord_sys.cx, 300.0)
+      assert_eq(prepared.coord_sys.cy, 200.0)
+      assert_eq(prepared.coord_sys.r0, 0.0)
+      assert_eq(prepared.coord_sys.r, 160.0)
+    }
+    None => assert_true(false)
+  }
+}
+
+///|
 test "lines series renders static labels on non-polyline paths" {
   let json_str =
     #|{
