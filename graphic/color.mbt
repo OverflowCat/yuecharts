@@ -116,32 +116,138 @@ pub fn Color::from_hex(s : String) -> Color? {
 ///|
 /// Parse a CSS named color or hex string.
 pub fn Color::from_string(s : String) -> Color? {
-  match s {
-    "transparent" => Some(transparent)
-    "black" => Some(black)
-    "white" => Some(white)
-    "red" => Some(Color::rgb(255, 0, 0))
-    "green" => Some(Color::rgb(0, 128, 0))
-    "blue" => Some(Color::rgb(0, 0, 255))
-    "yellow" => Some(Color::rgb(255, 255, 0))
-    "orange" => Some(Color::rgb(255, 165, 0))
-    "purple" => Some(Color::rgb(128, 0, 128))
-    "pink" => Some(Color::rgb(255, 192, 203))
-    "brown" => Some(Color::rgb(165, 42, 42))
-    "gray" | "grey" => Some(Color::rgb(128, 128, 128))
-    "lightgray" | "lightgrey" => Some(Color::rgb(211, 211, 211))
-    "lightsteelblue" => Some(Color::rgb(176, 196, 222))
-    "darkgray" | "darkgrey" => Some(Color::rgb(169, 169, 169))
-    "cyan" => Some(Color::rgb(0, 255, 255))
-    "magenta" => Some(Color::rgb(255, 0, 255))
-    "lime" => Some(Color::rgb(0, 255, 0))
-    "maroon" => Some(Color::rgb(128, 0, 0))
-    "navy" => Some(Color::rgb(0, 0, 128))
-    "olive" => Some(Color::rgb(128, 128, 0))
-    "silver" => Some(Color::rgb(192, 192, 192))
-    "teal" => Some(Color::rgb(0, 128, 128))
-    _ => Color::from_hex(s)
+  let compact = strip_ascii_spaces(s)
+  if compact.has_prefix("rgba(") && compact.has_suffix(")") {
+    parse_css_rgba_like(compact, true)
+  } else if compact.has_prefix("rgb(") && compact.has_suffix(")") {
+    parse_css_rgba_like(compact, false)
+  } else {
+    match s {
+      "none" => Some(transparent)
+      "transparent" => Some(transparent)
+      "black" => Some(black)
+      "white" => Some(white)
+      "red" => Some(Color::rgb(255, 0, 0))
+      "green" => Some(Color::rgb(0, 128, 0))
+      "blue" => Some(Color::rgb(0, 0, 255))
+      "yellow" => Some(Color::rgb(255, 255, 0))
+      "orange" => Some(Color::rgb(255, 165, 0))
+      "purple" => Some(Color::rgb(128, 0, 128))
+      "pink" => Some(Color::rgb(255, 192, 203))
+      "brown" => Some(Color::rgb(165, 42, 42))
+      "gray" | "grey" => Some(Color::rgb(128, 128, 128))
+      "lightgray" | "lightgrey" => Some(Color::rgb(211, 211, 211))
+      "lightsteelblue" => Some(Color::rgb(176, 196, 222))
+      "darkgray" | "darkgrey" => Some(Color::rgb(169, 169, 169))
+      "cyan" => Some(Color::rgb(0, 255, 255))
+      "magenta" => Some(Color::rgb(255, 0, 255))
+      "lime" => Some(Color::rgb(0, 255, 0))
+      "maroon" => Some(Color::rgb(128, 0, 0))
+      "navy" => Some(Color::rgb(0, 0, 128))
+      "olive" => Some(Color::rgb(128, 128, 0))
+      "silver" => Some(Color::rgb(192, 192, 192))
+      "teal" => Some(Color::rgb(0, 128, 128))
+      _ => Color::from_hex(s)
+    }
   }
+}
+
+///|
+fn strip_ascii_spaces(text : String) -> String {
+  let next = text.replace(old=" ", new="")
+  if next == text {
+    text
+  } else {
+    strip_ascii_spaces(next)
+  }
+}
+
+///|
+fn parse_css_rgba_like(text : String, has_alpha : Bool) -> Color? {
+  let inner = if has_alpha {
+    text[5:text.length() - 1].to_string()
+  } else {
+    text[4:text.length() - 1].to_string()
+  }
+  let first_comma = match inner.find(",") {
+    Some(i) => i
+    None => return None
+  }
+  let second_part = inner[first_comma + 1:]
+  let second_comma = match second_part.find(",") {
+    Some(i) => first_comma + 1 + i
+    None => return None
+  }
+  let r = match parse_css_rgb_component(inner[0:first_comma].to_string()) {
+    Some(v) => v
+    None => return None
+  }
+  let g = match
+    parse_css_rgb_component(inner[first_comma + 1:second_comma].to_string()) {
+    Some(v) => v
+    None => return None
+  }
+  if has_alpha {
+    let third_part = inner[second_comma + 1:]
+    let third_comma = match third_part.find(",") {
+      Some(i) => second_comma + 1 + i
+      None => return None
+    }
+    let b = match
+      parse_css_rgb_component(inner[second_comma + 1:third_comma].to_string()) {
+      Some(v) => v
+      None => return None
+    }
+    let a = match
+      parse_css_alpha_component(inner[third_comma + 1:].to_string()) {
+      Some(v) => v
+      None => return None
+    }
+    Some({ r, g, b, a })
+  } else {
+    let b = match
+      parse_css_rgb_component(inner[second_comma + 1:].to_string()) {
+      Some(v) => v
+      None => return None
+    }
+    Some({ r, g, b, a: 255 })
+  }
+}
+
+///|
+fn parse_css_rgb_component(value : String) -> Int? {
+  let parsed = try? @strconv.parse_double(value)
+  match parsed {
+    Ok(v) => Some(color_channel_from_double(v))
+    Err(_) => None
+  }
+}
+
+///|
+fn parse_css_alpha_component(value : String) -> Int? {
+  let parsed = try? @strconv.parse_double(value)
+  match parsed {
+    Ok(v) => Some(color_alpha_from_double(v))
+    Err(_) => None
+  }
+}
+
+///|
+fn color_channel_from_double(v : Double) -> Int {
+  let n = v.round().to_int()
+  if n < 0 {
+    0
+  } else if n > 255 {
+    255
+  } else {
+    n
+  }
+}
+
+///|
+fn color_alpha_from_double(v : Double) -> Int {
+  let scaled = if v <= 1.0 { v * 255.0 } else { v }
+  color_channel_from_double(scaled)
 }
 
 ///|
@@ -158,6 +264,39 @@ pub fn Color::to_svg(self : Color) -> String {
   } else {
     let af = self.a.to_double() / 255.0
     "rgba(\{self.r},\{self.g},\{self.b},\{double_to_str(af)})"
+  }
+}
+
+///|
+/// Serialize to an SVG attribute color value.
+///
+/// Matches zrender's SVG attr normalization:
+/// - transparent -> "none"
+/// - opaque -> "#rrggbb"
+/// - semi-transparent -> "rgb(r,g,b)" with a separate opacity attr
+pub fn Color::to_svg_attr(self : Color) -> String {
+  if self.a == 0 {
+    "none"
+  } else if self.a == 255 {
+    let r = int_to_hex2(self.r)
+    let g = int_to_hex2(self.g)
+    let b = int_to_hex2(self.b)
+    "#" + r + g + b
+  } else {
+    "rgb(\{self.r},\{self.g},\{self.b})"
+  }
+}
+
+///|
+/// SVG attribute opacity for semi-transparent colors.
+///
+/// Returns None for transparent/opaque colors because the attr value already
+/// encodes the desired visibility.
+pub fn Color::svg_opacity(self : Color) -> Double? {
+  if self.a == 0 || self.a == 255 {
+    None
+  } else {
+    Some(self.a.to_double() / 255.0)
   }
 }
 

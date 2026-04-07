@@ -193,11 +193,18 @@ pub(all) struct GeoItemStylePatchOption {
   area_color : String?
   border_color : String?
   border_width : Double?
+  opacity : Double?
 }
 
 ///|
 pub impl Default for GeoItemStylePatchOption with default() {
-  { color: None, area_color: None, border_color: None, border_width: None }
+  {
+    color: None,
+    area_color: None,
+    border_color: None,
+    border_width: None,
+    opacity: None,
+  }
 }
 
 ///|
@@ -454,6 +461,10 @@ pub(all) struct SeriesOption {
   symbol_repeat_direction : String?
   bar_gap : String?
   bar_category_gap : String?
+  bar_min_height : Double
+  bar_min_angle : Double
+  round_cap : Bool
+  show_background : Bool
   x_axis_index : Int
   y_axis_index : Int
   parallel_index : Int
@@ -483,6 +494,7 @@ pub(all) struct SeriesOption {
   item_opacity : Double?
   label : GeoLabelOption?
   geo_item_style : GeoItemStylePatchOption?
+  background_style : GeoItemStylePatchOption?
   silent : Bool
   states : GeoStatesOption
   area_style : Bool
@@ -561,6 +573,10 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     symbol_repeat_direction: None,
     bar_gap: None,
     bar_category_gap: None,
+    bar_min_height: 0.0,
+    bar_min_angle: 0.0,
+    round_cap: false,
+    show_background: false,
     x_axis_index: 0,
     y_axis_index: 0,
     parallel_index: 0,
@@ -588,6 +604,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     item_opacity: None,
     label: None,
     geo_item_style: None,
+    background_style: None,
     silent: false,
     states: GeoStatesOption::default(),
     area_style: false,
@@ -645,7 +662,17 @@ pub fn SeriesOption::default_line() -> SeriesOption {
 
 ///|
 pub fn SeriesOption::default_bar() -> SeriesOption {
-  { ..SeriesOption::default_line(), series_type: SeriesType::Bar }
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Bar,
+    background_style: Some({
+      color: Some("rgba(180, 180, 180, 0.2)"),
+      area_color: None,
+      border_color: None,
+      border_width: Some(0.0),
+      opacity: Some(1.0),
+    }),
+  }
 }
 
 ///|

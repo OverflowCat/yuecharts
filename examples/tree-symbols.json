@@ -1,0 +1,72 @@
+{
+  "width": 800,
+  "height": 500,
+  "series": [
+    {
+      "type": "tree",
+      "top": "10%",
+      "left": "10%",
+      "bottom": "10%",
+      "right": "20%",
+      "orient": "LR",
+      "expandAndCollapse": false,
+      "symbol": "diamond",
+      "symbolSize": 14,
+      "itemStyle": {
+        "color": "#cc88ff",
+        "borderColor": "#442266",
+        "borderWidth": 2
+      },
+      "leaves": {
+        "symbol": "rect",
+        "symbolSize": 16,
+        "itemStyle": {
+          "color": "#ffee88",
+          "borderColor": "#663300",
+          "borderWidth": 2
+        }
+      },
+      "data": [
+        {
+          "name": "Root",
+          "children": [
+            {
+              "name": "Branch A",
+              "children": [
+                {
+                  "name": "Leaf Rect"
+                },
+                {
+                  "name": "Leaf Triangle",
+                  "symbol": "triangle",
+                  "symbolSize": 18,
+                  "itemStyle": {
+                    "color": "#88ddff",
+                    "borderColor": "#224466",
+                    "borderWidth": 2
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Branch B",
+              "symbol": "roundRect",
+              "children": [
+                {
+                  "name": "Leaf Path",
+                  "symbol": "path://M0 -120 L104 60 L-104 60 Z",
+                  "symbolSize": 20,
+                  "itemStyle": {
+                    "color": "#99e0aa",
+                    "borderColor": "#225533",
+                    "borderWidth": 2
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

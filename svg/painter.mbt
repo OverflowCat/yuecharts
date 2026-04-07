@@ -23,6 +23,7 @@ pub struct CssStyleCacheEntry {
 
 ///|
 pub struct BrushScope {
+  zr_id : String
   css_nodes : Array[CssNode]
   css_style_cache : Array[CssStyleCacheEntry]
   next_class_id : Int
@@ -31,7 +32,13 @@ pub struct BrushScope {
 
 ///|
 pub fn BrushScope::new() -> BrushScope {
-  { css_nodes: [], css_style_cache: [], next_class_id: 0, emphasis: true }
+  {
+    zr_id: "zr0",
+    css_nodes: [],
+    css_style_cache: [],
+    next_class_id: 0,
+    emphasis: true,
+  }
 }
 
 ///|
@@ -106,7 +113,7 @@ fn css_cached_class_name(
     }
     i += 1
   }
-  let class_name = "zr-cls-\{scope.val.next_class_id}"
+  let class_name = "\{scope.val.zr_id}-cls-\{scope.val.next_class_id}"
   scope.val.css_style_cache.push({ style_key, class_name })
   scope.val.css_nodes.push({
     selector: if with_hover {
@@ -196,8 +203,25 @@ fn active_line_width_value(
 }
 
 ///|
+fn color_string_attrs(attr_name : String, color_str : String) -> String {
+  let buf = StringBuilder::new()
+  match @graphic.Color::from_string(color_str) {
+    Some(color) => {
+      buf.write_string(" \{attr_name}=\"\{color.to_svg_attr()}\"")
+      match color.svg_opacity() {
+        Some(opacity) =>
+          buf.write_string(" \{attr_name}-opacity=\"\{opacity}\"")
+        None => ()
+      }
+    }
+    None => buf.write_string(" \{attr_name}=\"\{color_str}\"")
+  }
+  buf.to_string()
+}
+
+///|
 fn fill_string_attr(color_str : String) -> String {
-  " fill=\"\{color_str}\""
+  color_string_attrs("fill", color_str)
 }
 
 ///|
@@ -211,7 +235,7 @@ fn write_stroke_attr_from_base(
 ) -> Unit {
   match stroke_color {
     Some(stroke_color) => {
-      buf.write_string(" stroke=\"\{stroke_color}\"")
+      buf.write_string(color_string_attrs("stroke", stroke_color))
       match stroke_width {
         Some(stroke_width) =>
           buf.write_string(" stroke-width=\"\{stroke_width}\"")
@@ -271,7 +295,28 @@ fn emphasis_fill_value(
           }
         }
       }
-    None => None
+    None => {
+      let from_fill = if current_state_contains(meta.current_states, "select") {
+        match meta.states.select {
+          Some(select_style) =>
+            match select_style.fill {
+              Some(fill) => Some(fill)
+              None => normal_fill
+            }
+          None => normal_fill
+        }
+      } else {
+        normal_fill
+      }
+      match from_fill {
+        Some(fill) =>
+          match @graphic.Color::lift_color_string(fill) {
+            Some(lifted_fill) => Some(lifted_fill)
+            None => Some(fill)
+          }
+        None => None
+      }
+    }
   }
 }
 
@@ -285,13 +330,13 @@ fn emphasis_hover_properties(
     properties.push({ name: "pointer-events", value: "none" })
     return properties
   }
+  properties.push({ name: "cursor", value: "pointer" })
+  match emphasis_fill_value(meta, normal_fill) {
+    Some(fill) => properties.push({ name: "fill", value: fill })
+    None => ()
+  }
   match meta.states.emphasis {
     Some(style) => {
-      properties.push({ name: "cursor", value: "pointer" })
-      match emphasis_fill_value(meta, normal_fill) {
-        Some(fill) => properties.push({ name: "fill", value: fill })
-        None => ()
-      }
       match style.stroke {
         Some(stroke) => properties.push({ name: "stroke", value: stroke })
         None => ()
@@ -308,6 +353,18 @@ fn emphasis_hover_properties(
     None => ()
   }
   properties
+}
+
+///|
+fn pointer_events_visible_attr(
+  fill_value : String?,
+  stroke_value : String?,
+) -> String? {
+  if fill_value == None || stroke_value == None {
+    Some("visible")
+  } else {
+    None
+  }
 }
 
 ///|
@@ -344,6 +401,16 @@ fn write_displayable_class_attr(
   match displayable_class_value(meta, normal_fill, scope) {
     Some(class_value) => buf.write_string(" class=\"\{class_value}\"")
     None => ()
+  }
+}
+
+///|
+fn write_displayable_ecmeta_attrs(
+  buf : StringBuilder,
+  meta : @graphic.DisplayableMeta,
+) -> Unit {
+  for attr in meta.ecmeta_attrs {
+    buf.write_string(" ecmeta_\{attr.key.to_lower()}=\"\{attr.value}\"")
   }
 }
 
@@ -467,7 +534,6 @@ fn render_rect(
   buf.write_string(
     "<rect x=\"\{r.bbox.x}\" y=\"\{r.bbox.y}\" width=\"\{r.bbox.width}\" height=\"\{r.bbox.height}\"",
   )
-  write_displayable_class_attr(buf, r.meta, fill_value, scope)
   if r.rx > 0.0 {
     buf.write_string(" rx=\"\{r.rx}\"")
   }
@@ -499,6 +565,12 @@ fn render_rect(
       )
   }
   buf.write_string(opacity_attr(r.opacity))
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => buf.write_string(" pointer-events=\"\{value}\"")
+    None => ()
+  }
+  write_displayable_ecmeta_attrs(buf, r.meta)
+  write_displayable_class_attr(buf, r.meta, fill_value, scope)
   buf.write_string("/>\n")
 }
 
@@ -523,7 +595,6 @@ fn render_circle(
   )
   buf.write_string(indent)
   buf.write_string("<circle cx=\"\{c.cx}\" cy=\"\{c.cy}\" r=\"\{c.r}\"")
-  write_displayable_class_attr(buf, c.meta, fill_value, scope)
   match fill_value {
     Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
@@ -549,6 +620,12 @@ fn render_circle(
       )
   }
   buf.write_string(opacity_attr(c.opacity))
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => buf.write_string(" pointer-events=\"\{value}\"")
+    None => ()
+  }
+  write_displayable_ecmeta_attrs(buf, c.meta)
+  write_displayable_class_attr(buf, c.meta, fill_value, scope)
   buf.write_string("/>\n")
 }
 
@@ -565,7 +642,6 @@ fn render_line(
   buf.write_string(
     "<line x1=\"\{l.x1}\" y1=\"\{l.y1}\" x2=\"\{l.x2}\" y2=\"\{l.y2}\"",
   )
-  write_displayable_class_attr(buf, l.meta, None, scope)
   write_stroke_attr_from_base(
     buf,
     stroke_value,
@@ -575,7 +651,10 @@ fn render_line(
     l.stroke.line_join,
   )
   buf.write_string(" fill=\"none\"")
+  buf.write_string(" pointer-events=\"visible\"")
   buf.write_string(opacity_attr(l.opacity))
+  write_displayable_ecmeta_attrs(buf, l.meta)
+  write_displayable_class_attr(buf, l.meta, None, scope)
   buf.write_string("/>\n")
 }
 
@@ -594,7 +673,6 @@ fn render_polyline(
   let stroke_width = active_line_width_value(pl.meta, Some(pl.stroke.width))
   buf.write_string(indent)
   buf.write_string("<polyline points=\"\{points_to_svg(pl.points)}\"")
-  write_displayable_class_attr(buf, pl.meta, fill_value, scope)
   match fill_value {
     Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
@@ -608,6 +686,12 @@ fn render_polyline(
     pl.stroke.line_join,
   )
   buf.write_string(opacity_attr(pl.opacity))
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => buf.write_string(" pointer-events=\"\{value}\"")
+    None => ()
+  }
+  write_displayable_ecmeta_attrs(buf, pl.meta)
+  write_displayable_class_attr(buf, pl.meta, fill_value, scope)
   buf.write_string("/>\n")
 }
 
@@ -632,7 +716,6 @@ fn render_polygon(
   )
   buf.write_string(indent)
   buf.write_string("<polygon points=\"\{points_to_svg(pg.points)}\"")
-  write_displayable_class_attr(buf, pg.meta, fill_value, scope)
   match fill_value {
     Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
@@ -658,6 +741,12 @@ fn render_polygon(
       )
   }
   buf.write_string(opacity_attr(pg.opacity))
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => buf.write_string(" pointer-events=\"\{value}\"")
+    None => ()
+  }
+  write_displayable_ecmeta_attrs(buf, pg.meta)
+  write_displayable_class_attr(buf, pg.meta, fill_value, scope)
   buf.write_string("/>\n")
 }
 
@@ -682,7 +771,6 @@ fn render_path(
   )
   buf.write_string(indent)
   buf.write_string("<path d=\"\{p.d}\"")
-  write_displayable_class_attr(buf, p.meta, fill_value, scope)
   match fill_value {
     Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
     None => buf.write_string(" fill=\"none\"")
@@ -708,6 +796,12 @@ fn render_path(
       )
   }
   buf.write_string(opacity_attr(p.opacity))
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => buf.write_string(" pointer-events=\"\{value}\"")
+    None => ()
+  }
+  write_displayable_ecmeta_attrs(buf, p.meta)
+  write_displayable_class_attr(buf, p.meta, fill_value, scope)
   buf.write_string("/>\n")
 }
 
@@ -723,8 +817,8 @@ fn render_text(
   let fill_value = active_fill_value(t.meta, Some(s.fill.to_svg())).unwrap_or(
     s.fill.to_svg(),
   )
-  buf.write_string("<text x=\"\{t.x}\" y=\"\{t.y}\" fill=\"\{fill_value}\"")
-  write_displayable_class_attr(buf, t.meta, Some(fill_value), scope)
+  buf.write_string("<text x=\"\{t.x}\" y=\"\{t.y}\"")
+  buf.write_string(fill_string_attr(fill_value))
   buf.write_string(" font-size=\"\{s.font_size}\"")
   if s.font_family != "sans-serif" {
     buf.write_string(" font-family=\"\{s.font_family}\"")
@@ -741,6 +835,8 @@ fn render_text(
     buf.write_string(" dominant-baseline=\"\{baseline_str}\"")
   }
   buf.write_string(opacity_attr(t.opacity))
+  write_displayable_ecmeta_attrs(buf, t.meta)
+  write_displayable_class_attr(buf, t.meta, Some(fill_value), scope)
   buf.write_string(">")
   buf.write_string(painter_xml_escape(t.content))
   buf.write_string("</text>\n")
@@ -808,6 +904,35 @@ fn push_xml_attr_opt(
 }
 
 ///|
+fn push_displayable_ecmeta_attrs(
+  attrs : Array[XmlAttr],
+  meta : @graphic.DisplayableMeta,
+) -> Unit {
+  for attr in meta.ecmeta_attrs {
+    push_xml_attr(attrs, "ecmeta_\{attr.key.to_lower()}", attr.value)
+  }
+}
+
+///|
+fn push_color_xml_attrs(
+  attrs : Array[XmlAttr],
+  attr_name : String,
+  color_str : String,
+) -> Unit {
+  match @graphic.Color::from_string(color_str) {
+    Some(color) => {
+      push_xml_attr(attrs, attr_name, color.to_svg_attr())
+      match color.svg_opacity() {
+        Some(opacity) =>
+          push_xml_attr(attrs, "\{attr_name}-opacity", opacity.to_string())
+        None => ()
+      }
+    }
+    None => push_xml_attr(attrs, attr_name, color_str)
+  }
+}
+
+///|
 fn push_stroke_attrs_from_base(
   attrs : Array[XmlAttr],
   stroke_color : String?,
@@ -818,7 +943,7 @@ fn push_stroke_attrs_from_base(
 ) -> Unit {
   match stroke_color {
     Some(stroke_color) => {
-      push_xml_attr(attrs, "stroke", stroke_color)
+      push_color_xml_attrs(attrs, "stroke", stroke_color)
       match stroke_width {
         Some(stroke_width) =>
           push_xml_attr(attrs, "stroke-width", stroke_width.to_string())
@@ -947,11 +1072,6 @@ fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
   push_xml_attr(attrs, "y", r.bbox.y.to_string())
   push_xml_attr(attrs, "width", r.bbox.width.to_string())
   push_xml_attr(attrs, "height", r.bbox.height.to_string())
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(r.meta, fill_value, scope),
-  )
   if r.rx > 0.0 {
     push_xml_attr(attrs, "rx", r.rx.to_string())
   }
@@ -959,7 +1079,7 @@ fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
     push_xml_attr(attrs, "ry", r.ry.to_string())
   }
   match fill_value {
-    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match r.stroke {
@@ -985,6 +1105,16 @@ fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
   if r.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", r.opacity.to_string())
   }
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => push_xml_attr(attrs, "pointer-events", value)
+    None => ()
+  }
+  push_displayable_ecmeta_attrs(attrs, r.meta)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(r.meta, fill_value, scope),
+  )
   XmlNode::empty("rect", attrs)
 }
 
@@ -1009,13 +1139,8 @@ fn build_circle_node(
   push_xml_attr(attrs, "cx", c.cx.to_string())
   push_xml_attr(attrs, "cy", c.cy.to_string())
   push_xml_attr(attrs, "r", c.r.to_string())
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(c.meta, fill_value, scope),
-  )
   match fill_value {
-    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match c.stroke {
@@ -1041,6 +1166,16 @@ fn build_circle_node(
   if c.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", c.opacity.to_string())
   }
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => push_xml_attr(attrs, "pointer-events", value)
+    None => ()
+  }
+  push_displayable_ecmeta_attrs(attrs, c.meta)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(c.meta, fill_value, scope),
+  )
   XmlNode::empty("circle", attrs)
 }
 
@@ -1053,11 +1188,6 @@ fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
   push_xml_attr(attrs, "y1", l.y1.to_string())
   push_xml_attr(attrs, "x2", l.x2.to_string())
   push_xml_attr(attrs, "y2", l.y2.to_string())
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(l.meta, None, scope),
-  )
   push_stroke_attrs_from_base(
     attrs,
     stroke_value,
@@ -1067,9 +1197,16 @@ fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
     l.stroke.line_join,
   )
   push_xml_attr(attrs, "fill", "none")
+  push_xml_attr(attrs, "pointer-events", "visible")
   if l.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", l.opacity.to_string())
   }
+  push_displayable_ecmeta_attrs(attrs, l.meta)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(l.meta, None, scope),
+  )
   XmlNode::empty("line", attrs)
 }
 
@@ -1086,13 +1223,8 @@ fn build_polyline_node(
   let stroke_width = active_line_width_value(pl.meta, Some(pl.stroke.width))
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "points", points_to_svg(pl.points))
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(pl.meta, fill_value, scope),
-  )
   match fill_value {
-    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
     None => push_xml_attr(attrs, "fill", "none")
   }
   push_stroke_attrs_from_base(
@@ -1106,6 +1238,16 @@ fn build_polyline_node(
   if pl.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", pl.opacity.to_string())
   }
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => push_xml_attr(attrs, "pointer-events", value)
+    None => ()
+  }
+  push_displayable_ecmeta_attrs(attrs, pl.meta)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(pl.meta, fill_value, scope),
+  )
   XmlNode::empty("polyline", attrs)
 }
 
@@ -1128,13 +1270,8 @@ fn build_polygon_node(
   )
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "points", points_to_svg(pg.points))
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(pg.meta, fill_value, scope),
-  )
   match fill_value {
-    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match pg.stroke {
@@ -1160,6 +1297,16 @@ fn build_polygon_node(
   if pg.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", pg.opacity.to_string())
   }
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => push_xml_attr(attrs, "pointer-events", value)
+    None => ()
+  }
+  push_displayable_ecmeta_attrs(attrs, pg.meta)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(pg.meta, fill_value, scope),
+  )
   XmlNode::empty("polygon", attrs)
 }
 
@@ -1179,13 +1326,8 @@ fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
   )
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "d", p.d)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(p.meta, fill_value, scope),
-  )
   match fill_value {
-    Some(fill_value) => push_xml_attr(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match p.stroke {
@@ -1211,6 +1353,16 @@ fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
   if p.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", p.opacity.to_string())
   }
+  match pointer_events_visible_attr(fill_value, stroke_value) {
+    Some(value) => push_xml_attr(attrs, "pointer-events", value)
+    None => ()
+  }
+  push_displayable_ecmeta_attrs(attrs, p.meta)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(p.meta, fill_value, scope),
+  )
   XmlNode::empty("path", attrs)
 }
 
@@ -1223,12 +1375,7 @@ fn build_text_node(t : @graphic.TextData, scope : Ref[BrushScope]) -> XmlNode {
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "x", t.x.to_string())
   push_xml_attr(attrs, "y", t.y.to_string())
-  push_xml_attr(attrs, "fill", fill_value)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(t.meta, Some(fill_value), scope),
-  )
+  push_color_xml_attrs(attrs, "fill", fill_value)
   push_xml_attr(attrs, "font-size", s.font_size.to_string())
   if s.font_family != "sans-serif" {
     push_xml_attr(attrs, "font-family", s.font_family)
@@ -1247,6 +1394,12 @@ fn build_text_node(t : @graphic.TextData, scope : Ref[BrushScope]) -> XmlNode {
   if t.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", t.opacity.to_string())
   }
+  push_displayable_ecmeta_attrs(attrs, t.meta)
+  push_xml_attr_opt(
+    attrs,
+    "class",
+    displayable_class_value(t.meta, Some(fill_value), scope),
+  )
   XmlNode::element("text", attrs, [XmlNode::text_escaped(t.content)])
 }
 
@@ -1281,16 +1434,16 @@ pub fn paint_xml(
     None => ()
   }
   match background {
-    Some(bg) =>
-      children.push(
-        XmlNode::empty("rect", [
-          XmlAttr::new("x", "0"),
-          XmlAttr::new("y", "0"),
-          XmlAttr::new("width", width.to_string()),
-          XmlAttr::new("height", height.to_string()),
-          XmlAttr::new("fill", bg.to_svg()),
-        ]),
-      )
+    Some(bg) => {
+      let bg_attrs : Array[XmlAttr] = [
+        XmlAttr::new("x", "0"),
+        XmlAttr::new("y", "0"),
+        XmlAttr::new("width", width.to_string()),
+        XmlAttr::new("height", height.to_string()),
+      ]
+      push_color_xml_attrs(bg_attrs, "fill", bg.to_svg())
+      children.push(XmlNode::empty("rect", bg_attrs))
+    }
     None => ()
   }
   let body_children : Array[XmlNode] = []
@@ -1300,15 +1453,18 @@ pub fn paint_xml(
       build_element_nodes(elem, clip_counter, scope),
     )
   }
+  append_xml_nodes(children, body_children)
   let css_text = css_nodes_to_string(scope.val.css_nodes)
   if css_text != "" {
     children.push(XmlNode::element("style", [], [XmlNode::text_raw(css_text)]))
   }
-  append_xml_nodes(children, body_children)
   let svg_attrs : Array[XmlAttr] = [
-    XmlAttr::new("xmlns", "http://www.w3.org/2000/svg"),
     XmlAttr::new("width", width.to_string()),
     XmlAttr::new("height", height.to_string()),
+    XmlAttr::new("xmlns", "http://www.w3.org/2000/svg"),
+    XmlAttr::new("xmlns:xlink", "http://www.w3.org/1999/xlink"),
+    XmlAttr::new("version", "1.1"),
+    XmlAttr::new("baseProfile", "full"),
     XmlAttr::new("viewBox", "0 0 \{width} \{height}"),
   ]
   match accessibility {
@@ -1360,10 +1516,12 @@ pub fn paint(
   let css_text = css_nodes_to_string(scope.val.css_nodes)
 
   let buf = StringBuilder::new()
-  buf.write_string("<svg xmlns=\"http://www.w3.org/2000/svg\"")
-  buf.write_string(
-    " width=\"\{width}\" height=\"\{height}\" viewBox=\"0 0 \{width} \{height}\"",
-  )
+  buf.write_string("<svg width=\"\{width}\" height=\"\{height}\"")
+  buf.write_string(" xmlns=\"http://www.w3.org/2000/svg\"")
+  buf.write_string(" xmlns:xlink=\"http://www.w3.org/1999/xlink\"")
+  buf.write_string(" version=\"1.1\"")
+  buf.write_string(" baseProfile=\"full\"")
+  buf.write_string(" viewBox=\"0 0 \{width} \{height}\"")
   match accessibility {
     Some(acc) => {
       buf.write_string(" role=\"\{acc.role}\"")
@@ -1392,18 +1550,21 @@ pub fn paint(
     None => ()
   }
   match background {
-    Some(bg) =>
+    Some(bg) => {
       buf.write_string(
-        "  <rect x=\"0\" y=\"0\" width=\"\{width}\" height=\"\{height}\" fill=\"\{bg.to_svg()}\"/>\n",
+        "  <rect x=\"0\" y=\"0\" width=\"\{width}\" height=\"\{height}\"",
       )
+      buf.write_string(color_string_attrs("fill", bg.to_svg()))
+      buf.write_string("/>\n")
+    }
     None => ()
   }
+  buf.write_string(body_buf.to_string())
   if css_text != "" {
-    buf.write_string("  <style>")
+    buf.write_string("<style>")
     buf.write_string(css_text)
     buf.write_string("</style>\n")
   }
-  buf.write_string(body_buf.to_string())
   buf.write_string("</svg>")
   buf.to_string()
 }

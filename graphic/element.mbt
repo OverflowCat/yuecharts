@@ -129,12 +129,19 @@ pub impl Default for DisplayStates with default() {
 }
 
 ///|
+pub(all) struct DisplayableMetaAttr {
+  key : String
+  value : String
+}
+
+///|
 /// Corresponds to: zrender/src/graphic/Displayable.ts (interactive metadata)
 pub(all) struct DisplayableMeta {
   class_name : String?
   silent : Bool
   current_states : Array[String]
   states : DisplayStates
+  ecmeta_attrs : Array[DisplayableMetaAttr]
 }
 
 ///|
@@ -144,6 +151,7 @@ pub impl Default for DisplayableMeta with default() {
     silent: false,
     current_states: [],
     states: DisplayStates::default(),
+    ecmeta_attrs: [],
   }
 }
 
@@ -478,6 +486,54 @@ pub fn Element::with_current_states(
     Polygon(pg) => Polygon({ ..pg, meta: { ..pg.meta, current_states, } })
     Path(p) => Path({ ..p, meta: { ..p.meta, current_states, } })
     Text(t) => Text({ ..t, meta: { ..t.meta, current_states, } })
+  }
+}
+
+///|
+fn displayable_meta_with_ecmeta_attr(
+  meta : DisplayableMeta,
+  key : String,
+  value : String,
+) -> DisplayableMeta {
+  let ecmeta_attrs : Array[DisplayableMetaAttr] = []
+  for attr in meta.ecmeta_attrs {
+    ecmeta_attrs.push(attr)
+  }
+  ecmeta_attrs.push({ key, value })
+  { ..meta, ecmeta_attrs, }
+}
+
+///|
+pub fn Element::with_ecmeta_attr(
+  self : Element,
+  key : String,
+  value : String,
+) -> Element {
+  match self {
+    Group(g) => Group(g)
+    Rect(r) =>
+      Rect({ ..r, meta: displayable_meta_with_ecmeta_attr(r.meta, key, value) })
+    Circle(c) =>
+      Circle({
+        ..c,
+        meta: displayable_meta_with_ecmeta_attr(c.meta, key, value),
+      })
+    Line(l) =>
+      Line({ ..l, meta: displayable_meta_with_ecmeta_attr(l.meta, key, value) })
+    Polyline(pl) =>
+      Polyline({
+        ..pl,
+        meta: displayable_meta_with_ecmeta_attr(pl.meta, key, value),
+      })
+    Polygon(pg) =>
+      Polygon({
+        ..pg,
+        meta: displayable_meta_with_ecmeta_attr(pg.meta, key, value),
+      })
+    Path(p) =>
+      Path({ ..p, meta: displayable_meta_with_ecmeta_attr(p.meta, key, value) })
+    Text(t) =>
+      Text({ ..t, meta: displayable_meta_with_ecmeta_attr(t.meta, key, value) })
   }
 }
 

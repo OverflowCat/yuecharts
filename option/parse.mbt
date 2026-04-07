@@ -141,7 +141,7 @@ fn parse_axis_option_y(j : Json) -> AxisOption {
 ///|
 fn parse_angle_axis_option(j : Json) -> AxisOption {
   let base = {
-    ..AxisOption::default_x(),
+    ..AxisOption::default_y(),
     start_angle: Some(90.0),
     clockwise: Some(true),
   }
@@ -155,13 +155,7 @@ fn parse_radius_axis_option(j : Json) -> AxisOption {
 
 ///|
 fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
-  let axis_type = match j_string(j, "type", "") {
-    "value" => AxisType::Value
-    "category" => AxisType::Category
-    "time" => AxisType::Time
-    "log" => AxisType::Log
-    _ => base.axis_type
-  }
+  let type_field = j_field(j, "type")
   let position = match j_string(j, "position", "") {
     "bottom" => Some(AxisPosition::Bottom)
     "top" => Some(AxisPosition::Top)
@@ -170,6 +164,17 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     _ => base.position
   }
   let data = j_string_array_lossy(j, "data", base.data)
+  let axis_type = match type_field {
+    Some(String(type_str)) =>
+      match type_str {
+        "value" => AxisType::Value
+        "category" => AxisType::Category
+        "time" => AxisType::Time
+        "log" => AxisType::Log
+        _ => base.axis_type
+      }
+    _ => if data.length() > 0 { AxisType::Category } else { base.axis_type }
+  }
   let name = j_string_opt(j, "name")
   let min = j_number_opt(j, "min")
   let max = j_number_opt(j, "max")
@@ -332,6 +337,7 @@ fn parse_geo_item_style_patch_option(j : Json) -> GeoItemStylePatchOption {
     area_color: j_string_opt(j, "areaColor"),
     border_color: j_string_opt(j, "borderColor"),
     border_width: j_number_opt(j, "borderWidth"),
+    opacity: j_number_opt(j, "opacity"),
   }
 }
 
@@ -944,6 +950,14 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "barCategoryGap",
     base.bar_category_gap,
   )
+  let bar_min_height = j_number(j, "barMinHeight", base.bar_min_height)
+  let bar_min_angle = j_number(j, "barMinAngle", base.bar_min_angle)
+  let round_cap = j_bool(j, "roundCap", base.round_cap)
+  let show_background = j_bool(j, "showBackground", base.show_background)
+  let background_style = match j_field(j, "backgroundStyle") {
+    Some(style) => Some(parse_geo_item_style_patch_option(style))
+    None => base.background_style
+  }
   let color = match j_string_opt(j, "color") {
     Some(c) => Some(c)
     None => base.color
@@ -1126,6 +1140,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
     symbol_repeat_direction,
     bar_gap,
     bar_category_gap,
+    bar_min_height,
+    bar_min_angle,
+    round_cap,
+    show_background,
     x_axis_index,
     y_axis_index,
     parallel_index,
@@ -1153,6 +1171,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     item_opacity,
     label,
     geo_item_style,
+    background_style,
     silent,
     states,
     area_style,

@@ -117,6 +117,7 @@ E:\yuecharts
 ├── examples
 │   ├── aria-template.json / .svg / .ref.svg
 │   ├── bar.json / .svg / .ref.svg
+│   ├── bar-background.json / .svg / .ref.svg
 │   ├── boxplot.json / .svg / .ref.svg
 │   ├── candlestick.json / .svg / .ref.svg
 │   ├── chord.json / .svg / .ref.svg
@@ -189,7 +190,7 @@ dependencies for the current MoonBit port and are explicitly referenced by the
 existing `.mbt` comments.
 
 ### Current port gap: Hover-style
-- `zrender/src/svg/Painter.ts => svg/painter.mbt [partial]`: MoonBit covers the static SVG serialization path plus `paint_xml` / direct UTF-8 / UTF-16LE output helpers, but still lacks upstream DOM-mode refresh/patch flow, defs assembly parity, and animation wiring.
+- `zrender/src/svg/Painter.ts => svg/painter.mbt [partial]`: MoonBit covers the static SVG serialization path plus `paint_xml` / direct UTF-8 / UTF-16LE output helpers, and it now emits the static hover CSS classes / `pointer-events` attrs for displayables; it still lacks upstream DOM-mode refresh/patch flow, defs assembly parity, and animation wiring.
 - `zrender/src/svg/core.ts => svg/xml_node.mbt, svg/painter.mbt [partial]`: MoonBit now has a lightweight XML node / attr / text builder plus direct string and encoded-byte serializers, but not the full upstream `SVGVNode` shape, `createSVGVNode`, or browser DOM helpers.
 - `zrender/src/svg/graphic.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now carries displayable state metadata into both string serialization and XML-node construction, but still lacks the broader brush/meta pipeline, pattern/gradient/filter defs, and image handling parity.
 - `zrender/src/svg/cssEmphasis.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now emits `:hover` class rules from element emphasis state, but only for the current static color/stroke-width subset.
@@ -404,7 +405,7 @@ E:\recharts\echarts\src
 │
 ├── layout
 │   ├── barGrid.ts => chart/bar.mbt [partial] Feature: bar grid layout
-│   ├── barPolar.ts => chart/bar.mbt [partial] Feature: bar layout on polar
+│   ├── barPolar.ts => chart/bar.mbt [partial] Feature: polar bar width/offset and sector layout
 │   └── points.ts => chart/scatter.mbt, chart/effect_scatter.mbt [partial] Feature: point layout for scatter/effectScatter
 │
 ├── processor

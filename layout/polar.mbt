@@ -28,7 +28,7 @@ fn build_angle_axis(
     opt.angle_axis[polar_index]
   } else {
     {
-      ..@option.AxisOption::default_x(),
+      ..@option.AxisOption::default_y(),
       start_angle: Some(90.0),
       clockwise: Some(true),
     }

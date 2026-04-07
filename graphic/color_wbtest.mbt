@@ -37,6 +37,38 @@ test "color from_string named" {
   )
   assert_eq(Color::from_string("red"), Some({ r: 255, g: 0, b: 0, a: 255 }))
   assert_eq(Color::from_string("transparent"), Some({ r: 0, g: 0, b: 0, a: 0 }))
+  assert_eq(Color::from_string("none"), Some({ r: 0, g: 0, b: 0, a: 0 }))
+}
+
+///|
+test "color from_string rgb and rgba" {
+  assert_eq(
+    Color::from_string("rgb(180, 180, 180)"),
+    Some({ r: 180, g: 180, b: 180, a: 255 }),
+  )
+  assert_eq(
+    Color::from_string("rgba(180, 180, 180, 0.2)"),
+    Some({ r: 180, g: 180, b: 180, a: 51 }),
+  )
+}
+
+///|
+test "color rgba helper parses" {
+  assert_eq(
+    parse_css_rgba_like("rgb(180,180,180)", false),
+    Some({ r: 180, g: 180, b: 180, a: 255 }),
+  )
+  assert_eq(
+    parse_css_rgba_like("rgba(180,180,180,0.2)", true),
+    Some({ r: 180, g: 180, b: 180, a: 51 }),
+  )
+}
+
+///|
+test "color rgba prefix normalization" {
+  let compact = strip_ascii_spaces("rgb(180, 180, 180)")
+  assert_eq(compact, "rgb(180,180,180)")
+  assert_true(compact.has_prefix("rgb("))
 }
 
 ///|
@@ -94,6 +126,21 @@ test "color to_svg semi-transparent" {
   let c = Color::rgba(255, 0, 0, 128)
   let s = c.to_svg()
   assert_true(s.has_prefix("rgba("))
+}
+
+///|
+test "color svg attr helpers split opacity" {
+  let c = Color::rgba(180, 180, 180, 51)
+  assert_eq(c.to_svg_attr(), "rgb(180,180,180)")
+  assert_eq(c.svg_opacity(), Some(0.2))
+}
+
+///|
+test "color svg attr helpers handle opaque and transparent" {
+  assert_eq(Color::rgb(84, 112, 198).to_svg_attr(), "#5470c6")
+  assert_eq(Color::rgb(84, 112, 198).svg_opacity(), None)
+  assert_eq(transparent.to_svg_attr(), "none")
+  assert_eq(transparent.svg_opacity(), None)
 }
 
 ///|

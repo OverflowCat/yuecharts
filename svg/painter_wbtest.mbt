@@ -56,30 +56,73 @@ fn sample_accessibility() -> SvgAccessibility {
 }
 
 ///|
-fn sample_expected_svg() -> String {
+fn sample_expected_svg_concat() -> String {
   let expected =
-    #|<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72" role="img" aria-label="aria &amp; label">
+    #|<svg width="96" height="72" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 96 72" role="img" aria-label="aria &amp; label">
     #|  <title>title &lt;x&gt;</title>
     #|  <desc>desc &quot;y&quot;</desc>
     #|  <rect x="0" y="0" width="96" height="72" fill="#ffffff"/>
-    #|  <style><![CDATA[
-    #|.zr-cls-0:hover {
-    #|cursor:pointer;
-    #|fill:#55aa33;
-    #|stroke:#112233;
-    #|stroke-width:2.5;
-    #|}
-    #|]]></style>
     #|  <g transform="matrix(1,0,0,1,3,4)" opacity="0.8">
     #|    <clipPath id="clip-0">
     #|      <path d="M0 0L40 0L40 20L0 20Z"/>
     #|    </clipPath>
     #|    <g clip-path="url(#clip-0)">
-    #|      <rect x="10" y="12" width="30" height="18" class="zr-cls-0" fill="#ffcc00" stroke="#223344" stroke-width="1.5"/>
-    #|      <line x1="0" y1="0" x2="40" y2="10" stroke="#445566" stroke-width="2" stroke-dasharray="4,2" fill="none" opacity="0.7"/>
+    #|      <rect x="10" y="12" width="30" height="18" fill="#ffcc00" stroke="#223344" stroke-width="1.5" class="zr0-cls-0"/>
+    #|      <line x1="0" y1="0" x2="40" y2="10" stroke="#445566" stroke-width="2" stroke-dasharray="4,2" fill="none" pointer-events="visible" opacity="0.7" class="zr0-cls-1"/>
     #|    </g>
     #|  </g>
-    #|  <text x="16" y="24" fill="#101010" font-size="14" font-family="serif" font-weight="bold" text-anchor="middle" dominant-baseline="central">&lt;A&amp;B&gt;</text>
+    #|  <text x="16" y="24" fill="#101010" font-size="14" font-family="serif" font-weight="bold" text-anchor="middle" dominant-baseline="central" class="zr0-cls-2">&lt;A&amp;B&gt;</text>
+    #|<style><![CDATA[
+    #|.zr0-cls-0:hover {
+    #|cursor:pointer;
+    #|fill:#55aa33;
+    #|stroke:#112233;
+    #|stroke-width:2.5;
+    #|}
+    #|.zr0-cls-1:hover {
+    #|cursor:pointer;
+    #|}
+    #|.zr0-cls-2:hover {
+    #|cursor:pointer;
+    #|fill:#111111;
+    #|}
+    #|]]></style>
+    #|</svg>
+  expected
+}
+
+///|
+fn sample_expected_svg_pretty() -> String {
+  let expected =
+    #|<svg width="96" height="72" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 96 72" role="img" aria-label="aria &amp; label">
+    #|  <title>title &lt;x&gt;</title>
+    #|  <desc>desc &quot;y&quot;</desc>
+    #|  <rect x="0" y="0" width="96" height="72" fill="#ffffff"/>
+    #|  <g transform="matrix(1,0,0,1,3,4)" opacity="0.8">
+    #|    <clipPath id="clip-0">
+    #|      <path d="M0 0L40 0L40 20L0 20Z"/>
+    #|    </clipPath>
+    #|    <g clip-path="url(#clip-0)">
+    #|      <rect x="10" y="12" width="30" height="18" fill="#ffcc00" stroke="#223344" stroke-width="1.5" class="zr0-cls-0"/>
+    #|      <line x1="0" y1="0" x2="40" y2="10" stroke="#445566" stroke-width="2" stroke-dasharray="4,2" fill="none" pointer-events="visible" opacity="0.7" class="zr0-cls-1"/>
+    #|    </g>
+    #|  </g>
+    #|  <text x="16" y="24" fill="#101010" font-size="14" font-family="serif" font-weight="bold" text-anchor="middle" dominant-baseline="central" class="zr0-cls-2">&lt;A&amp;B&gt;</text>
+    #|  <style><![CDATA[
+    #|.zr0-cls-0:hover {
+    #|cursor:pointer;
+    #|fill:#55aa33;
+    #|stroke:#112233;
+    #|stroke-width:2.5;
+    #|}
+    #|.zr0-cls-1:hover {
+    #|cursor:pointer;
+    #|}
+    #|.zr0-cls-2:hover {
+    #|cursor:pointer;
+    #|fill:#111111;
+    #|}
+    #|]]></style>
     #|</svg>
   expected
 }
@@ -88,7 +131,7 @@ fn sample_expected_svg() -> String {
 test "paint concat backend matches expected svg commands" {
   let elements = sample_paint_elements()
   let accessibility = Some(sample_accessibility())
-  let expected = sample_expected_svg()
+  let expected = sample_expected_svg_concat()
   let rendered = paint(
     elements,
     96.0,
@@ -103,7 +146,7 @@ test "paint concat backend matches expected svg commands" {
 test "paint xml-node backend matches expected svg commands" {
   let elements = sample_paint_elements()
   let accessibility = Some(sample_accessibility())
-  let expected = sample_expected_svg()
+  let expected = sample_expected_svg_pretty()
   let rendered = paint_xml(
     elements,
     96.0,
@@ -118,7 +161,7 @@ test "paint xml-node backend matches expected svg commands" {
 test "paint utf8 and utf16le backends match expected svg commands" {
   let elements = sample_paint_elements()
   let accessibility = Some(sample_accessibility())
-  let expected = sample_expected_svg()
+  let expected = sample_expected_svg_pretty()
   let utf8 = paint_utf8(
     elements,
     96.0,
