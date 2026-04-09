@@ -243,6 +243,16 @@ pub(all) struct GeoRegionOption {
 ///|
 pub(all) struct GeoOption {
   map : String
+  center : Array[String]?
+  zoom : Double
+  left : String?
+  top : String?
+  right : String?
+  bottom : String?
+  width : String?
+  height : String?
+  layout_center : Array[String]?
+  layout_size : String?
   roam : Bool
   aspect_scale : Double?
   silent : Bool
@@ -257,6 +267,16 @@ pub(all) struct GeoOption {
 pub impl Default for GeoOption with default() {
   {
     map: "",
+    center: None,
+    zoom: 1.0,
+    left: Some("center"),
+    top: Some("center"),
+    right: None,
+    bottom: None,
+    width: None,
+    height: None,
+    layout_center: None,
+    layout_size: None,
     roam: false,
     aspect_scale: None,
     silent: false,
@@ -478,6 +498,15 @@ pub(all) struct SeriesOption {
   // For radar: index into ChartOption.radar[]
   radar_index : Int
   map_name : String?
+  zoom : Double
+  left : String?
+  top : String?
+  right : String?
+  bottom : String?
+  width : String?
+  height : String?
+  layout_center : Array[String]?
+  layout_size : String?
   stack : String?
   // For themeRiver: [before, after] gap on axis orthogonal direction
   boundary_gap : Array[String]
@@ -589,6 +618,15 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     geo_index: 0,
     radar_index: 0,
     map_name: None,
+    zoom: 1.0,
+    left: None,
+    top: None,
+    right: None,
+    bottom: None,
+    width: None,
+    height: None,
+    layout_center: None,
+    layout_size: None,
     stack: None,
     boundary_gap: [],
     smooth: false,
@@ -864,6 +902,9 @@ pub fn SeriesOption::default_map() -> SeriesOption {
     ..SeriesOption::default_line(),
     series_type: SeriesType::Map,
     coordinate_system: Some("geo"),
+    left: Some("center"),
+    top: Some("center"),
+    zoom: 1.0,
   }
 }
 

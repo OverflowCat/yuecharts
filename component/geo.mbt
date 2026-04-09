@@ -263,7 +263,7 @@ pub fn render_geo_component(
         center.y,
         region.name,
         @graphic.TextAnchor::Middle,
-        @graphic.TextBaseline::Middle,
+        @graphic.TextBaseline::Central,
         geo_region_label_color(geo_opt, region_opt),
       ).with_silent(silent)
       let label = match

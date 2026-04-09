@@ -242,6 +242,27 @@ fn parse_geo_option(j : Json) -> GeoOption {
   let base = GeoOption::default()
   {
     map: j_string(j, "map", base.map),
+    center: match j_field(j, "center") {
+      Some(Array(arr)) => Some(arr.map(json_to_stringish_zero))
+      Some(String(s)) => Some([s])
+      _ => base.center
+    },
+    zoom: j_number(j, "zoom", base.zoom),
+    left: j_string_or_number_as_string_opt(j, "left", base.left),
+    top: j_string_or_number_as_string_opt(j, "top", base.top),
+    right: j_string_or_number_as_string_opt(j, "right", base.right),
+    bottom: j_string_or_number_as_string_opt(j, "bottom", base.bottom),
+    width: j_string_or_number_as_string_opt(j, "width", base.width),
+    height: j_string_or_number_as_string_opt(j, "height", base.height),
+    layout_center: match j_field(j, "layoutCenter") {
+      Some(_) => Some(j_stringish_array(j, "layoutCenter", []))
+      None => base.layout_center
+    },
+    layout_size: j_string_or_number_as_string_opt(
+      j,
+      "layoutSize",
+      base.layout_size,
+    ),
     roam: j_bool(j, "roam", base.roam),
     aspect_scale: j_number_opt(j, "aspectScale"),
     silent: j_bool(j, "silent", base.silent),
@@ -469,7 +490,10 @@ fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
 fn parse_map_registry_option(j : Json) -> MapRegistryOption {
   {
     name: j_string(j, "name", ""),
-    geo_json: j_field(j, "geoJSON"),
+    geo_json: match j_field(j, "geoJSON") {
+      Some(value) => Some(value)
+      None => j_field(j, "geoJson")
+    },
     special_areas: parse_map_special_areas(j),
   }
 }
@@ -917,6 +941,22 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let geo_index = j_int(j, "geoIndex", base.geo_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
   let map_name = j_string_opt(j, "map")
+  let zoom = j_number(j, "zoom", base.zoom)
+  let left = j_string_or_number_as_string_opt(j, "left", base.left)
+  let top = j_string_or_number_as_string_opt(j, "top", base.top)
+  let right = j_string_or_number_as_string_opt(j, "right", base.right)
+  let bottom = j_string_or_number_as_string_opt(j, "bottom", base.bottom)
+  let width = j_string_or_number_as_string_opt(j, "width", base.width)
+  let height = j_string_or_number_as_string_opt(j, "height", base.height)
+  let layout_center = match j_field(j, "layoutCenter") {
+    Some(_) => Some(j_stringish_array(j, "layoutCenter", []))
+    None => base.layout_center
+  }
+  let layout_size = j_string_or_number_as_string_opt(
+    j,
+    "layoutSize",
+    base.layout_size,
+  )
   let boundary_gap = j_stringish_array(j, "boundaryGap", base.boundary_gap)
   let symbol_values = parse_symbol_values(j)
   let symbol_size_values = parse_symbol_size_values(j)
@@ -1156,6 +1196,15 @@ fn parse_series_option(j : Json) -> SeriesOption {
     geo_index,
     radar_index,
     map_name,
+    zoom,
+    left,
+    top,
+    right,
+    bottom,
+    width,
+    height,
+    layout_center,
+    layout_size,
     stack,
     boundary_gap,
     smooth,

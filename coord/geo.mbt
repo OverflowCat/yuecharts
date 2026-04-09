@@ -39,18 +39,20 @@ pub struct Geo {
   data_min_y : Double
   data_max_y : Double
   aspect_scale : Double
+  center : @graphic.Point?
+  zoom : Double
   regions : Array[GeoRegion]
 }
 
 ///|
-fn geo_exclusive_map_name(opt : @option.ChartOption) -> String? {
+fn geo_exclusive_map_series(opt : @option.ChartOption) -> @option.SeriesOption? {
   let mut i = 0
   while i < opt.series.length() {
     let series = opt.series[i]
     if series.series_type == @option.SeriesType::Map &&
       series.coordinate_system.unwrap_or("geo") == "geo" {
       match series.map_name {
-        Some(map_name) => if map_name != "" { return Some(map_name) }
+        Some(map_name) => if map_name != "" { return Some(series) }
         None => ()
       }
     }
@@ -67,16 +69,19 @@ pub fn Geo::build(opt : @option.ChartOption) -> Geo? {
       return None
     }
     let source_manager = GeoSourceManager::from_option(opt)
+    let name_property = geo_opt.name_property.unwrap_or("name")
     return source_manager
-      .load(geo_opt.map, geo_opt.name_map, "name")
+      .load(geo_opt.map, geo_opt.name_map, name_property)
       .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
   }
-  match geo_exclusive_map_name(opt) {
-    Some(map_name) => {
-      let geo_opt = { ..@option.GeoOption::default(), map: map_name }
+  match geo_exclusive_map_series(opt) {
+    Some(series) => {
+      let map_name = series.map_name.unwrap_or("")
+      let geo_opt = geo_option_from_series(series, map_name)
       let source_manager = GeoSourceManager::from_option(opt)
+      let name_property = geo_opt.name_property.unwrap_or("name")
       source_manager
-      .load(map_name, geo_opt.name_map, "name")
+      .load(map_name, geo_opt.name_map, name_property)
       .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
     }
     None => None
@@ -89,6 +94,38 @@ pub fn Geo::data_to_point(
   lng : Double,
   lat : Double,
 ) -> @graphic.Point {
+  let base = self.base_data_to_point(lng, lat)
+  let default_center = self.default_center_point()
+  let center = match self.center {
+    Some(center) => self.base_data_to_point(center.x, center.y)
+    None => default_center
+  }
+  let zoom = geo_zoom_value(self.zoom)
+  @graphic.Point::new(
+    default_center.x + (base.x - center.x) * zoom,
+    default_center.y + (base.y - center.y) * zoom,
+  )
+}
+
+///|
+pub fn Geo::point_to_data(self : Geo, point : @graphic.Point) -> @graphic.Point {
+  let default_center = self.default_center_point()
+  let center = match self.center {
+    Some(center) => self.base_data_to_point(center.x, center.y)
+    None => default_center
+  }
+  let zoom = geo_zoom_value(self.zoom)
+  let base_x = (point.x - default_center.x) / zoom + center.x
+  let base_y = (point.y - default_center.y) / zoom + center.y
+  self.base_point_to_data(base_x, base_y)
+}
+
+///|
+fn Geo::base_data_to_point(
+  self : Geo,
+  lng : Double,
+  lat : Double,
+) -> @graphic.Point {
   let x_span = self.data_max_x - self.data_min_x
   let y_span = self.data_max_y - self.data_min_y
   let x = if x_span == 0.0 {
@@ -96,14 +133,33 @@ pub fn Geo::data_to_point(
   } else {
     self.viewport.x + (lng - self.data_min_x) / x_span * self.viewport.width
   }
-  let projected_y = lat * self.aspect_scale
   let y = if y_span == 0.0 {
     self.viewport.center_y()
   } else {
-    self.viewport.y +
-    (self.data_max_y - projected_y) / y_span * self.viewport.height
+    self.viewport.y + (self.data_max_y - lat) / y_span * self.viewport.height
   }
   @graphic.Point::new(x, y)
+}
+
+///|
+fn Geo::base_point_to_data(
+  self : Geo,
+  x : Double,
+  y : Double,
+) -> @graphic.Point {
+  let x_span = self.data_max_x - self.data_min_x
+  let y_span = self.data_max_y - self.data_min_y
+  let lng = if x_span == 0.0 || self.viewport.width == 0.0 {
+    self.data_min_x
+  } else {
+    self.data_min_x + (x - self.viewport.x) / self.viewport.width * x_span
+  }
+  let projected_y = if y_span == 0.0 || self.viewport.height == 0.0 {
+    self.data_max_y
+  } else {
+    self.data_max_y - (y - self.viewport.y) / self.viewport.height * y_span
+  }
+  @graphic.Point::new(lng, projected_y)
 }
 
 ///|
@@ -191,13 +247,11 @@ fn build_geo_from_loaded(
   let mut i = 0
   while i < regions.length() {
     let bbox = regions[i].data_bbox
-    let region_min_y = bbox.y * aspect_scale
-    let region_max_y = (bbox.y + bbox.height) * aspect_scale
     if first {
       min_x = bbox.x
       max_x = bbox.x + bbox.width
-      min_y = region_min_y
-      max_y = region_max_y
+      min_y = bbox.y
+      max_y = bbox.y + bbox.height
       first = false
     } else {
       if bbox.x < min_x {
@@ -206,26 +260,170 @@ fn build_geo_from_loaded(
       if bbox.x + bbox.width > max_x {
         max_x = bbox.x + bbox.width
       }
-      if region_min_y < min_y {
-        min_y = region_min_y
+      if bbox.y < min_y {
+        min_y = bbox.y
       }
-      if region_max_y > max_y {
-        max_y = region_max_y
+      if bbox.y + bbox.height > max_y {
+        max_y = bbox.y + bbox.height
       }
     }
     i += 1
   }
-  let viewport = compute_geo_viewport(opt, min_x, max_x, min_y, max_y)
+  let raw_bounds = geo_effective_bounds(
+    geo_opt.bounding_coords,
+    min_x,
+    max_x,
+    min_y,
+    max_y,
+  )
+  let viewport = compute_geo_viewport(opt, geo_opt, raw_bounds)
   Some({
     map: geo_opt.map,
     viewport,
-    data_min_x: min_x,
-    data_max_x: max_x,
-    data_min_y: min_y,
-    data_max_y: max_y,
+    data_min_x: raw_bounds.x,
+    data_max_x: raw_bounds.right(),
+    data_min_y: raw_bounds.y,
+    data_max_y: raw_bounds.bottom(),
     aspect_scale,
+    center: geo_resolve_center_point(
+      geo_opt.center,
+      raw_bounds.x,
+      raw_bounds.right(),
+      raw_bounds.y,
+      raw_bounds.bottom(),
+    ),
+    zoom: geo_opt.zoom,
     regions,
   })
+}
+
+///|
+fn geo_option_from_series(
+  series : @option.SeriesOption,
+  map_name : String,
+) -> @option.GeoOption {
+  {
+    ..@option.GeoOption::default(),
+    map: map_name,
+    center: if series.center.length() >= 2 {
+      Some(series.center)
+    } else {
+      None
+    },
+    zoom: series.zoom,
+    left: series.left,
+    top: series.top,
+    right: series.right,
+    bottom: series.bottom,
+    width: series.width,
+    height: series.height,
+    layout_center: series.layout_center,
+    layout_size: series.layout_size,
+    bounding_coords: series.bounding_coords,
+    name_property: series.name_property,
+  }
+}
+
+///|
+fn geo_effective_bounds(
+  bounding_coords : Array[Array[Double]]?,
+  min_x : Double,
+  max_x : Double,
+  min_y : Double,
+  max_y : Double,
+) -> @graphic.BBox {
+  match bounding_coords {
+    Some(coords) if coords.length() >= 2 => {
+      let left_top = coords[0]
+      let right_bottom = coords[1]
+      if left_top.length() >= 2 && right_bottom.length() >= 2 {
+        let x0 = left_top[0]
+        let y0 = left_top[1]
+        let x1 = right_bottom[0]
+        let y1 = right_bottom[1]
+        if double_is_finite(x0) &&
+          double_is_finite(y0) &&
+          double_is_finite(x1) &&
+          double_is_finite(y1) {
+          return @graphic.BBox::new(x0, y0, x1 - x0, y1 - y0)
+        }
+      }
+      @graphic.BBox::new(min_x, min_y, max_x - min_x, max_y - min_y)
+    }
+    _ => @graphic.BBox::new(min_x, min_y, max_x - min_x, max_y - min_y)
+  }
+}
+
+///|
+fn double_is_finite(value : Double) -> Bool {
+  let pos_inf = 1.0 / 0.0
+  let neg_inf = -1.0 / 0.0
+  value == value && value != pos_inf && value != neg_inf
+}
+
+///|
+fn geo_resolve_center_point(
+  center : Array[String]?,
+  min_x : Double,
+  max_x : Double,
+  min_y : Double,
+  max_y : Double,
+) -> @graphic.Point? {
+  match center {
+    Some(center_values) if center_values.length() >= 2 => {
+      let x_span = max_x - min_x
+      let x = geo_parse_center_coord(center_values[0], x_span, min_x)
+      let y = geo_parse_center_coord(center_values[1], max_y - min_y, min_y)
+      if x.is_nan() || y.is_nan() {
+        None
+      } else {
+        Some(@graphic.Point::new(x, y))
+      }
+    }
+    _ => None
+  }
+}
+
+///|
+fn geo_parse_center_coord(
+  value : String,
+  total : Double,
+  offset : Double,
+) -> Double {
+  match value {
+    "center" | "middle" => offset + total / 2.0
+    "left" | "top" => offset
+    "right" | "bottom" => offset + total
+    _ =>
+      if value.has_suffix("%") {
+        let pct = value[:value.length() - 1]
+        let parsed = try? @strconv.parse_double(pct.to_string())
+        match parsed {
+          Ok(v) => offset + v / 100.0 * total
+          Err(_) => 0.0 / 0.0
+        }
+      } else {
+        let parsed = try? @strconv.parse_double(value)
+        match parsed {
+          Ok(v) => v
+          Err(_) => 0.0 / 0.0
+        }
+      }
+  }
+}
+
+///|
+fn Geo::default_center_point(self : Geo) -> @graphic.Point {
+  @graphic.Point::new(self.viewport.center_x(), self.viewport.center_y())
+}
+
+///|
+fn geo_zoom_value(zoom : Double) -> Double {
+  if zoom.is_nan() || zoom == 0.0 {
+    1.0
+  } else {
+    zoom
+  }
 }
 
 ///|
@@ -364,41 +562,151 @@ fn geo_name_map_alias(
 ///|
 fn compute_geo_viewport(
   opt : @option.ChartOption,
-  min_x : Double,
-  max_x : Double,
-  min_y : Double,
-  max_y : Double,
+  geo_opt : @option.GeoOption,
+  raw_bounds : @graphic.BBox,
 ) -> @graphic.BBox {
-  let margin = 20.0
-  let available_w = if opt.width > margin * 2.0 {
-    opt.width - margin * 2.0
-  } else {
-    opt.width
+  let data_w = raw_bounds.width.abs().max(1.0e-9)
+  let data_h = raw_bounds.height.abs().max(1.0e-9)
+  let aspect_scale = geo_opt.aspect_scale.unwrap_or(0.75)
+  let aspect = data_w / data_h * aspect_scale
+  let layout_center = geo_opt.layout_center
+  let layout_size = geo_opt.layout_size
+  match (layout_center, layout_size) {
+    (Some(center), Some(size)) =>
+      if center.length() >= 2 {
+        let cx = geo_layout_value(center[0], opt.width)
+        let cy = geo_layout_value(center[1], opt.height)
+        let size_ref = if opt.width < opt.height {
+          opt.width
+        } else {
+          opt.height
+        }
+        let size_value = geo_layout_value(size, size_ref)
+        if !cx.is_nan() && !cy.is_nan() && !size_value.is_nan() {
+          let (width, height) = if aspect > 1.0 {
+            (size_value, size_value / aspect)
+          } else {
+            (size_value * aspect, size_value)
+          }
+          return @graphic.BBox::new(
+            cx - width / 2.0,
+            cy - height / 2.0,
+            width,
+            height,
+          )
+        }
+      }
+    _ => ()
   }
-  let available_h = if opt.height > margin * 2.0 {
-    opt.height - margin * 2.0
-  } else {
-    opt.height
-  }
-  let data_w = (max_x - min_x).abs().max(1.0e-9)
-  let data_h = (max_y - min_y).abs().max(1.0e-9)
-  let scale = (available_w / data_w).min(available_h / data_h)
-  let fit_w = data_w * scale
-  let fit_h = data_h * scale
-  let x = (opt.width - fit_w) / 2.0
-  let y = (opt.height - fit_h) / 2.0
-  @graphic.BBox::new(x, y, fit_w, fit_h)
+  geo_layout_box(opt, geo_opt, aspect)
 }
 
 ///|
-fn parse_geo_json(json : Json) -> Array[GeoRegion] {
+fn geo_layout_box(
+  opt : @option.ChartOption,
+  geo_opt : @option.GeoOption,
+  aspect : Double,
+) -> @graphic.BBox {
+  let mut left = geo_layout_value_opt(geo_opt.left, opt.width)
+  let mut top = geo_layout_value_opt(geo_opt.top, opt.height)
+  let right = geo_layout_value_opt(geo_opt.right, opt.width)
+  let bottom = geo_layout_value_opt(geo_opt.bottom, opt.height)
+  let mut width = geo_layout_value_opt(geo_opt.width, opt.width)
+  let mut height = geo_layout_value_opt(geo_opt.height, opt.height)
+  let container_aspect = if opt.height == 0.0 {
+    1.0
+  } else {
+    opt.width / opt.height
+  }
+
+  if width.is_nan() {
+    width = opt.width - right - left
+  }
+  if height.is_nan() {
+    height = opt.height - bottom - top
+  }
+  if width.is_nan() && height.is_nan() {
+    if aspect > container_aspect {
+      width = opt.width * 0.8
+    } else {
+      height = opt.height * 0.8
+    }
+  }
+  if width.is_nan() {
+    width = aspect * height
+  }
+  if height.is_nan() {
+    height = width / aspect
+  }
+
+  match geo_opt.left.unwrap_or(geo_opt.right.unwrap_or("")) {
+    "center" => left = opt.width / 2.0 - width / 2.0
+    "right" => left = opt.width - width - right
+    _ => ()
+  }
+  match geo_opt.top.unwrap_or(geo_opt.bottom.unwrap_or("")) {
+    "center" | "middle" => top = opt.height / 2.0 - height / 2.0
+    "bottom" => top = opt.height - height - bottom
+    _ => ()
+  }
+  if left.is_nan() {
+    left = opt.width - right - width
+  }
+  if top.is_nan() {
+    top = opt.height - bottom - height
+  }
+  left = if left.is_nan() { 0.0 } else { left }
+  top = if top.is_nan() { 0.0 } else { top }
+  if width.is_nan() {
+    width = opt.width - left - right
+  }
+  if height.is_nan() {
+    height = opt.height - top - bottom
+  }
+  @graphic.BBox::new(left, top, width, height)
+}
+
+///|
+fn geo_layout_value(value : String, total : Double) -> Double {
+  if value == "center" ||
+    value == "middle" ||
+    value == "right" ||
+    value == "bottom" {
+    return 0.0 / 0.0
+  }
+  if value.has_suffix("%") {
+    let pct = value[:value.length() - 1]
+    let parsed = try? @strconv.parse_double(pct.to_string())
+    match parsed {
+      Ok(v) => v / 100.0 * total
+      Err(_) => 0.0 / 0.0
+    }
+  } else {
+    let parsed = try? @strconv.parse_double(value)
+    match parsed {
+      Ok(v) => v
+      Err(_) => 0.0 / 0.0
+    }
+  }
+}
+
+///|
+fn geo_layout_value_opt(value : String?, total : Double) -> Double {
+  match value {
+    Some(v) => geo_layout_value(v, total)
+    None => 0.0 / 0.0
+  }
+}
+
+///|
+fn parse_geo_json(json : Json, name_property : String) -> Array[GeoRegion] {
   let utf8_encoding = j_bool_opt(json, "UTF8Encoding").unwrap_or(false)
   let encode_scale = j_number_opt(json, "UTF8Scale").unwrap_or(1024.0)
   match json {
     { "features": Array(features), .. } =>
       features
       .map(fn(feature) {
-        parse_geo_feature(feature, utf8_encoding, encode_scale)
+        parse_geo_feature(feature, utf8_encoding, encode_scale, name_property)
       })
       .filter_map(region => region)
     _ => []
@@ -410,6 +718,7 @@ fn parse_geo_feature(
   feature : Json,
   utf8_encoding : Bool,
   encode_scale : Double,
+  name_property : String,
 ) -> GeoRegion? {
   let properties = match j_field(feature, "properties") {
     Some(value) => value
@@ -423,7 +732,11 @@ fn parse_geo_feature(
   if geometries.length() == 0 {
     return None
   }
-  let name = j_string(properties, "name", "")
+  let name = j_string(
+    properties,
+    name_property,
+    j_string(properties, "name", ""),
+  )
   let bbox = geo_geometries_bbox(geometries)
   let center = match parse_geo_cp(properties) {
     Some(cp) => cp

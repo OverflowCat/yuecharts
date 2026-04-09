@@ -426,7 +426,6 @@ test "bar example snapshot" {
       #|}
       #|]]></style>
       #|</svg>
-
     ),
   )
 }
@@ -535,7 +534,6 @@ test "mixed example snapshot" {
       #|}
       #|]]></style>
       #|</svg>
-
     ),
   )
 }
@@ -2150,6 +2148,60 @@ test "geo selected region applies current select style in static svg" {
   assert_true(svg.contains("stroke=\"#ff0000\""))
   assert_true(svg.contains("stroke-width=\"2\""))
   assert_true(svg.contains("<text x=\"130\" y=\"90\" fill=\"#00aa00\""))
+}
+
+///|
+test "register map API feeds get_map and geo render" {
+  let source_json =
+    #|{
+    #|  "maps": [{
+    #|    "name": "registered-demo",
+    #|    "geoJson": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    },
+    #|    "specialAreas": {
+    #|      "Alpha": { "left": 0, "top": 0, "width": 10, "height": 10 }
+    #|    }
+    #|  }]
+    #|}
+  let source_opt = @option.parse(source_json)
+  let map_entry = source_opt.map_registry[0]
+  match map_entry.geo_json {
+    Some(geo_json) =>
+      @yuecharts.register_map(map_entry.name, geo_json, map_entry.special_areas)
+    None => assert_true(false)
+  }
+  match @yuecharts.get_map("registered-demo") {
+    Some(map_for_user) => {
+      match map_for_user.geo_json {
+        { "type": String("FeatureCollection"), .. } => assert_true(true)
+        _ => assert_true(false)
+      }
+      assert_eq(map_for_user.special_areas.length(), 1)
+      assert_eq(map_for_user.special_areas[0].name, "Alpha")
+    }
+    None => assert_true(false)
+  }
+  let render_json =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "geo": {
+    #|    "map": "registered-demo",
+    #|    "label": { "show": true, "color": "#444444" }
+    #|  },
+    #|  "series": []
+    #|}
+  let svg = @yuecharts.render(render_json)
+  assert_true(svg.contains(">Alpha</text>"))
 }
 
 ///|

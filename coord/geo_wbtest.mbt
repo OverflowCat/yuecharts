@@ -35,6 +35,360 @@ test "geo builds viewport and regions from geojson" {
 }
 
 ///|
+test "geo honors layoutCenter and layoutSize" {
+  let json_str =
+    #|{
+    #|  "width": 200,
+    #|  "height": 150,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "layoutCenter": ["50%", "50"],
+    #|    "layoutSize": 20
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Region A" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  assert_eq(geo.viewport.x, 90.0)
+  assert_eq(geo.viewport.y, 40.0)
+  assert_eq(geo.viewport.width, 20.0)
+  assert_eq(geo.viewport.height, 20.0)
+}
+
+///|
+test "geo honors explicit box layout" {
+  let json_str =
+    #|{
+    #|  "width": 200,
+    #|  "height": 150,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "left": 10,
+    #|    "right": "50%",
+    #|    "top": 30,
+    #|    "bottom": 40
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Region A" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  assert_eq(geo.viewport.x, 10.0)
+  assert_eq(geo.viewport.y, 30.0)
+  assert_eq(geo.viewport.width, 90.0)
+  assert_eq(geo.viewport.height, 80.0)
+}
+
+///|
+test "exclusive map series honors box layout" {
+  let json_str =
+    #|{
+    #|  "width": 200,
+    #|  "height": 150,
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "left": 10,
+    #|    "right": "50%",
+    #|    "top": 30,
+    #|    "bottom": 40
+    #|  }],
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Region A" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  assert_eq(geo.viewport.x, 10.0)
+  assert_eq(geo.viewport.y, 30.0)
+  assert_eq(geo.viewport.width, 90.0)
+  assert_eq(geo.viewport.height, 80.0)
+}
+
+///|
+test "geo honors center and zoom" {
+  let json_str =
+    #|{
+    #|  "width": 100,
+    #|  "height": 100,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "left": 0,
+    #|    "top": 0,
+    #|    "width": 100,
+    #|    "height": 100,
+    #|    "center": [5, 5],
+    #|    "zoom": 2
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Region A" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  let center = geo.data_to_point(5.0, 5.0)
+  assert_eq(center.x, 50.0)
+  assert_eq(center.y, 50.0)
+  let corner = geo.data_to_point(10.0, 10.0)
+  assert_eq(corner.x, 150.0)
+  assert_eq(corner.y, -50.0)
+  let raw = geo.point_to_data(corner)
+  assert_eq(raw.x, 10.0)
+  assert_eq(raw.y, 10.0)
+}
+
+///|
+test "exclusive map series honors center and zoom" {
+  let json_str =
+    #|{
+    #|  "width": 100,
+    #|  "height": 100,
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "left": 0,
+    #|    "top": 0,
+    #|    "width": 100,
+    #|    "height": 100,
+    #|    "center": [5, 5],
+    #|    "zoom": 2
+    #|  }],
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Region A" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  let center = geo.data_to_point(5.0, 5.0)
+  assert_eq(center.x, 50.0)
+  assert_eq(center.y, 50.0)
+  let corner = geo.data_to_point(10.0, 10.0)
+  assert_eq(corner.x, 150.0)
+  assert_eq(corner.y, -50.0)
+}
+
+///|
+test "geo honors boundingCoords before center and zoom" {
+  let json_str =
+    #|{
+    #|  "width": 100,
+    #|  "height": 100,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "left": 0,
+    #|    "top": 0,
+    #|    "width": 100,
+    #|    "height": 100,
+    #|    "boundingCoords": [[-10, -10], [10, 10]],
+    #|    "center": [5, 5],
+    #|    "zoom": 2
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Region A" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  let center = geo.data_to_point(5.0, 5.0)
+  assert_eq(center.x, 50.0)
+  assert_eq(center.y, 50.0)
+  let corner = geo.data_to_point(0.0, 0.0)
+  assert_eq(corner.x, 0.0)
+  assert_eq(corner.y, 100.0)
+}
+
+///|
+test "exclusive map series honors boundingCoords before center and zoom" {
+  let json_str =
+    #|{
+    #|  "width": 100,
+    #|  "height": 100,
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "left": 0,
+    #|    "top": 0,
+    #|    "width": 100,
+    #|    "height": 100,
+    #|    "boundingCoords": [[-10, -10], [10, 10]],
+    #|    "center": [5, 5],
+    #|    "zoom": 2
+    #|  }],
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Region A" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  let center = geo.data_to_point(5.0, 5.0)
+  assert_eq(center.x, 50.0)
+  assert_eq(center.y, 50.0)
+  let corner = geo.data_to_point(0.0, 0.0)
+  assert_eq(corner.x, 0.0)
+  assert_eq(corner.y, 100.0)
+}
+
+///|
+test "geo honors nameProperty for geojson region names" {
+  let json_str =
+    #|{
+    #|  "width": 200,
+    #|  "height": 150,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "nameProperty": "alias"
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "alias": "Region A", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  match geo.region_by_name("Region A") {
+    Some(_) => ()
+    None => assert_true(false)
+  }
+  match geo.region_by_name("alias") {
+    Some(_) => assert_true(false)
+    None => ()
+  }
+}
+
+///|
+test "exclusive map series honors nameProperty for geojson region names" {
+  let json_str =
+    #|{
+    #|  "width": 200,
+    #|  "height": 150,
+    #|  "series": [{
+    #|    "type": "map",
+    #|    "map": "demo",
+    #|    "nameProperty": "alias"
+    #|  }],
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "alias": "Region A", "cp": [5, 5] },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  match geo.region_by_name("Region A") {
+    Some(_) => ()
+    None => assert_true(false)
+  }
+  match geo.region_by_name("alias") {
+    Some(_) => assert_true(false)
+    None => ()
+  }
+}
+
+///|
 test "geo decodes UTF8 compressed polygon geojson" {
   let json_str =
     #|{

@@ -56,6 +56,22 @@ fn build_registry() -> @core.Registry {
 }
 
 ///|
+/// Register a global geo map resource, compatible with `echarts.registerMap`.
+pub fn register_map(
+  map_name : String,
+  geo_json : Json,
+  special_areas : Array[@option.MapSpecialAreaOption],
+) -> Unit {
+  @coord.register_global_map(map_name, geo_json, special_areas)
+}
+
+///|
+/// Get a registered geo map, compatible with `echarts.getMap`.
+pub fn get_map(map_name : String) -> @coord.GeoMapForUser? {
+  @coord.get_global_map_for_user(map_name)
+}
+
+///|
 fn has_registered_series_type(
   opt : @option.ChartOption,
   series_type : @option.SeriesType?,
