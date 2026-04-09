@@ -170,7 +170,7 @@ struct SankeyChartView {}
 
 ///|
 pub impl @core.ChartViewLike for SankeyChartView with render(_self, ctx) {
-  render_sankeys(ctx.option, ctx.coord)
+  render_sankeys(ctx.option, ctx.view)
 }
 
 ///|

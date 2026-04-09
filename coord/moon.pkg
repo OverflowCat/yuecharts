@@ -2,6 +2,7 @@ import {
   "moonbitlang/core/math" @math,
   "moonbitlang/core/strconv" @strconv,
   "OverflowCat/yuecharts/graphic" @graphic,
+  "OverflowCat/yuecharts/data" @data,
   "OverflowCat/yuecharts/option" @option,
   "OverflowCat/yuecharts/scale" @scale,
 }

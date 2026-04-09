@@ -12,6 +12,7 @@ pub struct RenderContext {
   geo : @coord.Geo?
   calendar : @coord.Calendar?
   single : @coord.Single?
+  view : Array[@coord.View]
 }
 
 ///|
@@ -24,8 +25,9 @@ pub fn RenderContext::new(
   geo : @coord.Geo?,
   calendar : @coord.Calendar?,
   single : @coord.Single?,
+  view : Array[@coord.View],
 ) -> RenderContext {
-  { raw_option, option, coord, polar, parallel, geo, calendar, single }
+  { raw_option, option, coord, polar, parallel, geo, calendar, single, view }
 }
 
 ///|
@@ -247,6 +249,7 @@ pub struct Registry {
   layouts : Array[LayoutRegistration]
   visuals : Array[VisualRegistration]
   processors : Array[ProcessorRegistration]
+  coordinate_system_manager : CoordinateSystemManager
 }
 
 ///|
@@ -256,7 +259,15 @@ pub fn Registry::new() -> Registry {
   let layouts : Array[LayoutRegistration] = []
   let visuals : Array[VisualRegistration] = []
   let processors : Array[ProcessorRegistration] = []
-  { charts, components, layouts, visuals, processors }
+  let coordinate_system_manager = CoordinateSystemManager::new()
+  {
+    charts,
+    components,
+    layouts,
+    visuals,
+    processors,
+    coordinate_system_manager,
+  }
 }
 
 ///|
@@ -297,4 +308,12 @@ pub fn Registry::register_processor(
   registration : ProcessorRegistration,
 ) -> Unit {
   self.processors.push(registration)
+}
+
+///|
+pub fn Registry::register_coordinate_system(
+  self : Registry,
+  creator : &CoordinateSystemCreatorLike,
+) -> Unit {
+  self.coordinate_system_manager.register(creator)
 }

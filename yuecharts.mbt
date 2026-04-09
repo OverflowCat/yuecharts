@@ -200,32 +200,6 @@ fn new_flags(count : Int) -> Array[Bool] {
 }
 
 ///|
-fn next_layout_index(
-  registry : @core.Registry,
-  opt : @option.ChartOption,
-  visited : Array[Bool],
-) -> Int? {
-  let mut best_index = -1
-  let mut best_priority = 0
-  let mut i = 0
-  while i < registry.layouts.length() {
-    let registration = registry.layouts[i]
-    if !visited[i] && has_registered_series_type(opt, registration.series_type) {
-      if best_index == -1 || registration.priority < best_priority {
-        best_index = i
-        best_priority = registration.priority
-      }
-    }
-    i += 1
-  }
-  if best_index == -1 {
-    None
-  } else {
-    Some(best_index)
-  }
-}
-
-///|
 fn next_visual_index(
   registry : @core.Registry,
   opt : @option.ChartOption,
@@ -309,34 +283,21 @@ fn run_registered_layouts(
   raw_opt : @option.ChartOption,
   opt : @option.ChartOption,
 ) -> @core.RenderContext {
-  let mut coord = @layout.build_cartesian(opt)
-  let mut polar = @layout.build_polar(opt)
-  let mut parallel = @coord.Parallel::build(opt)
-  let geo = @coord.Geo::build(opt)
-  let mut calendar = @coord.Calendar::build(opt)
-  let mut single = @coord.Single::build(opt)
-  let visited = new_flags(registry.layouts.length())
-  let mut done = 0
-  while done < registry.layouts.length() {
-    match next_layout_index(registry, opt, visited) {
-      None => done = registry.layouts.length()
-      Some(index) => {
-        visited[index] = true
-        done = done + 1
-        let registration = registry.layouts[index]
-        match registration.execution_key {
-          Some("build_cartesian") => coord = @layout.build_cartesian(opt)
-          Some("build_polar") => polar = @layout.build_polar(opt)
-          Some("build_parallel") => parallel = @coord.Parallel::build(opt)
-          Some("build_calendar") => calendar = @coord.Calendar::build(opt)
-          Some("build_single") => single = @coord.Single::build(opt)
-          _ => ()
-        }
-      }
-    }
+  let state = registry.coordinate_system_manager.create(opt)
+  let coord = match state.cartesian {
+    Some(value) => value
+    None => @layout.build_cartesian(opt)
   }
   @core.RenderContext::new(
-    raw_opt, opt, coord, polar, parallel, geo, calendar, single,
+    raw_opt,
+    opt,
+    coord,
+    state.polar,
+    state.parallel,
+    state.geo,
+    state.calendar,
+    state.single,
+    state.view,
   )
 }
 

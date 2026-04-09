@@ -2,6 +2,7 @@
 //                  echarts/src/component/axis/AxisBuilder.ts
 //                  echarts/src/component/axis/AngleAxisView.ts
 //                  echarts/src/component/axis/RadiusAxisView.ts
+//                  echarts/src/component/axis/SingleAxisView.ts
 
 ///|
 let axis_line_color : String = "#54555a"
@@ -85,6 +86,7 @@ pub fn render_axes(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
+  single? : @coord.Single? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   if has_cartesian_axis_series(opt) {
@@ -101,6 +103,10 @@ pub fn render_axes(
   }
   match polar {
     Some(p) => render_polar_axes(p, elems)
+    None => ()
+  }
+  match single {
+    Some(single_coord) => render_single_axis(opt, single_coord, elems)
     None => ()
   }
   elems
@@ -508,4 +514,199 @@ fn render_radius_axis(
       1.0,
     ),
   )
+}
+
+///|
+fn single_axis_split_line(
+  axis_option : @option.SingleAxisOption,
+  x1 : Double,
+  y1 : Double,
+  x2 : Double,
+  y2 : Double,
+) -> @graphic.Element {
+  let dash = if axis_option.split_line.line_type == "dashed" {
+    [4.0, 2.0]
+  } else {
+    []
+  }
+  @graphic.Element::line_colored_dashed(
+    x1,
+    y1,
+    x2,
+    y2,
+    polar_axis_split_line_color,
+    1.0,
+    dash,
+    axis_option.split_line.opacity,
+  )
+}
+
+///|
+fn single_axis_tick_and_label(
+  single_coord : @coord.Single,
+  axis_option : @option.SingleAxisOption,
+  layout : @coord.SingleLayout,
+  tick : @coord.SingleTick,
+  elems : Array[@graphic.Element],
+) -> Unit {
+  let tick_dir = layout.tick_direction.to_double()
+  let label_dir = layout.label_direction.to_double()
+  let tick_length = axis_option.axis_tick.length
+  if single_coord.orient == "horizontal" {
+    let px = single_axis_value_to_pixel(single_coord, tick.value)
+    if axis_option.axis_tick.show {
+      elems.push(
+        @graphic.Element::line_colored(
+          px,
+          layout.y,
+          px,
+          layout.y + tick_dir * tick_length,
+          axis_line_color,
+          axis_option.axis_tick.width,
+        ),
+      )
+    }
+    if axis_option.axis_label.show {
+      let baseline : @graphic.TextBaseline = if label_dir < 0.0 {
+        @graphic.TextBaseline::Bottom
+      } else {
+        @graphic.TextBaseline::Hanging
+      }
+      elems.push(
+        @graphic.Element::text_colored(
+          px,
+          layout.y + label_dir * (tick_length + 4.0),
+          tick.label,
+          @graphic.TextAnchor::Middle,
+          baseline,
+          axis_line_color,
+        ),
+      )
+    }
+  } else {
+    let py = single_axis_value_to_pixel(single_coord, tick.value)
+    if axis_option.axis_tick.show {
+      elems.push(
+        @graphic.Element::line_colored(
+          layout.x,
+          py,
+          layout.x + tick_dir * tick_length,
+          py,
+          axis_line_color,
+          axis_option.axis_tick.width,
+        ),
+      )
+    }
+    if axis_option.axis_label.show {
+      let anchor : @graphic.TextAnchor = if label_dir < 0.0 {
+        @graphic.TextAnchor::End
+      } else {
+        @graphic.TextAnchor::Start
+      }
+      elems.push(
+        @graphic.Element::text_colored(
+          layout.x + label_dir * (tick_length + 4.0),
+          py,
+          tick.label,
+          anchor,
+          @graphic.TextBaseline::Middle,
+          axis_line_color,
+        ),
+      )
+    }
+  }
+}
+
+///|
+fn single_axis_value_to_pixel(
+  single_coord : @coord.Single,
+  value : Double,
+) -> Double {
+  let range = single_coord.max_val - single_coord.min_val
+  if range == 0.0 {
+    return if single_coord.orient == "horizontal" {
+      single_coord.bbox.x + single_coord.bbox.width / 2.0
+    } else {
+      single_coord.bbox.y + single_coord.bbox.height / 2.0
+    }
+  }
+  let t = (value - single_coord.min_val) / range
+  let t_oriented = if single_coord.inverse { 1.0 - t } else { t }
+  if single_coord.orient == "horizontal" {
+    single_coord.bbox.x + t_oriented * single_coord.bbox.width
+  } else {
+    single_coord.bbox.y + (1.0 - t_oriented) * single_coord.bbox.height
+  }
+}
+
+///|
+fn render_single_axis(
+  opt : @option.ChartOption,
+  single_coord : @coord.Single,
+  elems : Array[@graphic.Element],
+) -> Unit {
+  if opt.single_axis.length() == 0 {
+    return
+  }
+  let axis_option = opt.single_axis[0]
+  let layout = single_coord.layout(axis_option)
+  let (axis_x1, axis_y1, axis_x2, axis_y2) = if single_coord.orient ==
+    "horizontal" {
+    (
+      single_coord.bbox.x,
+      layout.y,
+      single_coord.bbox.x + single_coord.bbox.width,
+      layout.y,
+    )
+  } else {
+    (
+      layout.x,
+      single_coord.bbox.y,
+      layout.x,
+      single_coord.bbox.y + single_coord.bbox.height,
+    )
+  }
+  let ticks = single_coord.axis_ticks(7)
+  let mut i = 0
+  while i < ticks.length() {
+    let tick = ticks[i]
+    let pixel = single_axis_value_to_pixel(single_coord, tick.value)
+    if axis_option.split_line.show {
+      if single_coord.orient == "horizontal" {
+        elems.push(
+          single_axis_split_line(
+            axis_option,
+            pixel,
+            single_coord.bbox.y,
+            pixel,
+            single_coord.bbox.y + single_coord.bbox.height,
+          ),
+        )
+      } else {
+        elems.push(
+          single_axis_split_line(
+            axis_option,
+            single_coord.bbox.x,
+            pixel,
+            single_coord.bbox.x + single_coord.bbox.width,
+            pixel,
+          ),
+        )
+      }
+    }
+    single_axis_tick_and_label(single_coord, axis_option, layout, tick, elems)
+    i += 1
+  }
+  if axis_option.axis_line.show {
+    elems.push(
+      @graphic.Element::line_colored(
+        axis_x1,
+        axis_y1,
+        axis_x2,
+        axis_y2,
+        axis_line_color,
+        axis_option.axis_line.line_style.width,
+      ),
+    )
+  }
 }

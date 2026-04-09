@@ -215,30 +215,85 @@ fn sankey_resolve_size(spec : @option.SizeSpec, total : Double) -> Double {
 fn sankey_box(
   series : @option.SeriesOption,
   opt : @option.ChartOption,
+  view : @coord.View?,
 ) -> SankeyBox {
-  let left = series.sankey_left.map_or(0.0, spec => {
-    sankey_resolve_size(spec, opt.width)
-  })
-  let top = series.sankey_top.map_or(0.0, spec => {
-    sankey_resolve_size(spec, opt.height)
-  })
-  let right = series.sankey_right.map_or(0.0, spec => {
-    sankey_resolve_size(spec, opt.width)
-  })
-  let bottom = series.sankey_bottom.map_or(0.0, spec => {
-    sankey_resolve_size(spec, opt.height)
-  })
-  let width = series.sankey_width.map_or(opt.width - left - right, spec => {
-    sankey_resolve_size(spec, opt.width)
-  })
-  let height = series.sankey_height.map_or(opt.height - top - bottom, spec => {
-    sankey_resolve_size(spec, opt.height)
-  })
-  {
-    x: left,
-    y: top,
-    width: sankey_max(width, 0.0),
-    height: sankey_max(height, 0.0),
+  match view {
+    Some(coord) =>
+      {
+        x: 0.0,
+        y: 0.0,
+        width: coord.bounding_rect.width,
+        height: coord.bounding_rect.height,
+      }
+    None => {
+      let left = series.sankey_left.map_or(0.0, spec => {
+        sankey_resolve_size(spec, opt.width)
+      })
+      let top = series.sankey_top.map_or(0.0, spec => {
+        sankey_resolve_size(spec, opt.height)
+      })
+      let right = series.sankey_right.map_or(0.0, spec => {
+        sankey_resolve_size(spec, opt.width)
+      })
+      let bottom = series.sankey_bottom.map_or(0.0, spec => {
+        sankey_resolve_size(spec, opt.height)
+      })
+      let width = series.sankey_width.map_or(opt.width - left - right, spec => {
+        sankey_resolve_size(spec, opt.width)
+      })
+      let height = series.sankey_height.map_or(opt.height - top - bottom, spec => {
+        sankey_resolve_size(spec, opt.height)
+      })
+      {
+        x: left,
+        y: top,
+        width: sankey_max(width, 0.0),
+        height: sankey_max(height, 0.0),
+      }
+    }
+  }
+}
+
+///|
+fn sankey_view_scale(view : @coord.View?) -> Double {
+  view.map_or(1.0, coord => coord.zoom)
+}
+
+///|
+fn sankey_project_point(
+  box : SankeyBox,
+  view : @coord.View?,
+  x : Double,
+  y : Double,
+) -> (Double, Double) {
+  match view {
+    Some(coord) => {
+      let point = coord.data_to_point([x, y])
+      (point[0], point[1])
+    }
+    None => (box.x + x, box.y + y)
+  }
+}
+
+///|
+fn sankey_clip_rect(box : SankeyBox, view : @coord.View?) -> @graphic.BBox {
+  match view {
+    Some(coord) => {
+      let rect = coord.get_view_rect_after_roam()
+      @graphic.BBox::new(
+        rect.x - 10.0,
+        rect.y - 10.0,
+        rect.width + 20.0,
+        rect.height + 20.0,
+      )
+    }
+    None =>
+      @graphic.BBox::new(
+        box.x - 10.0,
+        box.y - 10.0,
+        box.width + 20.0,
+        box.height + 20.0,
+      )
   }
 }
 
@@ -1096,31 +1151,70 @@ fn sankey_edge_path(
   edge : SankeyEdge,
   nodes : Array[SankeyNode],
   box : SankeyBox,
+  view : @coord.View?,
   curveness : Double,
 ) -> String {
   let extent = sankey_max(edge.dy, 1.0)
   let source = nodes[edge.source_index]
   let target = nodes[edge.target_index]
   if series.sankey_orient == "vertical" {
-    let x1 = box.x + source.x + edge.sy
-    let y1 = box.y + source.y + source.dy
-    let x2 = box.x + target.x + edge.ty
-    let y2 = box.y + target.y
+    let (x1, y1) = sankey_project_point(
+      box,
+      view,
+      source.x + edge.sy,
+      source.y + source.dy,
+    )
+    let (x2, y2) = sankey_project_point(box, view, target.x + edge.ty, target.y)
+    let (x2b, y2b) = sankey_project_point(
+      box,
+      view,
+      target.x + edge.ty + extent,
+      target.y,
+    )
+    let (x1b, y1b) = sankey_project_point(
+      box,
+      view,
+      source.x + edge.sy + extent,
+      source.y + source.dy,
+    )
     let cpx1 = x1
     let cpy1 = y1 * (1.0 - curveness) + y2 * curveness
     let cpx2 = x2
     let cpy2 = y1 * curveness + y2 * (1.0 - curveness)
-    "M \{sankey_r4(x1)} \{sankey_r4(y1)} C \{sankey_r4(cpx1)} \{sankey_r4(cpy1)} \{sankey_r4(cpx2)} \{sankey_r4(cpy2)} \{sankey_r4(x2)} \{sankey_r4(y2)} L \{sankey_r4(x2 + extent)} \{sankey_r4(y2)} C \{sankey_r4(cpx2 + extent)} \{sankey_r4(cpy2)} \{sankey_r4(cpx1 + extent)} \{sankey_r4(cpy1)} \{sankey_r4(x1 + extent)} \{sankey_r4(y1)} Z"
+    let cpx2b = x2b
+    let cpy2b = cpy2
+    let cpx1b = x1b
+    let cpy1b = cpy1
+    "M \{sankey_r4(x1)} \{sankey_r4(y1)} C \{sankey_r4(cpx1)} \{sankey_r4(cpy1)} \{sankey_r4(cpx2)} \{sankey_r4(cpy2)} \{sankey_r4(x2)} \{sankey_r4(y2)} L \{sankey_r4(x2b)} \{sankey_r4(y2b)} C \{sankey_r4(cpx2b)} \{sankey_r4(cpy2b)} \{sankey_r4(cpx1b)} \{sankey_r4(cpy1b)} \{sankey_r4(x1b)} \{sankey_r4(y1b)} Z"
   } else {
-    let x1 = box.x + source.x + source.dx
-    let y1 = box.y + source.y + edge.sy
-    let x2 = box.x + target.x
-    let y2 = box.y + target.y + edge.ty
+    let (x1, y1) = sankey_project_point(
+      box,
+      view,
+      source.x + source.dx,
+      source.y + edge.sy,
+    )
+    let (x2, y2) = sankey_project_point(box, view, target.x, target.y + edge.ty)
+    let (x2b, y2b) = sankey_project_point(
+      box,
+      view,
+      target.x,
+      target.y + edge.ty + extent,
+    )
+    let (x1b, y1b) = sankey_project_point(
+      box,
+      view,
+      source.x + source.dx,
+      source.y + edge.sy + extent,
+    )
     let cpx1 = x1 * (1.0 - curveness) + x2 * curveness
     let cpy1 = y1
     let cpx2 = x1 * curveness + x2 * (1.0 - curveness)
     let cpy2 = y2
-    "M \{sankey_r4(x1)} \{sankey_r4(y1)} C \{sankey_r4(cpx1)} \{sankey_r4(cpy1)} \{sankey_r4(cpx2)} \{sankey_r4(cpy2)} \{sankey_r4(x2)} \{sankey_r4(y2)} L \{sankey_r4(x2)} \{sankey_r4(y2 + extent)} C \{sankey_r4(cpx2)} \{sankey_r4(cpy2 + extent)} \{sankey_r4(cpx1)} \{sankey_r4(cpy1 + extent)} \{sankey_r4(x1)} \{sankey_r4(y1 + extent)} Z"
+    let cpx2b = cpx2
+    let cpy2b = y2b
+    let cpx1b = cpx1
+    let cpy1b = y1b
+    "M \{sankey_r4(x1)} \{sankey_r4(y1)} C \{sankey_r4(cpx1)} \{sankey_r4(cpy1)} \{sankey_r4(cpx2)} \{sankey_r4(cpy2)} \{sankey_r4(x2)} \{sankey_r4(y2)} L \{sankey_r4(x2b)} \{sankey_r4(y2b)} C \{sankey_r4(cpx2b)} \{sankey_r4(cpy2b)} \{sankey_r4(cpx1b)} \{sankey_r4(cpy1b)} \{sankey_r4(x1b)} \{sankey_r4(y1b)} Z"
   }
 }
 
@@ -1128,48 +1222,49 @@ fn sankey_edge_path(
 fn sankey_label_geometry(
   node : SankeyNode,
   box : SankeyBox,
+  view : @coord.View?,
   style : SankeyResolvedLabelStyle,
 ) -> (Double, Double, @graphic.TextAnchor, @graphic.TextBaseline) {
-  let x = box.x + node.x
-  let y = box.y + node.y
+  let x = node.x
+  let y = node.y
   let mid_x = x + node.dx / 2.0
   let mid_y = y + node.dy / 2.0
   match style.position {
-    "left" =>
-      (
-        x - style.distance,
-        mid_y,
-        @graphic.TextAnchor::End,
-        @graphic.TextBaseline::Middle,
-      )
-    "top" =>
-      (
-        mid_x,
-        y - style.distance,
-        @graphic.TextAnchor::Middle,
-        @graphic.TextBaseline::Bottom,
-      )
-    "bottom" =>
-      (
+    "left" => {
+      let (tx, ty) = sankey_project_point(box, view, x - style.distance, mid_y)
+      (tx, ty, @graphic.TextAnchor::End, @graphic.TextBaseline::Middle)
+    }
+    "top" => {
+      let (tx, ty) = sankey_project_point(box, view, mid_x, y - style.distance)
+      (tx, ty, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Bottom)
+    }
+    "bottom" => {
+      let (tx, ty) = sankey_project_point(
+        box,
+        view,
         mid_x,
         y + node.dy + style.distance,
-        @graphic.TextAnchor::Middle,
-        @graphic.TextBaseline::Top,
       )
+      (tx, ty, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Top)
+    }
     "inside"
     | "insideLeft"
     | "insideRight"
     | "insideTop"
     | "insideBottom"
-    | "center" =>
-      (mid_x, mid_y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
-    _ =>
-      (
+    | "center" => {
+      let (tx, ty) = sankey_project_point(box, view, mid_x, mid_y)
+      (tx, ty, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
+    }
+    _ => {
+      let (tx, ty) = sankey_project_point(
+        box,
+        view,
         x + node.dx + style.distance,
         mid_y,
-        @graphic.TextAnchor::Start,
-        @graphic.TextBaseline::Middle,
       )
+      (tx, ty, @graphic.TextAnchor::Start, @graphic.TextBaseline::Middle)
+    }
   }
 }
 
@@ -1177,13 +1272,14 @@ fn sankey_label_geometry(
 fn sankey_render_series(
   opt : @option.ChartOption,
   series : @option.SeriesOption,
+  view : @coord.View?,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let (nodes, edges) = sankey_build_graph(series)
   if nodes.length() == 0 {
     return elems
   }
-  let box = sankey_box(series, opt)
+  let box = sankey_box(series, opt, view)
   if !sankey_layout(series, nodes, edges, box) {
     return elems
   }
@@ -1222,9 +1318,9 @@ fn sankey_render_series(
       node_colors,
     )
     let opacity = sankey_edge_opacity(series, level)
-    let width = sankey_edge_width(series, level)
+    let width = sankey_edge_width(series, level) * sankey_view_scale(view)
     let curveness = sankey_edge_curveness(series, level)
-    let path = sankey_edge_path(series, edges[i], nodes, box, curveness)
+    let path = sankey_edge_path(series, edges[i], nodes, box, view, curveness)
     if width > 0.0 {
       elems.push(
         @graphic.Element::path_fill_stroke(
@@ -1240,17 +1336,27 @@ fn sankey_render_series(
   i = 0
   while i < nodes.length() {
     let level = sankey_level_for_depth(series, nodes[i].depth)
-    let x = box.x + nodes[i].x
-    let y = box.y + nodes[i].y
-    let border_width = sankey_node_border_width(nodes[i], level)
+    let (x0, y0) = sankey_project_point(box, view, nodes[i].x, nodes[i].y)
+    let (x1, y1) = sankey_project_point(
+      box,
+      view,
+      nodes[i].x + nodes[i].dx,
+      nodes[i].y + nodes[i].dy,
+    )
+    let x = if x0 < x1 { x0 } else { x1 }
+    let y = if y0 < y1 { y0 } else { y1 }
+    let width = (x1 - x0).abs()
+    let height = (y1 - y0).abs()
+    let border_width = sankey_node_border_width(nodes[i], level) *
+      sankey_view_scale(view)
     match sankey_node_border_color(nodes[i], level) {
       Some(border_color) if border_width > 0.0 =>
         elems.push(
           @graphic.Element::rect_fill_stroke(
             x,
             y,
-            nodes[i].dx,
-            nodes[i].dy,
+            width,
+            height,
             node_colors[i],
             border_color,
             border_width,
@@ -1258,13 +1364,7 @@ fn sankey_render_series(
         )
       _ =>
         elems.push(
-          @graphic.Element::rect_colored(
-            x,
-            y,
-            nodes[i].dx,
-            nodes[i].dy,
-            node_colors[i],
-          ),
+          @graphic.Element::rect_colored(x, y, width, height, node_colors[i]),
         )
     }
     let label_style = sankey_resolve_label_style(series, nodes[i], level)
@@ -1272,6 +1372,7 @@ fn sankey_render_series(
       let (text_x, text_y, anchor, baseline) = sankey_label_geometry(
         nodes[i],
         box,
+        view,
         label_style,
       )
       elems.push(
@@ -1282,7 +1383,7 @@ fn sankey_render_series(
           anchor,
           baseline,
           label_style.color,
-          label_style.font_size,
+          label_style.font_size * sankey_view_scale(view),
           label_style.font_family,
           label_style.font_weight,
         ),
@@ -1291,30 +1392,21 @@ fn sankey_render_series(
     i += 1
   }
 
-  [
-    @graphic.Element::group_clipped(
-      elems,
-      @graphic.BBox::new(
-        box.x - 10.0,
-        box.y - 10.0,
-        box.width + 20.0,
-        box.height + 20.0,
-      ),
-    ),
-  ]
+  [@graphic.Element::group_clipped(elems, sankey_clip_rect(box, view))]
 }
 
 ///|
 pub fn render_sankeys(
   opt : @option.ChartOption,
-  _coord : @coord.Cartesian2D,
+  views : Array[@coord.View],
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut i = 0
   while i < opt.series.length() {
     let series = opt.series[i]
     if series.series_type == @option.SeriesType::Sankey {
-      let series_elems = sankey_render_series(opt, series)
+      let view = @coord.View::find_for_series(views, i)
+      let series_elems = sankey_render_series(opt, series, view)
       let mut j = 0
       while j < series_elems.length() {
         elems.push(series_elems[j])

@@ -1631,6 +1631,63 @@ test "map data statistic aggregates same-geo series and draws once" {
 }
 
 ///|
+test "map showLegendSymbol can suppress series symbols" {
+  let json_str =
+    #|{
+    #|  "width": 260,
+    #|  "height": 180,
+    #|  "legend": {},
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#444444" }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Alpha", "cp": [5, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]] }
+    #|        },
+    #|        {
+    #|          "type": "Feature",
+    #|          "properties": { "name": "Beta", "cp": [15, 5] },
+    #|          "geometry": { "type": "Polygon", "coordinates": [[[10,0],[20,0],[20,10],[10,10],[10,0]]] }
+    #|        }
+    #|      ]
+    #|    }
+    #|  }],
+    #|  "series": [
+    #|    {
+    #|      "name": "Series A",
+    #|      "type": "map",
+    #|      "map": "demo",
+    #|      "showLegendSymbol": false,
+    #|      "data": [
+    #|        { "name": "Alpha", "value": 0 },
+    #|        { "name": "Beta", "value": 0 }
+    #|      ]
+    #|    },
+    #|    {
+    #|      "name": "Series B",
+    #|      "type": "map",
+    #|      "map": "demo",
+    #|      "data": [
+    #|        { "name": "Alpha", "value": 100 }
+    #|      ]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_eq(count_substring(svg, "<circle"), 1)
+  assert_true(svg.contains(">Series A</text>"))
+  assert_true(svg.contains(">Series B</text>"))
+}
+
+///|
 test "map series renders without geo component when map is specified on series" {
   let json_str =
     #|{

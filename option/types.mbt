@@ -253,8 +253,10 @@ pub(all) struct GeoOption {
   height : String?
   layout_center : Array[String]?
   layout_size : String?
+  bounding_coords : Array[Array[Double]]?
   roam : Bool
   aspect_scale : Double?
+  name_property : String?
   silent : Bool
   label : GeoLabelOption
   item_style : GeoItemStyleOption
@@ -277,8 +279,10 @@ pub impl Default for GeoOption with default() {
     height: None,
     layout_center: None,
     layout_size: None,
+    bounding_coords: None,
     roam: false,
     aspect_scale: None,
+    name_property: None,
     silent: false,
     label: GeoLabelOption::default(),
     item_style: GeoItemStyleOption::default(),
@@ -465,6 +469,7 @@ pub(all) struct SeriesOption {
   series_type : SeriesType
   name : String?
   data : Array[DataItem]
+  original_data : Array[DataItem]?
   link_data : Array[DataItem]
   symbol : String?
   symbol_values : Array[String]?
@@ -498,7 +503,9 @@ pub(all) struct SeriesOption {
   // For radar: index into ChartOption.radar[]
   radar_index : Int
   map_name : String?
+  show_legend_symbol : Bool
   zoom : Double
+  name_property : String?
   left : String?
   top : String?
   right : String?
@@ -507,6 +514,7 @@ pub(all) struct SeriesOption {
   height : String?
   layout_center : Array[String]?
   layout_size : String?
+  bounding_coords : Array[Array[Double]]?
   stack : String?
   // For themeRiver: [before, after] gap on axis orthogonal direction
   boundary_gap : Array[String]
@@ -586,6 +594,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     series_type: SeriesType::Line,
     name: None,
     data: [],
+    original_data: None,
     link_data: [],
     symbol: None,
     symbol_values: None,
@@ -618,7 +627,9 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     geo_index: 0,
     radar_index: 0,
     map_name: None,
+    show_legend_symbol: false,
     zoom: 1.0,
+    name_property: Some("name"),
     left: None,
     top: None,
     right: None,
@@ -627,6 +638,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     height: None,
     layout_center: None,
     layout_size: None,
+    bounding_coords: None,
     stack: None,
     boundary_gap: [],
     smooth: false,
@@ -904,6 +916,7 @@ pub fn SeriesOption::default_map() -> SeriesOption {
     coordinate_system: Some("geo"),
     left: Some("center"),
     top: Some("center"),
+    show_legend_symbol: true,
     zoom: 1.0,
   }
 }
@@ -1426,6 +1439,65 @@ pub impl Default for MatrixOption with default() {
 }
 
 ///|
+pub(all) struct SingleAxisLineStyleOption {
+  width : Double
+  line_type : String
+}
+
+///|
+pub impl Default for SingleAxisLineStyleOption with default() {
+  { width: 1.0, line_type: "solid" }
+}
+
+///|
+pub(all) struct SingleAxisLineOption {
+  show : Bool
+  line_style : SingleAxisLineStyleOption
+}
+
+///|
+pub impl Default for SingleAxisLineOption with default() {
+  { show: true, line_style: SingleAxisLineStyleOption::default() }
+}
+
+///|
+pub(all) struct SingleAxisTickOption {
+  show : Bool
+  length : Double
+  width : Double
+  inside : Bool
+}
+
+///|
+pub impl Default for SingleAxisTickOption with default() {
+  { show: true, length: 6.0, width: 1.0, inside: false }
+}
+
+///|
+pub(all) struct SingleAxisLabelOption {
+  show : Bool
+  inside : Bool
+  rotate : Double
+}
+
+///|
+pub impl Default for SingleAxisLabelOption with default() {
+  { show: true, inside: false, rotate: 0.0 }
+}
+
+///|
+pub(all) struct SingleAxisSplitLineOption {
+  show : Bool
+  line_type : String
+  opacity : Double
+}
+
+///|
+pub impl Default for SingleAxisSplitLineOption with default() {
+  { show: true, line_type: "dashed", opacity: 0.2 }
+}
+
+///|
 /// Corresponds to: echarts/src/coord/single/AxisModel.ts
 pub(all) struct SingleAxisOption {
   axis_type : AxisType
@@ -1441,12 +1513,16 @@ pub(all) struct SingleAxisOption {
   max : Double?
   data : Array[String]
   inverse : Bool
+  axis_line : SingleAxisLineOption
+  axis_tick : SingleAxisTickOption
+  axis_label : SingleAxisLabelOption
+  split_line : SingleAxisSplitLineOption
 }
 
 ///|
 pub impl Default for SingleAxisOption with default() {
   {
-    axis_type: AxisType::Time,
+    axis_type: AxisType::Value,
     orient: "horizontal",
     position: "bottom",
     left: Some(SizeSpec::Pct(5.0)),
@@ -1459,6 +1535,10 @@ pub impl Default for SingleAxisOption with default() {
     max: None,
     data: [],
     inverse: false,
+    axis_line: SingleAxisLineOption::default(),
+    axis_tick: SingleAxisTickOption::default(),
+    axis_label: SingleAxisLabelOption::default(),
+    split_line: SingleAxisSplitLineOption::default(),
   }
 }
 

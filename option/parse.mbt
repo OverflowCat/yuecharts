@@ -263,8 +263,16 @@ fn parse_geo_option(j : Json) -> GeoOption {
       "layoutSize",
       base.layout_size,
     ),
+    bounding_coords: match j_field(j, "boundingCoords") {
+      Some(Array(arr)) => pair_number_arrays_from_json(arr)
+      _ => base.bounding_coords
+    },
     roam: j_bool(j, "roam", base.roam),
     aspect_scale: j_number_opt(j, "aspectScale"),
+    name_property: match j_string_opt(j, "nameProperty") {
+      Some(value) => Some(value)
+      None => base.name_property
+    },
     silent: j_bool(j, "silent", base.silent),
     label: parse_geo_label_option(j_field_or_self(j, "label")),
     item_style: parse_geo_item_style_option(j_field_or_self(j, "itemStyle")),
@@ -338,6 +346,87 @@ fn parse_single_axis_option(j : Json) -> SingleAxisOption {
     max: j_number_opt(j, "max"),
     data: j_string_array_lossy(j, "data", base.data),
     inverse: j_bool(j, "inverse", base.inverse),
+    axis_line: parse_single_axis_line_option(j),
+    axis_tick: parse_single_axis_tick_option(j),
+    axis_label: parse_single_axis_label_option(j),
+    split_line: parse_single_axis_split_line_option(j),
+  }
+}
+
+///|
+fn parse_single_axis_line_option(j : Json) -> SingleAxisLineOption {
+  let base = SingleAxisLineOption::default()
+  match j_field(j, "axisLine") {
+    Some(value) => {
+      let line_style = match j_field(value, "lineStyle") {
+        Some(style) => {
+          let line_style_base = SingleAxisLineStyleOption::default()
+          {
+            width: j_number(style, "width", line_style_base.width),
+            line_type: j_string(style, "type", line_style_base.line_type),
+          }
+        }
+        None => base.line_style
+      }
+      { show: j_bool(value, "show", base.show), line_style }
+    }
+    None => base
+  }
+}
+
+///|
+fn parse_single_axis_tick_option(j : Json) -> SingleAxisTickOption {
+  let base = SingleAxisTickOption::default()
+  match j_field(j, "axisTick") {
+    Some(value) => {
+      let width = match j_field(value, "lineStyle") {
+        Some(style) => j_number(style, "width", base.width)
+        None => base.width
+      }
+      {
+        show: j_bool(value, "show", base.show),
+        length: j_number(value, "length", base.length),
+        width,
+        inside: j_bool(value, "inside", base.inside),
+      }
+    }
+    None => base
+  }
+}
+
+///|
+fn parse_single_axis_label_option(j : Json) -> SingleAxisLabelOption {
+  let base = SingleAxisLabelOption::default()
+  match j_field(j, "axisLabel") {
+    Some(value) =>
+      {
+        show: j_bool(value, "show", base.show),
+        inside: j_bool(value, "inside", base.inside),
+        rotate: j_number(value, "rotate", base.rotate),
+      }
+    None => base
+  }
+}
+
+///|
+fn parse_single_axis_split_line_option(j : Json) -> SingleAxisSplitLineOption {
+  let base = SingleAxisSplitLineOption::default()
+  match j_field(j, "splitLine") {
+    Some(value) => {
+      let line_style = j_field(value, "lineStyle")
+      {
+        show: j_bool(value, "show", base.show),
+        line_type: match line_style {
+          Some(style) => j_string(style, "type", base.line_type)
+          None => base.line_type
+        },
+        opacity: match line_style {
+          Some(style) => j_number(style, "opacity", base.opacity)
+          None => base.opacity
+        },
+      }
+    }
+    None => base
   }
 }
 
@@ -935,12 +1024,20 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let radius_axis_index = j_int(j, "radiusAxisIndex", base.radius_axis_index)
   let angle_axis_index = j_int(j, "angleAxisIndex", base.angle_axis_index)
   let polar_index = j_int(j, "polarIndex", base.polar_index)
-  let coordinate_system = j_string_opt(j, "coordinateSystem")
+  let coordinate_system = match j_string_opt(j, "coordinateSystem") {
+    Some(value) => Some(value)
+    None => base.coordinate_system
+  }
   let calendar_index = j_int(j, "calendarIndex", base.calendar_index)
   let matrix_index = j_int(j, "matrixIndex", base.matrix_index)
   let geo_index = j_int(j, "geoIndex", base.geo_index)
   let radar_index = j_int(j, "radarIndex", base.radar_index)
   let map_name = j_string_opt(j, "map")
+  let show_legend_symbol = j_bool(
+    j,
+    "showLegendSymbol",
+    base.show_legend_symbol,
+  )
   let zoom = j_number(j, "zoom", base.zoom)
   let left = j_string_or_number_as_string_opt(j, "left", base.left)
   let top = j_string_or_number_as_string_opt(j, "top", base.top)
@@ -957,6 +1054,14 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "layoutSize",
     base.layout_size,
   )
+  let bounding_coords = match j_field(j, "boundingCoords") {
+    Some(Array(arr)) => pair_number_arrays_from_json(arr)
+    _ => base.bounding_coords
+  }
+  let name_property = match j_string_opt(j, "nameProperty") {
+    Some(value) => Some(value)
+    None => base.name_property
+  }
   let boundary_gap = j_stringish_array(j, "boundaryGap", base.boundary_gap)
   let symbol_values = parse_symbol_values(j)
   let symbol_size_values = parse_symbol_size_values(j)
@@ -1164,6 +1269,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     series_type,
     name,
     data,
+    original_data: None,
     link_data,
     symbol,
     symbol_values,
@@ -1196,7 +1302,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     geo_index,
     radar_index,
     map_name,
+    show_legend_symbol,
     zoom,
+    name_property,
     left,
     top,
     right,
@@ -1205,6 +1313,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     height,
     layout_center,
     layout_size,
+    bounding_coords,
     stack,
     boundary_gap,
     smooth,
@@ -2047,6 +2156,26 @@ fn pair_strings_from_json(arr : Array[Json]) -> Array[String]? {
     }
     [first, second, ..] =>
       Some([json_to_stringish_zero(first), json_to_stringish_zero(second)])
+  }
+}
+
+///|
+fn pair_number_arrays_from_json(arr : Array[Json]) -> Array[Array[Double]]? {
+  match arr {
+    [first, second, ..] =>
+      match first {
+        Array(first_arr) =>
+          match second {
+            Array(second_arr) =>
+              Some([
+                first_arr.map(json_number_or_zero),
+                second_arr.map(json_number_or_zero),
+              ])
+            _ => None
+          }
+        _ => None
+      }
+    _ => None
   }
 }
 

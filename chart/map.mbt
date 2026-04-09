@@ -100,6 +100,18 @@ fn map_has_drawn_group(drawn_groups : Array[String], key : String) -> Bool {
 }
 
 ///|
+fn map_contains_name(names : Array[String], name : String) -> Bool {
+  let mut i = 0
+  while i < names.length() {
+    if names[i] == name {
+      return true
+    }
+    i += 1
+  }
+  false
+}
+
+///|
 fn map_data_item_by_name(
   series : @option.SeriesOption,
   name : String,
@@ -113,6 +125,38 @@ fn map_data_item_by_name(
     i += 1
   }
   None
+}
+
+///|
+fn map_group_symbol_names(
+  opt : @option.ChartOption,
+  group_key : String,
+) -> Array[String] {
+  let names : Array[String] = []
+  let mut series_index = 0
+  while series_index < opt.series.length() {
+    let series = opt.series[series_index]
+    if series.series_type == Map &&
+      map_series_group_key(opt, series) == group_key &&
+      series.show_legend_symbol {
+      let symbol_data = map_series_original_data(series)
+      let mut data_index = 0
+      while data_index < symbol_data.length() {
+        let data_item = symbol_data[data_index]
+        match data_item.name {
+          Some(name) =>
+            match map_data_item_numeric_value(data_item) {
+              Some(_) => if !map_contains_name(names, name) { names.push(name) }
+              None => ()
+            }
+          None => ()
+        }
+        data_index += 1
+      }
+    }
+    series_index += 1
+  }
+  names
 }
 
 ///|
@@ -281,7 +325,12 @@ pub fn apply_map_data_statistic(
           let candidate = opt.series[j]
           if candidate.series_type == Map &&
             map_series_group_key(opt, candidate) == group_key {
-            next_series[j] = { ..candidate, data: aggregated }
+            let original_data = candidate.data
+            next_series[j] = {
+              ..candidate,
+              original_data: Some(original_data),
+              data: aggregated,
+            }
           }
           j += 1
         }
@@ -459,13 +508,24 @@ fn map_region_state_style(
 }
 
 ///|
-fn map_label_show(
+fn map_label_base_show(
   series : @option.SeriesOption,
   item : @option.DataItem?,
 ) -> Bool {
   item
   .bind(data_item => data_item.label.bind(label => label.show))
   .unwrap_or(series.label.map(label => label.show).unwrap_or(false))
+}
+
+///|
+fn map_label_show(
+  series : @option.SeriesOption,
+  item : @option.DataItem?,
+  region_name : String,
+  symbol_names : Array[String],
+) -> Bool {
+  let base_show = map_label_base_show(series, item)
+  base_show && !map_contains_name(symbol_names, region_name)
 }
 
 ///|
@@ -504,6 +564,49 @@ fn map_label_state_style(
 ///|
 fn map_item_is_selected(item : @option.DataItem?) -> Bool {
   item.bind(data_item => data_item.selected).unwrap_or(false)
+}
+
+///|
+fn map_has_legend(opt : @option.ChartOption) -> Bool {
+  match opt.legend {
+    Some(_) => true
+    None => false
+  }
+}
+
+///|
+fn map_series_original_data(
+  series : @option.SeriesOption,
+) -> Array[@option.DataItem] {
+  series.original_data.unwrap_or(series.data)
+}
+
+///|
+fn map_series_symbol_fill(
+  series : @option.SeriesOption,
+  series_index : Int,
+) -> String {
+  series.color.unwrap_or(@visual.palette_color(series_index))
+}
+
+///|
+fn map_symbol_next_offset(
+  names : Array[String],
+  offsets : Array[Int],
+  name : String,
+) -> Int {
+  let mut i = 0
+  while i < names.length() {
+    if names[i] == name {
+      let offset = offsets[i]
+      offsets[i] = offset + 1
+      return offset
+    }
+    i += 1
+  }
+  names.push(name)
+  offsets.push(1)
+  0
 }
 
 ///|
@@ -569,6 +672,7 @@ pub fn render_maps(
   guard geo is Some(geo) else { [] }
   let elems : Array[@graphic.Element] = []
   let geo_opt = map_geo_option(opt)
+  let has_legend = map_has_legend(opt)
   let drawn_groups : Array[String] = []
   let mut series_index = 0
   while series_index < opt.series.length() {
@@ -582,6 +686,11 @@ pub fn render_maps(
             continue
           }
           drawn_groups.push(group_key)
+          let symbol_names = if has_legend {
+            map_group_symbol_names(opt, group_key)
+          } else {
+            []
+          }
           let mut region_index = 0
           while region_index < geo.regions.length() {
             let region = geo.regions[region_index]
@@ -641,14 +750,14 @@ pub fn render_maps(
               )
               polygon_index += 1
             }
-            if map_label_show(series, item) {
+            if map_label_show(series, item, region.name, symbol_names) {
               let center = region.screen_center(geo)
               let label = @graphic.Element::text_colored(
                 center.x,
                 center.y,
                 region.name,
                 @graphic.TextAnchor::Middle,
-                @graphic.TextBaseline::Middle,
+                @graphic.TextBaseline::Central,
                 map_label_color(series, item),
               ).with_silent(silent)
               let label = match
@@ -668,6 +777,96 @@ pub fn render_maps(
               elems.push(label)
             }
             region_index += 1
+          }
+          if has_legend {
+            let symbol_offsets_names : Array[String] = []
+            let symbol_offsets_counts : Array[Int] = []
+            let mut symbol_series_index = 0
+            while symbol_series_index < opt.series.length() {
+              let symbol_series = opt.series[symbol_series_index]
+              if symbol_series.series_type == Map &&
+                map_series_group_key(opt, symbol_series) == group_key &&
+                symbol_series.show_legend_symbol {
+                let symbol_data = map_series_original_data(symbol_series)
+                let mut data_index = 0
+                while data_index < symbol_data.length() {
+                  let data_item = symbol_data[data_index]
+                  match data_item.name {
+                    Some(name) =>
+                      match map_data_item_numeric_value(data_item) {
+                        Some(_) =>
+                          match geo.region_by_name(name) {
+                            Some(region) => {
+                              let offset = map_symbol_next_offset(
+                                symbol_offsets_names, symbol_offsets_counts, name,
+                              )
+                              let point = region.screen_center(geo)
+                              elems.push(
+                                @graphic.Element::circle_colored(
+                                  point.x + offset.to_double() * 9.0,
+                                  point.y,
+                                  3.0,
+                                  map_series_symbol_fill(
+                                    symbol_series, symbol_series_index,
+                                  ),
+                                ),
+                              )
+                              if map_label_base_show(
+                                  symbol_series,
+                                  Some(data_item),
+                                ) {
+                                let symbol_label = @graphic.Element::text_colored(
+                                  point.x + offset.to_double() * 9.0,
+                                  point.y + 14.0,
+                                  name,
+                                  @graphic.TextAnchor::Middle,
+                                  @graphic.TextBaseline::Central,
+                                  map_label_color(
+                                    symbol_series,
+                                    Some(data_item),
+                                  ),
+                                ).with_silent(true)
+                                let symbol_label = match
+                                  map_label_state_style(
+                                    symbol_series,
+                                    Some(data_item),
+                                    "emphasis",
+                                  ) {
+                                  Some(style) =>
+                                    symbol_label.with_emphasis_style(style)
+                                  None => symbol_label
+                                }
+                                let symbol_label = match
+                                  map_label_state_style(
+                                    symbol_series,
+                                    Some(data_item),
+                                    "select",
+                                  ) {
+                                  Some(style) =>
+                                    symbol_label.with_select_style(style)
+                                  None => symbol_label
+                                }
+                                let symbol_label = if map_item_is_selected(
+                                    Some(data_item),
+                                  ) {
+                                  symbol_label.with_current_states(["select"])
+                                } else {
+                                  symbol_label
+                                }
+                                elems.push(symbol_label)
+                              }
+                            }
+                            None => ()
+                          }
+                        None => ()
+                      }
+                    None => ()
+                  }
+                  data_index += 1
+                }
+              }
+              symbol_series_index += 1
+            }
           }
         }
       _ => ()

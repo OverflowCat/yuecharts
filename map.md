@@ -35,6 +35,54 @@ Excluded on purpose:
 - `component/axis.mbt` now covers the current static subset of `RadiusAxisView.ts` / `AxisBuilder.ts` for radius-axis tick and label placement: both are offset along the axis normal (perpendicular to the axis line) instead of by increasing the radius.
 - Related blackbox coverage now includes a polar bar fixture that asserts `radiusAxis` split circles at `r=40/80/120/160` and label offsets at `x=292` for the default top-start axis.
 
+## 2026-04-04 Polar Bar Note
+
+- `chart/bar.mbt` now covers the current static subset of upstream `layout/barPolar.ts` for polar bar width/offset calculation, stack grouping, category-vs-value axis inference, `barMinHeight` / `barMinAngle`, and the radial/tangential sector geometry used by the polar bar fixtures.
+- `chart/bar.mbt` now additionally covers the upstream `roundCap` bar path on tangential polar bars, including the `Sausage`-style end caps and item-level `borderColor` / `borderWidth` / `opacity` handling used by `polar-roundCap.ts`.
+- `chart/bar.mbt` now additionally covers the upstream bar background path on both cartesian and polar bars, including the default `rgba(180, 180, 180, 0.2)` background fill and silent background elements used by `bar-background.ts`.
+- Related comparison fixtures now include `examples/polar-bar.json`, `examples/polar-bar-stack.json`, `examples/polar-bar-real-estate.json`, `examples/polar-roundCap.json`, and `examples/bar-background.json`, each with MoonBit output plus an upstream JS reference SVG.
+- `layout/barPolar.ts => chart/bar.mbt [partial]` remains the right landing spot for the remaining polar bar fidelity work: animation/update flow and SSR-style structural parity.
+
+## 2026-04-05 SVG Attr Normalization Note
+
+- `graphic/color.mbt` now exposes `Color::to_svg_attr()` and `Color::svg_opacity()` so `svg/painter.mbt` can split semi-transparent colors into a base SVG color plus `fill-opacity` / `stroke-opacity`, matching the upstream `zrender/src/svg/mapStyleToAttrs.ts` normalization for `rgba(...)` inputs.
+- `svg/painter.mbt` now uses that split for fill/stroke/text attrs in both the string renderer and the XML-node bridge, and it also emits the current static hover CSS classes plus `pointer-events="visible"` for none-filled / none-stroked displayables.
+- `examples/bar-background.json` now renders background bars as `fill="rgb(180,180,180)" fill-opacity="0.2"` instead of a raw `rgba(...)` fill attr, and the updated `bar.json` / `mixed.json` snapshots now use the current `zr0-cls-*` hover class scheme.
+- The remaining SVG parity gap is now mostly the upstream animation defs / refresh flow and the broader DOM-mode root wrapper details.
+
+## 2026-04-07 Geo RegisterMap Update
+
+- `coord/geo_source_manager.mbt` now keeps a module-level geo resource registry and searches from the end so later registrations override earlier ones, matching the upstream `HashMap.set(...)` behavior in `geoSourceManager.ts`.
+- `yuecharts.mbt` now exposes a static `register_map` / `get_map` pair backed by that registry, so registered GeoJSON resources can feed `Geo::build` without an inline `maps` block.
+- `option/parse.mbt` now accepts both `maps[].geoJSON` and the `geoJson` compatibility alias when building `MapRegistryOption`.
+- `coord/geo.mbt` now also covers the static `geoCreator.ts` layout frame path for `layoutCenter/layoutSize` and `left/top/right/bottom/width/height`, so `Geo::build` can honor the current box-layout subset for both top-level `geo` and exclusive `series.map`.
+- `coord/geo.mbt` now also carries the static `Geo.ts` roam anchor subset (`center` / `zoom`) and applies it in `Geo::data_to_point`, so top-level `geo` and exclusive `series.map` both honor the resolved raw-center roam transform in the static path.
+- `coord/geo.mbt` now also honors `boundingCoords` before roam, matching the upstream `resizeGeo` priority order and keeping `aspectScale` limited to layout aspect computation.
+- `coord/geo.mbt` now threads `nameProperty` through `GeoJSONResource` loading, so custom geoJSON property names now resolve region names like upstream `parseGeoJson.ts` / `MapSeries.ts`.
+- The remaining geo gap is still `GeoSVGResource.ts`, projection support, and the interactive roam/resize behavior around `geoCreator.ts` / `Geo.ts`.
+
+## 2026-04-08 Map Symbol Layout Update
+
+- `chart/map.mbt` now preserves each map series' `original_data` before `mapDataStatistic` rewrites `data`, matching the upstream `mapDataStatistic.ts` split between raw and aggregated series data.
+- `chart/map.mbt` now also carries the static `mapSymbolLayout.ts` subset that depends on `showLegendSymbol` and `legend` existence: legend-enabled map groups collect symbol offsets from `original_data`, and region labels stay gated by whether a legend symbol already occupies that region.
+- The next map gap is still the fuller `MapDraw.ts` / `GeoView` event, tooltip, and hover wiring plus the remaining `GeoSVGResource.ts` / projection work.
+
+## 2026-04-09 Runtime / SingleAxis Update
+
+- `core/coordinate_system.mbt` now carries the current static subset of upstream `core/CoordinateSystem.ts` / `coord/CoordinateSystem.ts`: a minimal coordinate-system creator registry split into normal vs non-series-box creators, plus the current `create()` / `get()` dispatch used by the top-level renderer.
+- `layout/install.mbt` now registers built-in `cartesian2d` / `polar` / `parallel` / `geo` / `calendar` / `single` / `view` creators into that runtime registry instead of leaving coordinate-system construction hardcoded in `yuecharts.mbt`.
+- `data/source.mbt`, `data/data_store.mbt`, and `data/series_data.mbt` now cover the current static subset of `Source.ts` / `DataStore.ts` / `SeriesData.ts` for original `series.data` input: raw-item storage, shallow source cloning, numeric dimension extraction, and lightweight `SeriesData::from_series(...)` wrapping.
+
+## 2026-04-09 View / Sankey Update
+
+- `coord/view.mbt` now carries the current static subset of upstream `coord/View.ts` plus the `util/layout.ts#getLayoutRect(...)` box-layout path needed by implemented `view` charts.
+  - Current coverage includes sankey layout-frame resolution, initial `center` / `zoom` roam transform, `data_to_point`, `point_to_data`, `contain_point`, and `get_view_rect_after_roam()`.
+- `layout/install.mbt`, `core/coordinate_system.mbt`, `core/registry.mbt`, and `yuecharts.mbt` now thread `view` coordinate systems through the runtime registry.
+  - `chart/sankey.mbt` now consumes that runtime `view` and projects node / edge / label geometry through it instead of only adding `box.x` / `box.y`.
+- `option/parse.mbt` now preserves chart-type default `series.coordinateSystem` values when the option omits that field, matching the upstream model-default merge path.
+- `coord/single.mbt` now additionally carries the current static subset of `singleAxisHelper.ts` / `prepareCustom.ts`, including layout direction metadata, `dataToPoint` / `pointToData` / `containPoint`, and `prepare_custom()` metadata for the single-axis runtime.
+- `component/axis.mbt` now owns the current static subset of `SingleAxisView.ts`, so single-axis ticks / labels / split lines render through the component layer rather than through `chart/themeRiver.mbt` private helpers.
+
 ## 2026-04-02 Tree Note
 
 - `chart/tree.mbt` now covers the current static subset of `TreeSeries.ts` / `TreeView.ts` leaves-parentModel inheritance, per-node `itemStyle` / `label` / `lineStyle` / `symbolSize` overrides, radial label rotation, and `empty*` vs non-`empty*` tree symbol color semantics.
@@ -86,17 +134,39 @@ E:\yuecharts
 ├── component
 │   ├── moon.pkg
 │   ├── axis.mbt
+│   ├── calendar.mbt
+│   ├── geo.mbt
 │   ├── grid_lines.mbt
 │   ├── install.mbt
 │   ├── legend.mbt
+│   ├── matrix.mbt
 │   ├── parallel.mbt
 │   └── title.mbt
 ├── core
 │   ├── moon.pkg
+│   ├── coordinate_system.mbt
+│   ├── coordinate_system_wbtest.mbt
 │   └── registry.mbt
+├── data
+│   ├── moon.pkg
+│   ├── data_store.mbt
+│   ├── series_data.mbt
+│   ├── series_data_wbtest.mbt
+│   └── source.mbt
 ├── coord
 │   ├── moon.pkg
-│   └── cartesian.mbt
+│   ├── calendar.mbt
+│   ├── cartesian.mbt
+│   ├── geo.mbt
+│   ├── geo_source_manager.mbt
+│   ├── geo_wbtest.mbt
+│   ├── matrix.mbt
+│   ├── parallel.mbt
+│   ├── polar.mbt
+│   ├── single.mbt
+│   ├── single_wbtest.mbt
+│   ├── view.mbt
+│   └── view_wbtest.mbt
 ├── graphic
 │   ├── moon.pkg
 │   ├── color.mbt
@@ -136,6 +206,10 @@ E:\yuecharts
 │   ├── lines-symbols.json / .svg / .ref.svg
 │   ├── mixed.json / .svg / .ref.svg
 │   ├── multibar.json / .svg
+│   ├── polar-bar.json / .svg / .ref.svg
+│   ├── polar-bar-stack.json / .svg / .ref.svg
+│   ├── polar-bar-real-estate.json / .svg / .ref.svg
+│   ├── polar-roundCap.json / .svg / .ref.svg
 │   ├── pictorialbar.json / .svg / .ref.svg
 │   ├── pictorialbar-body-fill.json
 │   ├── pictorialbar-clip.json / .svg / .ref.svg
@@ -155,6 +229,7 @@ E:\yuecharts
 │   ├── sankey-vertical.json / .svg / .ref.svg
 │   ├── scatter.json / .svg / .ref.svg
 │   ├── sunburst.json / .svg / .echarts.svg
+│   ├── themeRiver-lastfm.json / .svg / .ref.svg
 │   └── treemap.json / .svg / .ref.svg
 ├── scale
 │   ├── moon.pkg
@@ -192,9 +267,9 @@ existing `.mbt` comments.
 ### Current port gap: Hover-style
 - `zrender/src/svg/Painter.ts => svg/painter.mbt [partial]`: MoonBit covers the static SVG serialization path plus `paint_xml` / direct UTF-8 / UTF-16LE output helpers, and it now emits the static hover CSS classes / `pointer-events` attrs for displayables; it still lacks upstream DOM-mode refresh/patch flow, defs assembly parity, and animation wiring.
 - `zrender/src/svg/core.ts => svg/xml_node.mbt, svg/painter.mbt [partial]`: MoonBit now has a lightweight XML node / attr / text builder plus direct string and encoded-byte serializers, but not the full upstream `SVGVNode` shape, `createSVGVNode`, or browser DOM helpers.
-- `zrender/src/svg/graphic.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now carries displayable state metadata into both string serialization and XML-node construction, but still lacks the broader brush/meta pipeline, pattern/gradient/filter defs, and image handling parity.
-- `zrender/src/svg/cssEmphasis.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now emits `:hover` class rules from element emphasis state, but only for the current static color/stroke-width subset.
-- `zrender/src/svg/cssClassId.ts => svg/painter.mbt [partial]`: MoonBit now allocates deduplicated renderer class ids, but only inside the current simplified painter scope.
+- `zrender/src/svg/graphic.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now carries displayable state metadata into both string serialization and XML-node construction, including the current static hover-class / pointer-events subset, but still lacks the broader brush/meta pipeline, pattern/gradient/filter defs, and image handling parity.
+- `zrender/src/svg/cssEmphasis.ts => svg/painter.mbt, graphic/element.mbt [partial]`: MoonBit now emits `:hover` class rules from element emphasis state, including the current `pointer-events:none` silent-element branch and the static `cursor:pointer` classes, but only for the static color/stroke-width subset.
+- `zrender/src/svg/cssClassId.ts => svg/painter.mbt [partial]`: MoonBit now allocates deduplicated renderer class ids with the current `zr0`-prefixed scheme, but only inside the current simplified painter scope.
 - `zrender/src/svg/helper.ts => svg/painter.mbt [missing]`: helper-level renderer parity is still incomplete around non-color/pattern style emission dependencies.
 - `echarts/src/component/helper/MapDraw.ts => chart/map.mbt, component/geo.mbt, option/types.mbt, option/parse.mbt [partial]`: MoonBit now parses and applies the static subset of `silent`, normal partial `itemStyle`, and `emphasis/select/blur.itemStyle` for map data items and geo regions, but still lacks the full event/high-down/label-state pipeline from upstream `MapDraw`.
 - `echarts/src/component/helper/MapDraw.ts => chart/map.mbt, component/geo.mbt, option/types.mbt, option/parse.mbt [partial]`: MoonBit now parses and applies the static subset of `silent`, normal partial `itemStyle`, `label`, and `emphasis/select/blur.{itemStyle,label}` for map data items, map series, geo regions, and top-level geo, but still lacks the full event/high-down/label-layout pipeline from upstream `MapDraw`.
@@ -241,7 +316,7 @@ E:\recharts\echarts\src
 ├── core
 │   ├── echarts.ts => yuecharts.mbt [partial] Feature: chart lifecycle and render entry
 │   ├── extension.ts => core/registry.mbt [partial] Feature: install/register metadata surface
-│   ├── CoordinateSystem.ts =>  [missing] Feature: coordinate system registry
+│   ├── CoordinateSystem.ts => core/coordinate_system.mbt, core/registry.mbt [partial] Feature: coordinate system registry
 │   ├── ExtensionAPI.ts =>  [missing] Feature: extension runtime API
 │   ├── ExtendedElement.ts =>  [missing] Feature: graphic extension element layer
 │   ├── impl.ts =>  [missing] Feature: impl registration
@@ -269,8 +344,8 @@ E:\recharts\echarts\src
 │       └── textStyle.ts => component/title.mbt [partial] Feature: text style model mixin
 │
 ├── view
-│   ├── Chart.ts =>  [missing] Feature: chart view base class
-│   └── Component.ts =>  [missing] Feature: component view base class
+│   ├── Chart.ts => core/registry.mbt [partial] Feature: chart view base class
+│   └── Component.ts => core/registry.mbt [partial] Feature: component view base class
 │
 ├── visual
 │   ├── aria.ts => visual/aria.mbt [translated] Feature: aria visual text generation
@@ -286,7 +361,7 @@ E:\recharts\echarts\src
 │   └── visualSolution.ts =>  [missing] Feature: visual mapping pipeline
 │
 ├── scale
-│   ├── Scale.ts =>  [missing] Feature: scale base class
+│   ├── Scale.ts => core/registry.mbt [partial] Feature: scale base class
 │   ├── Interval.ts => scale/linear.mbt [translated] Feature: linear interval scale
 │   ├── Ordinal.ts => scale/ordinal.mbt [translated] Feature: ordinal scale
 │   ├── Log.ts =>  [missing] Feature: log scale
@@ -297,12 +372,12 @@ E:\recharts\echarts\src
 │
 ├── data
 │   ├── DataDiffer.ts =>  [missing] Feature: data diff
-│   ├── DataStore.ts =>  [missing] Feature: columnar data storage
+│   ├── DataStore.ts => data/data_store.mbt [partial] Feature: columnar data storage
 │   ├── Graph.ts =>  [missing] Feature: graph data structure
 │   ├── OrdinalMeta.ts =>  [missing] Feature: ordinal metadata
-│   ├── SeriesData.ts =>  [missing] Feature: series data container
+│   ├── SeriesData.ts => data/series_data.mbt [partial] Feature: series data container
 │   ├── SeriesDimensionDefine.ts =>  [missing] Feature: dimension schema
-│   ├── Source.ts =>  [missing] Feature: dataset source abstraction
+│   ├── Source.ts => data/source.mbt [partial] Feature: dataset source abstraction
 │   ├── Tree.ts => chart/tree.mbt [partial] Feature: tree data structure
 │   └── helper
 │       ├── createDimensions.ts =>  [missing] Feature: dimension creation
@@ -320,8 +395,8 @@ E:\recharts\echarts\src
 ├── coord
 │   ├── Axis.ts =>  [missing] Feature: axis base
 │   ├── AxisBaseModel.ts => option/types.mbt [partial] Feature: axis option base
-│   ├── CoordinateSystem.ts =>  [missing] Feature: coordinate system abstraction
-│   ├── View.ts =>  [missing] Feature: generic box/view coordinate system
+│   ├── CoordinateSystem.ts => core/coordinate_system.mbt [partial] Feature: coordinate system abstraction
+│   ├── View.ts => coord/view.mbt [partial] Feature: generic box/view coordinate system
 │   ├── axisAlignTicks.ts =>  [missing] Feature: aligned ticks
 │   ├── axisCommonTypes.ts => option/types.mbt [partial] Feature: axis type defs
 │   ├── axisDefault.ts => option/types.mbt [partial] Feature: axis defaults
@@ -354,16 +429,16 @@ E:\recharts\echarts\src
 │   │   ├── Polar.ts => coord/polar.mbt [partial] Feature: polar coordinate system
 │   │   ├── polarCreator.ts => layout/polar.mbt, layout/install.mbt [partial] Feature: polar creator
 │   │   ├── PolarModel.ts => option/types.mbt, option/parse.mbt [partial] Feature: polar model
-│   │   ├── prepareCustom.ts =>  [missing] Feature: polar custom adapter
+│   │   ├── prepareCustom.ts => coord/polar.mbt [translated] Feature: polar custom adapter
 │   │   └── RadiusAxis.ts => coord/polar.mbt [partial] Feature: polar radius axis
 │   │
 │   ├── single
-│   │   ├── AxisModel.ts =>  [missing] Feature: singleAxis model
-│   │   ├── Single.ts =>  [missing] Feature: single coordinate system
-│   │   ├── SingleAxis.ts =>  [missing] Feature: single axis
-│   │   ├── singleAxisHelper.ts =>  [missing] Feature: singleAxis helper
-│   │   ├── singleCreator.ts =>  [missing] Feature: singleAxis creator
-│   │   └── prepareCustom.ts =>  [missing] Feature: singleAxis custom adapter
+│   │   ├── AxisModel.ts => option/types.mbt, option/parse.mbt, coord/single.mbt [partial] Feature: singleAxis model
+│   │   ├── Single.ts => coord/single.mbt [partial] Feature: single coordinate system
+│   │   ├── SingleAxis.ts => coord/single.mbt [partial] Feature: single axis
+│   │   ├── singleAxisHelper.ts => coord/single.mbt [partial] Feature: singleAxis helper
+│   │   ├── singleCreator.ts => core/coordinate_system.mbt, layout/install.mbt, coord/single.mbt [partial] Feature: singleAxis creator
+│   │   └── prepareCustom.ts => coord/single.mbt [translated] Feature: singleAxis custom adapter
 │   │
 │   ├── parallel
 │   │   ├── AxisModel.ts => option/types.mbt, option/parse.mbt, coord/parallel.mbt [partial] Feature: parallel axis model
@@ -462,7 +537,7 @@ E:\recharts\echarts\src
 │   ├── parallel.ts => component/install.mbt, component/parallel.mbt [partial] Feature: parallel component entry
 │   ├── polar.ts => component/install.mbt, component/axis.mbt [partial] Feature: polar component entry
 │   ├── radar.ts => chart/radar.mbt [partial] Feature: radar component entry
-│   ├── singleAxis.ts =>  [missing] Feature: singleAxis component entry
+│   ├── singleAxis.ts => component/install.mbt, component/axis.mbt [partial] Feature: singleAxis component entry
 │   ├── thumbnail.ts =>  [missing] Feature: thumbnail component entry
 │   ├── timeline.ts =>  [missing] Feature: timeline component entry
 │   ├── title.ts => component/title.mbt [translated] Feature: title component entry
@@ -501,7 +576,7 @@ E:\recharts\echarts\src
 │   │   ├── parallelAxisAction.ts =>  [missing] Feature: parallel axis action
 │   │   ├── ParallelAxisView.ts => component/parallel.mbt [partial] Feature: parallel axis view
 │   │   ├── RadiusAxisView.ts =>  [missing] Feature: radius axis view
-│   │   └── SingleAxisView.ts =>  [missing] Feature: single axis view
+│   │   └── SingleAxisView.ts => component/axis.mbt [partial] Feature: single axis view
 │   │
 │   ├── axisPointer
 │   │   ├── AxisPointer.ts =>  [missing] Feature: axisPointer entry
@@ -645,7 +720,7 @@ E:\recharts\echarts\src
 │   │   └── RadarView.ts => chart/radar.mbt [partial] Feature: radar component view
 │   │
 │   ├── singleAxis
-│   │   └── install.ts =>  [missing] Feature: singleAxis install
+│   │   └── install.ts => component/install.mbt, layout/install.mbt [partial] Feature: singleAxis install
 │   │
 │   ├── grid
 │   │   ├── install.ts => layout/grid.mbt [partial] Feature: grid install
@@ -848,10 +923,10 @@ E:\recharts\echarts\src
 │   │
 │   ├── sankey
 │   │   ├── install.ts => chart/install.mbt [partial] Feature: sankey install
-│   │   ├── sankeyLayout.ts => chart/sankey.mbt [translated] Feature: sankey layout
+│   │   ├── sankeyLayout.ts => chart/sankey.mbt, coord/view.mbt [translated] Feature: sankey layout
 │   │   ├── SankeySeries.ts => chart/sankey.mbt, option/types.mbt, option/parse.mbt [partial] Feature: sankey series model
 │   │   ├── sankeyVisual.ts => chart/sankey.mbt [partial] Feature: sankey visual
-│   │   └── SankeyView.ts => chart/sankey.mbt [translated] Feature: sankey renderer
+│   │   └── SankeyView.ts => chart/sankey.mbt, coord/view.mbt [translated] Feature: sankey renderer
 │   │
 │   ├── tree
 │   │   ├── install.ts => chart/install.mbt [partial] Feature: tree install
@@ -883,10 +958,10 @@ E:\recharts\echarts\src
 │   │   └── LinesView.ts => chart/lines.mbt [partial] Feature: lines renderer
 │   │
 │   ├── map
-│   │   ├── install.ts =>  [missing] Feature: map install
+│   │   ├── install.ts => chart/install.mbt [partial] Feature: map install
 │   │   ├── mapDataStatistic.ts => chart/map.mbt [translated] Feature: map statistic processor
 │   │   ├── MapSeries.ts => chart/map.mbt, option/types.mbt, option/parse.mbt [partial] Feature: map series model
-│   │   ├── mapSymbolLayout.ts =>  [missing] Feature: map symbol layout
+│   │   ├── mapSymbolLayout.ts => chart/map.mbt [partial] Feature: map symbol layout and legend symbol gating
 │   │   └── MapView.ts => chart/map.mbt [translated] Feature: map renderer
 │   │
 │   └── custom
@@ -897,9 +972,13 @@ E:\recharts\echarts\src
 │
 └── notes
     ├── Current MoonBit infra files with the widest coverage:
-    │   ├── core/registry.mbt [minimal registry + ChartViewLike/ComponentViewLike/ScaleLike/CoordLike + stage priority/execution key]
-    │   ├── layout/install.mbt [root layout stage registration + priority]
+    │   ├── core/registry.mbt [minimal registry + ChartViewLike/ComponentViewLike/ScaleLike/CoordLike + processor/visual registration]
+    │   ├── core/coordinate_system.mbt [minimal coordinate-system creator registry and runtime state]
+    │   ├── layout/install.mbt [built-in cartesian/polar/parallel/geo/calendar/single/view creator registration]
     │   ├── yuecharts.mbt [top-level processor/layout/visual sequencing + registry-driven dispatch]
+    │   ├── data/source.mbt [static Source subset for original series.data]
+    │   ├── data/data_store.mbt [static DataStore subset for raw-item storage]
+    │   ├── data/series_data.mbt [static SeriesData subset for lightweight series wrapping]
     │   ├── option/parse.mbt [JSON parsing and option normalization subset]
     │   ├── option/types.mbt [shared option structures]
     │   ├── layout/grid.mbt [grid bbox and cartesian scale building]

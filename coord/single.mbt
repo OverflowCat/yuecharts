@@ -2,6 +2,8 @@
 //                  echarts/src/coord/single/SingleAxis.ts
 //                  echarts/src/coord/single/AxisModel.ts
 //                  echarts/src/coord/single/singleCreator.ts
+//                  echarts/src/coord/single/singleAxisHelper.ts
+//                  echarts/src/coord/single/prepareCustom.ts
 
 ///|
 /// A computed Single 1-D coordinate system bounding box.
@@ -27,6 +29,32 @@ pub(all) struct Single {
   // sorted unique date strings for category/time mode
   labels : Array[String]
   time_labels : Array[String]
+}
+
+///|
+pub(all) struct SingleLayout {
+  x : Double
+  y : Double
+  rotation : Double
+  label_rotate : Double
+  label_direction : Int
+  tick_direction : Int
+  name_direction : Int
+  z2 : Int
+}
+
+///|
+pub(all) struct SinglePrepareCoordSysInfo {
+  type_name : String
+  x : Double
+  y : Double
+  width : Double
+  height : Double
+}
+
+///|
+pub(all) struct SinglePreparedCustom {
+  coord_sys : SinglePrepareCoordSysInfo
 }
 
 ///|
@@ -121,6 +149,13 @@ fn resolve_size_spec(
 }
 
 ///|
+fn single_series_items(
+  series : @option.SeriesOption,
+) -> Array[@option.DataItem] {
+  @data.SeriesData::from_series(series).raw_items()
+}
+
+///|
 /// Build the Single coordinate system from chart options.
 /// Corresponds to: echarts/src/coord/single/singleCreator.ts + Single.resize()
 pub fn Single::build(opt : @option.ChartOption) -> Single? {
@@ -154,9 +189,10 @@ pub fn Single::build(opt : @option.ChartOption) -> Single? {
   while i < opt.series.length() {
     let s = opt.series[i]
     if s.series_type == @option.SeriesType::ThemeRiver {
+      let items = single_series_items(s)
       let mut j = 0
-      while j < s.data.length() {
-        let item = s.data[j]
+      while j < items.length() {
+        let item = items[j]
         match item.value {
           @option.DataValue::DateValue(date_str, _) => {
             let v = if ax.axis_type == @option.AxisType::Time ||
@@ -365,6 +401,135 @@ pub fn Single::data_to_pixel(self : Single, val_str : String) -> Double {
 }
 
 ///|
+pub fn Single::data_to_point(self : Single, val_str : String) -> @graphic.Point {
+  if self.orient == "horizontal" {
+    @graphic.Point::new(
+      self.data_to_pixel(val_str),
+      self.bbox.y + self.bbox.height / 2.0,
+    )
+  } else {
+    @graphic.Point::new(
+      self.bbox.x + self.bbox.width / 2.0,
+      self.data_to_pixel(val_str),
+    )
+  }
+}
+
+///|
+fn Single::pixel_to_value_num(self : Single, pixel : Double) -> Double {
+  let range = self.max_val - self.min_val
+  let axis_size = if self.orient == "horizontal" {
+    self.bbox.width
+  } else {
+    self.bbox.height
+  }
+  if range == 0.0 || axis_size == 0.0 {
+    return self.min_val
+  }
+  let t_oriented = if self.orient == "horizontal" {
+    (pixel - self.bbox.x) / axis_size
+  } else {
+    1.0 - (pixel - self.bbox.y) / axis_size
+  }
+  let t = if self.inverse { 1.0 - t_oriented } else { t_oriented }
+  self.min_val + range * t
+}
+
+///|
+pub fn Single::point_to_data(
+  self : Single,
+  point : @graphic.Point,
+) -> Array[Double] {
+  if self.orient == "horizontal" {
+    [self.pixel_to_value_num(point.x)]
+  } else {
+    [self.pixel_to_value_num(point.y)]
+  }
+}
+
+///|
+pub fn Single::contain_point(self : Single, point : @graphic.Point) -> Bool {
+  if self.orient == "horizontal" {
+    point.x >= self.bbox.x &&
+    point.x <= self.bbox.x + self.bbox.width &&
+    point.y >= self.bbox.y &&
+    point.y <= self.bbox.y + self.bbox.height
+  } else {
+    point.y >= self.bbox.y &&
+    point.y <= self.bbox.y + self.bbox.height &&
+    point.x >= self.bbox.y &&
+    point.x <= self.bbox.y + self.bbox.height
+  }
+}
+
+///|
+pub fn Single::layout(
+  self : Single,
+  axis_option : @option.SingleAxisOption,
+) -> SingleLayout {
+  let bbox = self.bbox
+  let horizontal_axis_y = if self.position == "top" {
+    bbox.y
+  } else {
+    bbox.y + bbox.height
+  }
+  let vertical_axis_x = if self.position == "right" {
+    bbox.x + bbox.width
+  } else {
+    bbox.x
+  }
+  let (x, y) = if self.orient == "vertical" {
+    (vertical_axis_x, bbox.y + bbox.height)
+  } else {
+    (bbox.x, horizontal_axis_y)
+  }
+  let rotation = if self.orient == "vertical" { @math.PI / 2.0 } else { 0.0 }
+  let direction = match self.position {
+    "top" => -1
+    "left" => -1
+    _ => 1
+  }
+  let tick_direction = if axis_option.axis_tick.inside {
+    -direction
+  } else {
+    direction
+  }
+  let label_direction = if axis_option.axis_label.inside {
+    -direction
+  } else {
+    direction
+  }
+  let label_rotate = if self.position == "top" {
+    -axis_option.axis_label.rotate
+  } else {
+    axis_option.axis_label.rotate
+  }
+  {
+    x,
+    y,
+    rotation,
+    label_rotate,
+    label_direction,
+    tick_direction,
+    name_direction: direction,
+    z2: 1,
+  }
+}
+
+///|
+pub fn Single::prepare_custom(self : Single) -> SinglePreparedCustom {
+  {
+    coord_sys: {
+      type_name: "singleAxis",
+      x: self.bbox.x,
+      y: self.bbox.y,
+      width: self.bbox.width,
+      height: self.bbox.height,
+    },
+  }
+}
+
+///|
 /// Get all unique sorted data values as day-numbers from themeRiver series.
 pub fn Single::collect_time_values(
   self : Single,
@@ -375,9 +540,10 @@ pub fn Single::collect_time_values(
   while i < opt.series.length() {
     let s = opt.series[i]
     if s.series_type == @option.SeriesType::ThemeRiver {
+      let items = single_series_items(s)
       let mut j = 0
-      while j < s.data.length() {
-        match s.data[j].value {
+      while j < items.length() {
+        match items[j].value {
           @option.DataValue::DateValue(d, _) => {
             let v = self.val_to_num(d)
             let mut found = false

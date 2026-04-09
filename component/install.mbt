@@ -5,6 +5,7 @@
 // and echarts/src/component/calendar/install.ts
 // and echarts/src/component/polar/install.ts
 // and echarts/src/component/geo/install.ts
+// and echarts/src/component/singleAxis/install.ts
 
 ///|
 struct GridLinesComponentView {}
@@ -22,7 +23,7 @@ struct AxisComponentView {}
 
 ///|
 pub impl @core.ComponentViewLike for AxisComponentView with render(_self, ctx) {
-  render_axes(ctx.option, ctx.coord, polar=ctx.polar)
+  render_axes(ctx.option, ctx.coord, polar=ctx.polar, single=ctx.single)
 }
 
 ///|
