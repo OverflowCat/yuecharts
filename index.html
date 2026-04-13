@@ -22,6 +22,21 @@
     h1 {
       margin-bottom: 16px;
       font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #3a56a7;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
     }
 
     .container {
@@ -115,6 +130,14 @@
       height: auto;
     }
 
+    #echartsOutput {
+      display: none;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fafafa;
+      overflow: hidden;
+    }
+
     .examples-bar {
       margin-bottom: 12px;
       display: flex;
@@ -179,7 +202,7 @@
 
 <body>
 
-  <h1>YueCharts WASM Demo</h1>
+  <h1>YueCharts WASM Demo <span class="version-badge" id="versionBadge">v0.4.14</span></h1>
 
   <div class="container">
     <div class="panel">
@@ -208,18 +231,21 @@
           <label for="backendGC" id="labelGC" class="loading">wasm-gc</label>
           <input type="radio" name="backend" id="backendLinear" value="linear">
           <label for="backendLinear" id="labelLinear" class="loading">wasm</label>
+          <input type="radio" name="backend" id="backendECharts" value="echarts">
+          <label for="backendECharts" id="labelECharts" class="loading">echarts.js</label>
         </div>
         <button id="renderBtn">Render</button>
-        <span id="status">Loading WASM modules...</span>
+        <span id="status">Loading renderers...</span>
       </div>
     </div>
     <div class="panel">
       <h2>SVG Output</h2>
       <div id="output"><span style="color:#aaa">Click "Render" to see the chart</span></div>
+      <div id="echartsOutput"></div>
     </div>
   </div>
 
-  <script>
+  <script type="module">
     const EXAMPLE_FILES = [
       "aria-template.json",
       "bar.json",
@@ -268,19 +294,41 @@
     ];
 
     const renderers = { gc: null, linear: null };
+    const APP_VERSION = "0.4.14";
     const renderBtn = document.getElementById("renderBtn");
     const statusEl = document.getElementById("status");
     const outputEl = document.getElementById("output");
     const jsonInput = document.getElementById("jsonInput");
     const labelGC = document.getElementById("labelGC");
     const labelLinear = document.getElementById("labelLinear");
+    const labelECharts = document.getElementById("labelECharts");
     const backendGC = document.getElementById("backendGC");
     const backendLinear = document.getElementById("backendLinear");
+    const backendECharts = document.getElementById("backendECharts");
     const exBar = document.getElementById("examplesBar");
+    const echartsOutputEl = document.getElementById("echartsOutput");
+    const versionBadgeEl = document.getElementById("versionBadge");
+
+    let echartsLib = null;
+    let echartsChart = null;
+    let renderSeq = 0;
+
+    function syncOutputMode(backend) {
+      const isEC = backend === "echarts";
+      // 必须用显式值，不能用 ""（空字符串会移除 inline style，让 CSS display:none 重新生效）
+      outputEl.style.display = isEC ? "none" : "flex";
+      echartsOutputEl.style.display = isEC ? "block" : "none";
+    }
 
     function activeRenderer() {
       const v = document.querySelector('input[name=backend]:checked').value;
       return renderers[v];
+    }
+
+    function waitForNextPaint() {
+      return new Promise((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
     }
 
     async function loadExample(fileName) {
@@ -293,7 +341,6 @@
         jsonInput.value = text;
         statusEl.textContent = `Loaded examples/${fileName}`;
         statusEl.className = "";
-        // 立即渲染
         onRender();
       } catch (e) {
         statusEl.textContent = `Failed to load examples/${fileName}: ${e.message}`;
@@ -323,7 +370,11 @@
       });
       if (instance.exports._start) instance.exports._start();
       const renderFn = instance.exports.render;
-      return (json) => renderFn(json);
+      const versionFn = instance.exports.version;
+      return {
+        render: (json) => renderFn(json),
+        version: () => (typeof versionFn === "function" ? versionFn() : APP_VERSION),
+      };
     }
 
     async function loadWasmLinear() {
@@ -350,22 +401,85 @@
       const { instance } = await WebAssembly.instantiate(bytes, importObject);
       if (instance.exports._start) instance.exports._start();
       const doRenderWasm = instance.exports.do_render;
+      const versionFn = instance.exports.version;
 
-      return (json) => {
-        inputStr = json;
-        inputPos = 0;
-        outputChars = [];
-        doRenderWasm();
-        let result = outputChars.join("");
-        if (result.endsWith("\n")) result = result.slice(0, -1);
-        return result;
+      return {
+        render: (json) => {
+          inputStr = json;
+          inputPos = 0;
+          outputChars = [];
+          doRenderWasm();
+          let result = outputChars.join("");
+          if (result.endsWith("\n")) result = result.slice(0, -1);
+          return result;
+        },
+        version: () => (typeof versionFn === "function" ? versionFn() : APP_VERSION),
       };
     }
 
-    async function loadWasm() {
-      const [gcResult, linearResult] = await Promise.allSettled([
+    // MoonBit 在 JSON 顶层加了几个自定义字段，渲染前需要提取出来作为 JS API 参数，
+    // 不能直接传给 ECharts setOption（ECharts 不认识这些字段）：
+    //   width / height  — 画布尺寸
+    //   maps            — [{name, geoJSON}] GeoJSON 地图数据，需调 registerMap()
+    const MOONBIT_TOP_FIELDS = new Set(["width", "height", "maps"]);
+
+    async function loadEChartsRenderer() {
+      // 用 script 标签加载 UMD 版本，比 ESM +esm 构建更稳定
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "https://cdn.jsdelivr.net/npm/echarts@6.0.0/dist/echarts.min.js";
+        s.onload = resolve;
+        s.onerror = () => reject(new Error("Failed to load echarts.min.js"));
+        document.head.appendChild(s);
+      });
+      echartsLib = window.echarts;
+
+      // 返回一个 async 渲染对象；ECharts 直接渲染到持久 #echartsOutput，返回 null
+      return {
+        render: async (json) => {
+          const raw = JSON.parse(json);
+          const width = Number(raw.width) || 600;
+          const height = Number(raw.height) || 400;
+
+          // 处理 MoonBit maps 字段：向 ECharts 注册内嵌的 GeoJSON
+          if (Array.isArray(raw.maps)) {
+            for (const m of raw.maps) {
+              if (m.name && m.geoJSON) echartsLib.registerMap(m.name, m.geoJSON);
+            }
+          }
+
+          // 调整持久容器尺寸
+          echartsOutputEl.style.width = `${width}px`;
+          echartsOutputEl.style.height = `${height}px`;
+
+          // 首次初始化，或复用已有实例（此时容器已可见，尺寸正确）
+          if (!echartsChart) {
+            echartsChart = echartsLib.init(echartsOutputEl, null, { renderer: "svg", width, height });
+          } else {
+            echartsChart.resize({ width, height });
+          }
+
+          // 构造干净的 ECharts option
+          const echartsOption = {};
+          for (const [k, v] of Object.entries(raw)) {
+            if (!MOONBIT_TOP_FIELDS.has(k)) echartsOption[k] = v;
+          }
+          echartsOption.animation = false;
+
+          echartsChart.setOption(echartsOption, { notMerge: true });
+          await waitForNextPaint();
+
+          return null; // 渲染在 #echartsOutput 里，不需要返回 SVG 字符串
+        },
+        version: () => APP_VERSION,
+      };
+    }
+
+    async function loadRenderers() {
+      const [gcResult, linearResult, echartsResult] = await Promise.allSettled([
         loadWasmGC(),
         loadWasmLinear(),
+        loadEChartsRenderer(),
       ]);
 
       if (gcResult.status === "fulfilled") {
@@ -388,23 +502,43 @@
         backendLinear.disabled = true;
       }
 
+      if (echartsResult.status === "fulfilled") {
+        renderers.echarts = echartsResult.value;
+        labelECharts.classList.remove("loading");
+      } else {
+        console.warn("echarts.js unavailable:", echartsResult.reason);
+        labelECharts.classList.remove("loading");
+        labelECharts.classList.add("unavailable");
+        backendECharts.disabled = true;
+      }
+
+      const versionSource = renderers.gc || renderers.linear;
+      if (versionBadgeEl) {
+        const versionText = versionSource ? versionSource.version() : APP_VERSION;
+        versionBadgeEl.textContent = `v${versionText}`;
+      }
+
       if (!renderers.gc && renderers.linear) {
         backendLinear.checked = true;
       }
+      if (!renderers.gc && !renderers.linear && renderers.echarts) {
+        backendECharts.checked = true;
+      }
 
-      const anyReady = renderers.gc || renderers.linear;
+      const anyReady = renderers.gc || renderers.linear || renderers.echarts;
       if (anyReady) {
-        statusEl.textContent = "WASM modules ready - select backend above";
+        statusEl.textContent = "Renderers ready - select backend above";
         statusEl.className = "";
       } else {
-        statusEl.textContent = "Failed to load any WASM module";
+        statusEl.textContent = "Failed to load any renderer";
         statusEl.className = "error";
       }
     }
 
-    function onRender() {
-      const doRender = activeRenderer();
-      if (!doRender) {
+    async function onRender() {
+      const seq = ++renderSeq;
+      const renderer = activeRenderer();
+      if (!renderer) {
         statusEl.textContent = "This backend is not available";
         statusEl.className = "error";
         return;
@@ -420,17 +554,37 @@
         statusEl.className = "error";
         return;
       }
+
+      // 切换输出面板（wasm 用 #output，echarts 用 #echartsOutput）
+      const backend = document.querySelector("input[name=backend]:checked").value;
+      syncOutputMode(backend);
+
+      renderBtn.disabled = true;
+      statusEl.textContent = "Rendering...";
+      statusEl.className = "";
+
       try {
         const t0 = performance.now();
-        const svg = doRender(json);
+        const svg = await renderer.render(json);
         const elapsed = (performance.now() - t0).toFixed(1);
-        outputEl.innerHTML = svg;
+        if (seq !== renderSeq) {
+          return;
+        }
+        // svg === null 表示 ECharts 已直接渲染到 #echartsOutput，无需注入
+        if (svg !== null) outputEl.innerHTML = svg;
         statusEl.textContent = `Rendered in ${elapsed} ms`;
         statusEl.className = "";
       } catch (e) {
+        if (seq !== renderSeq) {
+          return;
+        }
         statusEl.textContent = "Render error: " + e.message;
         statusEl.className = "error";
         console.error("Render error:", e);
+      } finally {
+        if (seq === renderSeq) {
+          renderBtn.disabled = false;
+        }
       }
     }
 
@@ -455,9 +609,15 @@
 
     const throttledRender = throttle(onRender, 300);
     jsonInput.addEventListener("input", throttledRender);
+    [backendGC, backendLinear, backendECharts].forEach((radio) => {
+      radio.addEventListener("change", () => {
+        syncOutputMode(radio.value);
+        onRender();
+      });
+    });
 
     populateExampleButtons();
-    loadWasm();
+    loadRenderers();
   </script>
 </body>
 
