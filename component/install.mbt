@@ -23,7 +23,13 @@ struct AxisComponentView {}
 
 ///|
 pub impl @core.ComponentViewLike for AxisComponentView with render(_self, ctx) {
-  render_axes(ctx.option, ctx.coord, polar=ctx.polar, single=ctx.single)
+  render_axes(
+    ctx.option,
+    ctx.coord,
+    ctx.option.text_style.font_family,
+    polar=ctx.polar,
+    single=ctx.single,
+  )
 }
 
 ///|

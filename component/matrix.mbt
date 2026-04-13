@@ -10,10 +10,10 @@ pub fn render_matrix(
   let elems : Array[@graphic.Element] = []
   let model = opt.matrix[0]
   elems.push(matrix_rect_element(matrix.rect, model.background_style))
-  matrix_append_cells(elems, matrix.corner_cells)
-  matrix_append_cells(elems, matrix.body_cells)
-  matrix_append_cells(elems, matrix.x_cells)
-  matrix_append_cells(elems, matrix.y_cells)
+  matrix_append_cells(elems, matrix.corner_cells, opt.text_style.font_family)
+  matrix_append_cells(elems, matrix.body_cells, opt.text_style.font_family)
+  matrix_append_cells(elems, matrix.x_cells, opt.text_style.font_family)
+  matrix_append_cells(elems, matrix.y_cells, opt.text_style.font_family)
   if model.x.show {
     elems.push(
       @graphic.Element::line_colored(
@@ -45,6 +45,7 @@ pub fn render_matrix(
 fn matrix_append_cells(
   elems : Array[@graphic.Element],
   cells : Array[@coord.MatrixCell],
+  global_font_family : String?,
 ) -> Unit {
   let mut i = 0
   while i < cells.length() {
@@ -62,7 +63,7 @@ fn matrix_append_cells(
               @graphic.TextBaseline::Central,
               cell.label.color,
               cell.label.font_size,
-              cell.label.font_family,
+              matrix_font_family(global_font_family, cell.label.font_family),
               cell.label.font_weight,
             ),
           )
@@ -70,6 +71,14 @@ fn matrix_append_cells(
       }
     }
     i += 1
+  }
+}
+
+///|
+fn matrix_font_family(global : String?, fallback : String) -> String {
+  match global {
+    Some(font) if fallback == "sans-serif" => font
+    _ => fallback
   }
 }
 

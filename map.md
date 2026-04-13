@@ -341,7 +341,7 @@ E:\recharts\echarts\src
 │       ├── lineStyle.ts => visual/palette.mbt [partial] Feature: line style model mixin
 │       ├── makeStyleMapper.ts =>  [missing] Feature: style mapper helper
 │       ├── palette.ts => visual/palette.mbt [partial] Feature: palette model mixin
-│       └── textStyle.ts => component/title.mbt [partial] Feature: text style model mixin
+│       └── textStyle.ts => component/title.mbt, component/matrix.mbt, option/types.mbt, option/parse.mbt [partial] Feature: text style model mixin + root textStyle inheritance
 │
 ├── view
 │   ├── Chart.ts => core/registry.mbt [partial] Feature: chart view base class

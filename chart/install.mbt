@@ -203,6 +203,7 @@ fn register_chart(
 }
 
 ///|
+/// <=> echarts/src/chart/bar/install.ts:install
 pub fn install_bar(registry : @core.Registry) -> Unit {
   // echarts/src/chart/bar/install.ts
   // echarts/src/chart/bar/BarSeries.ts
@@ -214,6 +215,7 @@ pub fn install_bar(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/line/install.ts:install
 pub fn install_line(registry : @core.Registry) -> Unit {
   // echarts/src/chart/line/install.ts
   // echarts/src/chart/line/LineSeries.ts
@@ -225,6 +227,7 @@ pub fn install_line(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/parallel/install.ts:install
 pub fn install_parallel(registry : @core.Registry) -> Unit {
   // echarts/src/chart/parallel/install.ts
   // echarts/src/chart/parallel/ParallelSeries.ts

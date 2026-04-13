@@ -3,7 +3,7 @@
 //
 // ECharts default token colors:
 //   Title text:    tokens.color.neutral80 = #3c3c41
-//   Subtext:       tokens.color.neutral70 = #54555a
+//   Subtext:       tokens.color.quaternary = #86878c
 //
 // ECharts title defaults (from echarts/src/component/title/install.ts):
 //   left: 'center', top: tokens.size.m (= 15), padding: 5
@@ -26,42 +26,53 @@ pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
     return []
   }
   let elems : Array[@graphic.Element] = []
-  // Resolve horizontal position and text anchor.
-  // ECharts default: left='center'.
   let (tx, anchor) = match title.left {
     "center" => (opt.width * 0.5, @graphic.TextAnchor::Middle)
     "right" => (opt.width - 10.0, @graphic.TextAnchor::End)
-    _ => (10.0, @graphic.TextAnchor::Start) // "left", "auto", or pixel value
+    _ => (10.0, @graphic.TextAnchor::Start)
   }
-  // ty = tokens.size.m + padding = 15 + 5 = 20
-  // With dominant-baseline="central" the glyph center sits at ty + fontSize/2.
-  let ty_title = 20.0 + 18.0 / 2.0 // = 29.0 (center of 18px title)
+  let ty_title = 20.0 + 18.0 / 2.0
   if title.text != "" {
     elems.push(
-      @graphic.Element::text_title(
+      @graphic.Element::text_custom(
         tx,
         ty_title,
         title.text,
         anchor,
-        "#3c3c41", // tokens.color.neutral80
+        @graphic.TextBaseline::Central,
+        title.text_style.color,
+        title.text_style.font_size,
+        title_font_family(opt.text_style.font_family, title.text_style.font_family),
+        title.text_style.font_weight,
       ),
     )
   }
   if title.subtext != "" {
-    // Subtext: fontSize=12, sits below title.
-    // top = ty_title + fontSize/2 + gap(3) + subFontSize/2
-    //     = 29 + 9 + 3 + 6 = 47
     let ty_sub = ty_title + 9.0 + 3.0 + 6.0
     elems.push(
-      @graphic.Element::text_colored(
+      @graphic.Element::text_custom(
         tx,
         ty_sub,
         title.subtext,
         anchor,
         @graphic.TextBaseline::Central,
-        "#54555a", // tokens.color.neutral70
+        title.subtext_style.color,
+        title.subtext_style.font_size,
+        title_font_family(
+          opt.text_style.font_family,
+          title.subtext_style.font_family,
+        ),
+        title.subtext_style.font_weight,
       ),
     )
   }
   elems
+}
+
+///|
+fn title_font_family(global : String?, fallback : String) -> String {
+  match global {
+    Some(font) if fallback == "sans-serif" => font
+    _ => fallback
+  }
 }

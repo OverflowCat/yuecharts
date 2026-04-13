@@ -82,9 +82,18 @@ fn ring_path(
 }
 
 ///|
+fn axis_font_family(global_font_family : String?) -> String {
+  match global_font_family {
+    Some(font_family) => font_family
+    None => "sans-serif"
+  }
+}
+
+///|
 pub fn render_axes(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
+  global_font_family : String?,
   polar? : @coord.Polar? = None,
   single? : @coord.Single? = None,
 ) -> Array[@graphic.Element] {
@@ -92,21 +101,35 @@ pub fn render_axes(
   if has_cartesian_axis_series(opt) {
     let mut i = 0
     while i < opt.x_axis.length() {
-      render_x_axis(opt.x_axis[i], coord, i, elems)
+      render_x_axis(
+        opt.x_axis[i],
+        coord,
+        i,
+        elems,
+        global_font_family,
+      )
       i += 1
     }
     let mut j = 0
     while j < opt.y_axis.length() {
-      render_y_axis(opt.y_axis[j], coord, j, elems)
+      render_y_axis(
+        opt.y_axis[j],
+        coord,
+        j,
+        elems,
+        global_font_family,
+      )
       j += 1
     }
   }
   match polar {
-    Some(p) => render_polar_axes(p, elems)
+    Some(p) => render_polar_axes(p, elems, global_font_family)
     None => ()
   }
   match single {
-    Some(single_coord) => render_single_axis(opt, single_coord, elems)
+    Some(single_coord) => {
+      render_single_axis(opt, single_coord, elems, global_font_family)
+    }
     None => ()
   }
   elems
@@ -118,6 +141,7 @@ fn render_x_axis(
   coord : @coord.Cartesian2D,
   axis_index : Int,
   elems : Array[@graphic.Element],
+  global_font_family : String?,
 ) -> Unit {
   let bbox = coord.bbox
   let pos = match ax.position {
@@ -159,13 +183,16 @@ fn render_x_axis(
           @graphic.TextBaseline::Hanging
         }
         elems.push(
-          @graphic.Element::text_colored(
+          @graphic.Element::text_custom(
             px,
             label_y,
             tick.label,
             @graphic.TextAnchor::Middle,
             baseline,
             axis_line_color,
+            12.0,
+            axis_font_family(global_font_family),
+            "normal",
           ),
         )
       }
@@ -191,13 +218,16 @@ fn render_x_axis(
           @graphic.TextBaseline::Hanging
         }
         elems.push(
-          @graphic.Element::text_colored(
+          @graphic.Element::text_custom(
             px,
             label_y,
             tick.label,
             @graphic.TextAnchor::Middle,
             baseline,
             axis_line_color,
+            12.0,
+            axis_font_family(global_font_family),
+            "normal",
           ),
         )
       }
@@ -211,6 +241,7 @@ fn render_y_axis(
   coord : @coord.Cartesian2D,
   axis_index : Int,
   elems : Array[@graphic.Element],
+  global_font_family : String?,
 ) -> Unit {
   let bbox = coord.bbox
   let pos = match ax.position {
@@ -252,13 +283,16 @@ fn render_y_axis(
           @graphic.TextAnchor::Start
         }
         elems.push(
-          @graphic.Element::text_colored(
+          @graphic.Element::text_custom(
             label_x,
             py,
             tick.label,
             anchor,
             @graphic.TextBaseline::Middle,
             axis_line_color,
+            12.0,
+            axis_font_family(global_font_family),
+            "normal",
           ),
         )
       }
@@ -284,13 +318,16 @@ fn render_y_axis(
           @graphic.TextAnchor::Start
         }
         elems.push(
-          @graphic.Element::text_colored(
+          @graphic.Element::text_custom(
             label_x,
             py,
             tick.label,
             anchor,
             @graphic.TextBaseline::Middle,
             axis_line_color,
+            12.0,
+            axis_font_family(global_font_family),
+            "normal",
           ),
         )
       }
@@ -302,15 +339,17 @@ fn render_y_axis(
 fn render_polar_axes(
   polar : @coord.Polar,
   elems : Array[@graphic.Element],
+  global_font_family : String?,
 ) -> Unit {
-  render_angle_axis(polar, elems)
-  render_radius_axis(polar, elems)
+  render_angle_axis(polar, elems, global_font_family)
+  render_radius_axis(polar, elems, global_font_family)
 }
 
 ///|
 fn render_angle_axis(
   polar : @coord.Polar,
   elems : Array[@graphic.Element],
+  global_font_family : String?,
 ) -> Unit {
   let axis = polar.angle_axis
   let area = polar.get_area()
@@ -400,13 +439,16 @@ fn render_angle_axis(
       @graphic.TextBaseline::Bottom
     }
     elems.push(
-      @graphic.Element::text_colored(
+      @graphic.Element::text_custom(
         label_pt.x,
         label_pt.y,
         tick.label,
         anchor,
         baseline,
         axis_line_color,
+        12.0,
+        axis_font_family(global_font_family),
+        "normal",
       ),
     )
     i += 1
@@ -417,6 +459,7 @@ fn render_angle_axis(
 fn render_radius_axis(
   polar : @coord.Polar,
   elems : Array[@graphic.Element],
+  global_font_family : String?,
 ) -> Unit {
   let axis = polar.radius_axis
   let axis_angle = polar.angle_axis.extent_start
@@ -464,13 +507,16 @@ fn render_radius_axis(
       @graphic.TextBaseline::Bottom
     }
     elems.push(
-      @graphic.Element::text_colored(
+      @graphic.Element::text_custom(
         label_pt.x,
         label_pt.y,
         tick.label,
         anchor,
         baseline,
         axis_line_color,
+        12.0,
+        axis_font_family(global_font_family),
+        "normal",
       ),
     )
     if radius > 0.0 {
@@ -548,6 +594,7 @@ fn single_axis_tick_and_label(
   layout : @coord.SingleLayout,
   tick : @coord.SingleTick,
   elems : Array[@graphic.Element],
+  global_font_family : String?,
 ) -> Unit {
   let tick_dir = layout.tick_direction.to_double()
   let label_dir = layout.label_direction.to_double()
@@ -573,13 +620,16 @@ fn single_axis_tick_and_label(
         @graphic.TextBaseline::Hanging
       }
       elems.push(
-        @graphic.Element::text_colored(
+        @graphic.Element::text_custom(
           px,
           layout.y + label_dir * (tick_length + 4.0),
           tick.label,
           @graphic.TextAnchor::Middle,
           baseline,
           axis_line_color,
+          12.0,
+          axis_font_family(global_font_family),
+          "normal",
         ),
       )
     }
@@ -604,13 +654,16 @@ fn single_axis_tick_and_label(
         @graphic.TextAnchor::Start
       }
       elems.push(
-        @graphic.Element::text_colored(
+        @graphic.Element::text_custom(
           layout.x + label_dir * (tick_length + 4.0),
           py,
           tick.label,
           anchor,
           @graphic.TextBaseline::Middle,
           axis_line_color,
+          12.0,
+          axis_font_family(global_font_family),
+          "normal",
         ),
       )
     }
@@ -644,6 +697,7 @@ fn render_single_axis(
   opt : @option.ChartOption,
   single_coord : @coord.Single,
   elems : Array[@graphic.Element],
+  global_font_family : String?,
 ) -> Unit {
   if opt.single_axis.length() == 0 {
     return
@@ -694,7 +748,14 @@ fn render_single_axis(
         )
       }
     }
-    single_axis_tick_and_label(single_coord, axis_option, layout, tick, elems)
+    single_axis_tick_and_label(
+      single_coord,
+      axis_option,
+      layout,
+      tick,
+      elems,
+      global_font_family,
+    )
     i += 1
   }
   if axis_option.axis_line.show {

@@ -14,6 +14,10 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let width = j_number(j, "width", base.width)
   let height = j_number(j, "height", base.height)
   let background_color = j_string_opt(j, "backgroundColor")
+  let text_style = match j_parse_optional(j, "textStyle", parse_chart_text_style_option) {
+    Some(style) => style
+    None => ChartTextStyleOption::default()
+  }
   let title = j_parse_optional(j, "title", parse_title)
   let legend = j_parse_optional(j, "legend", parse_legend)
   let aria = j_parse_optional(j, "aria", parse_aria_option)
@@ -62,6 +66,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
   {
     width,
     height,
+    text_style,
     title,
     legend,
     x_axis,
@@ -86,6 +91,16 @@ fn parse_chart_option(j : Json) -> ChartOption {
 }
 
 ///|
+fn parse_chart_text_style_option(j : Json) -> ChartTextStyleOption {
+  {
+    color: j_string_opt(j, "color"),
+    font_size: j_number_opt(j, "fontSize"),
+    font_family: j_string_opt(j, "fontFamily"),
+    font_weight: j_string_opt(j, "fontWeight"),
+  }
+}
+
+///|
 fn parse_title(j : Json) -> TitleOption {
   let base = TitleOption::default()
   {
@@ -93,6 +108,27 @@ fn parse_title(j : Json) -> TitleOption {
     subtext: j_string(j, "subtext", base.subtext),
     left: j_string(j, "left", base.left),
     top: j_string(j, "top", base.top),
+    text_style: parse_title_text_style_option(
+      j_field_or_self(j, "textStyle"),
+      base.text_style,
+    ),
+    subtext_style: parse_title_text_style_option(
+      j_field_or_self(j, "subtextStyle"),
+      base.subtext_style,
+    ),
+  }
+}
+
+///|
+fn parse_title_text_style_option(
+  j : Json,
+  base : TitleTextStyleOption,
+) -> TitleTextStyleOption {
+  {
+    color: j_string(j, "color", base.color),
+    font_size: j_number(j, "fontSize", base.font_size),
+    font_weight: j_string(j, "fontWeight", base.font_weight),
+    font_family: j_string(j, "fontFamily", base.font_family),
   }
 }
 

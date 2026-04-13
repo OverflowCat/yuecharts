@@ -169,6 +169,25 @@ pub impl Default for GeoLabelPatchOption with default() {
 }
 
 ///|
+/// Root `textStyle` option.
+pub(all) struct ChartTextStyleOption {
+  color : String?
+  font_size : Double?
+  font_family : String?
+  font_weight : String?
+}
+
+///|
+pub impl Default for ChartTextStyleOption with default() {
+  {
+    color: None,
+    font_size: None,
+    font_family: None,
+    font_weight: None,
+  }
+}
+
+///|
 /// Corresponds to: echarts/src/coord/geo/GeoModel.ts
 pub(all) struct GeoNameMapEntry {
   from_name : String
@@ -933,18 +952,56 @@ pub fn SeriesOption::default_theme_river() -> SeriesOption {
 
 ///|
 /// Title component.
+/// Corresponds to: echarts/src/component/title/install.ts
 pub struct TitleOption {
   text : String
   subtext : String
   left : String // "left" | "center" | "right" | pixel
   top : String
+  text_style : TitleTextStyleOption
+  subtext_style : TitleTextStyleOption
+}
+
+///|
+pub struct TitleTextStyleOption {
+  color : String
+  font_size : Double
+  font_weight : String
+  font_family : String
 }
 
 ///|
 pub impl Default for TitleOption with default() {
   // ECharts default: left='center', top='auto'
   // See echarts/src/component/title/install.ts
-  { text: "", subtext: "", left: "center", top: "auto" }
+  {
+    text: "",
+    subtext: "",
+    left: "center",
+    top: "auto",
+    text_style: TitleTextStyleOption::default(),
+    subtext_style: TitleTextStyleOption::default_subtext(),
+  }
+}
+
+///|
+pub impl Default for TitleTextStyleOption with default() {
+  {
+    color: "#3c3c41",
+    font_size: 18.0,
+    font_weight: "bold",
+    font_family: "sans-serif",
+  }
+}
+
+///|
+pub fn TitleTextStyleOption::default_subtext() -> TitleTextStyleOption {
+  {
+    color: "#86878c",
+    font_size: 12.0,
+    font_weight: "normal",
+    font_family: "sans-serif",
+  }
 }
 
 ///|
@@ -1547,6 +1604,7 @@ pub impl Default for SingleAxisOption with default() {
 pub(all) struct ChartOption {
   width : Double
   height : Double
+  text_style : ChartTextStyleOption
   title : TitleOption?
   legend : LegendOption?
   x_axis : Array[AxisOption]
@@ -1576,6 +1634,7 @@ pub impl Default for ChartOption with default() {
   {
     width: 800.0,
     height: 600.0,
+    text_style: ChartTextStyleOption::default(),
     title: None,
     legend: None,
     x_axis: [],
