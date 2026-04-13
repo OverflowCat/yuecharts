@@ -45,19 +45,25 @@ pub fn LinearScale::extend(self : LinearScale, value : Double) -> Unit {
 
 ///|
 /// Round the domain extent to "nice" values suitable for axis display.
+/// Matches ECharts intervalScaleNiceTicks with default splitNumber=5.
 pub fn LinearScale::nice(self : LinearScale) -> Unit {
   if self.min == self.max {
     self.nice_min = self.min - 1.0
     self.nice_max = self.max + 1.0
   } else {
     let range = self.max - self.min
-    let rough_step = range / 6.0
+    // Use splitNumber=5 (ECharts default) to select the nice interval.
+    let rough_step = range / 5.0
     let power = f64_pow10(@math.log10(rough_step).floor().to_int())
     let normalized = rough_step / power
+    // Thresholds match ECharts util/number.ts nice(val, round=true):
+    // <1.5→1, <2.5→2, <4→3, <7→5, else→10
     let nice_step = (if normalized < 1.5 {
         1.0
-      } else if normalized < 3.0 {
+      } else if normalized < 2.5 {
         2.0
+      } else if normalized < 4.0 {
+        3.0
       } else if normalized < 7.0 {
         5.0
       } else {
@@ -71,6 +77,7 @@ pub fn LinearScale::nice(self : LinearScale) -> Unit {
 
 ///|
 /// Compute the step size for the given number of ticks.
+/// Thresholds match ECharts util/number.ts nice(val, round=true).
 pub fn LinearScale::step(self : LinearScale, tick_count : Int) -> Double {
   let range = self.nice_max - self.nice_min
   let rough_step = range / tick_count.to_double()
@@ -78,8 +85,10 @@ pub fn LinearScale::step(self : LinearScale, tick_count : Int) -> Double {
   let normalized = rough_step / power
   (if normalized < 1.5 {
     1.0
-  } else if normalized < 3.0 {
+  } else if normalized < 2.5 {
     2.0
+  } else if normalized < 4.0 {
+    3.0
   } else if normalized < 7.0 {
     5.0
   } else {

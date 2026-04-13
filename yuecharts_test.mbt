@@ -386,6 +386,9 @@ test "bar example snapshot" {
     svg,
     content=(
       #|<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 600 400">
+      #|  <line x1="165" y1="65" x2="165" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <line x1="315" y1="65" x2="315" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <line x1="465" y1="65" x2="465" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
       #|  <line x1="90" y1="320" x2="540" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
       #|  <line x1="90" y1="256.25" x2="540" y2="256.25" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
       #|  <line x1="90" y1="192.5" x2="540" y2="192.5" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
@@ -426,6 +429,7 @@ test "bar example snapshot" {
       #|}
       #|]]></style>
       #|</svg>
+
     ),
   )
 }
@@ -448,6 +452,12 @@ test "mixed example snapshot" {
     svg,
     content=(
       #|<svg width="700" height="450" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 700 450">
+      #|  <line x1="148.75" y1="65" x2="148.75" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <line x1="236.25" y1="65" x2="236.25" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <line x1="323.75" y1="65" x2="323.75" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <line x1="411.25" y1="65" x2="411.25" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <line x1="498.75" y1="65" x2="498.75" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <line x1="586.25" y1="65" x2="586.25" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
       #|  <line x1="105" y1="370" x2="630" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
       #|  <line x1="105" y1="293.75" x2="630" y2="293.75" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
       #|  <line x1="105" y1="217.5" x2="630" y2="217.5" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
@@ -534,6 +544,7 @@ test "mixed example snapshot" {
       #|}
       #|]]></style>
       #|</svg>
+
     ),
   )
 }
