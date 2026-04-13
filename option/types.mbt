@@ -1627,8 +1627,8 @@ pub(all) struct ChartOption {
 ///|
 pub impl Default for ChartOption with default() {
   {
-    width: 800.0,
-    height: 600.0,
+    width: 600.0,
+    height: 400.0,
     text_style: ChartTextStyleOption::default(),
     title: None,
     legend: None,

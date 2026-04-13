@@ -241,7 +241,10 @@ pub fn make_symbol(
     _ if symbol.has_prefix("path://") => {
       let d = symbol[7:].to_string()
       let symbol_pattern_size = 400.0
-      let transform = Matrix::translate(x + w / 2.0, y + h / 2.0).then(
+      // ECharts path:// symbols are anchored by the x-center but keep the y
+      // position coming from the layout path itself. Matching that split keeps
+      // pictorialBar path symbols aligned with the SVG baseline.
+      let transform = Matrix::translate(x + w / 2.0, y).then(
         Matrix::scale(w / symbol_pattern_size, h / symbol_pattern_size),
       )
       Element::group_transformed(

@@ -210,22 +210,30 @@ fn series_y_range(opt : @option.ChartOption, y_idx : Int) -> (Double, Double) {
             }
           }
         Vec(arr) => {
-          let mut ai = 0
-          while ai < arr.length() {
-            let v = arr[ai]
-            ai = ai + 1
-            if first {
-              lo = v
-              hi = v
-              first = false
-            } else {
-              if v < lo {
+          // For [x, y] scatter-style data, use arr[1] as the y value.
+          // For single-element arrays, use arr[0].
+          let v_opt : Double? = if arr.length() >= 2 {
+            Some(arr[1])
+          } else if arr.length() == 1 {
+            Some(arr[0])
+          } else {
+            None
+          }
+          match v_opt {
+            None => ()
+            Some(v) =>
+              if first {
                 lo = v
-              }
-              if v > hi {
                 hi = v
+                first = false
+              } else {
+                if v < lo {
+                  lo = v
+                }
+                if v > hi {
+                  hi = v
+                }
               }
-            }
           }
         }
         DateValue(_, n) =>

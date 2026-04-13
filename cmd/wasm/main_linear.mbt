@@ -3,6 +3,11 @@
 // MoonBit outputs via spectest.print_char (println)
 
 ///|
+pub fn version() -> String {
+  @lib.version()
+}
+
+///|
 fn get_input_char() -> Int = "input" "getchar"
 
 ///|

@@ -372,6 +372,11 @@ fn render_registered_charts(
 ///|
 /// Render an ECharts JSON option string to an SVG string.
 /// Returns an error string with "ERROR: ..." prefix on failure.
+pub fn version() -> String {
+  "0.4.14"
+}
+
+///|
 pub fn render(json_str : String) -> String {
   let opt = try @option.parse(json_str) catch {
     // strip error details for WASM size

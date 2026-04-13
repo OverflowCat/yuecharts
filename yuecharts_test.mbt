@@ -592,6 +592,7 @@ test "pictorial bar path symbol uses normalized path transform" {
     #|}
   let svg = @yuecharts.render(json_str)
   assert_true(svg.contains("matrix(40,0,0,40,-200,-200)"))
+  assert_true(svg.contains("matrix(0.5175,0,0,0.19125,135,281.75)"))
   assert_true(svg.contains("opacity=\"0.5\""))
 }
 

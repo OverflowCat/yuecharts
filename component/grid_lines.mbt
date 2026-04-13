@@ -5,12 +5,57 @@
 let split_line_color : String = "#dbdee4"
 
 ///|
-/// Render background grid lines for all y-axes.
+/// Render background grid lines for all x- and y-axes.
 pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let bbox = coord.bbox
-  // Y-axis grid lines (horizontal)
+  // X-axis grid lines (vertical)
   let mut i = 0
+  while i < coord.x_scales.length() {
+    match coord.x_scales[i] {
+      Linear(s) => {
+        let ticks = s.ticks(5)
+        let mut ti = 0
+        while ti < ticks.length() {
+          let tick = ticks[ti]
+          ti += 1
+          let px = s.data_to_pixel(tick.value)
+          elems.push(
+            @graphic.Element::line_colored(
+              px,
+              bbox.y,
+              px,
+              bbox.y + bbox.height,
+              split_line_color,
+              1.0,
+            ),
+          )
+        }
+      }
+      Ordinal(s) => {
+        let ticks = s.ticks()
+        let mut ti = 0
+        while ti < ticks.length() {
+          let tick = ticks[ti]
+          ti += 1
+          let px = tick.value
+          elems.push(
+            @graphic.Element::line_colored(
+              px,
+              bbox.y,
+              px,
+              bbox.y + bbox.height,
+              split_line_color,
+              1.0,
+            ),
+          )
+        }
+      }
+    }
+    i += 1
+  }
+  // Y-axis grid lines (horizontal)
+  i = 0
   while i < coord.y_scales.length() {
     match coord.y_scales[i] {
       Linear(s) => {
