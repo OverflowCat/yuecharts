@@ -211,7 +211,7 @@ E:\yuecharts
 │   ├── polar-bar-real-estate.json / .svg / .ref.svg
 │   ├── polar-roundCap.json / .svg / .ref.svg
 │   ├── pictorialbar.json / .svg / .ref.svg
-│   ├── pictorialbar-body-fill.json
+│   ├── pictorialbar-body-fill.json / .svg / .ref.svg
 │   ├── pictorialbar-clip.json / .svg / .ref.svg
 │   ├── pictorialbar-offset.json / .svg / .ref.svg
 │   ├── pictorialbar-path.json / .svg / .ref.svg
@@ -981,7 +981,7 @@ E:\recharts\echarts\src
     │   ├── data/series_data.mbt [static SeriesData subset for lightweight series wrapping]
     │   ├── option/parse.mbt [JSON parsing and option normalization subset]
     │   ├── option/types.mbt [shared option structures]
-    │   ├── layout/grid.mbt [grid bbox and cartesian scale building]
+    │   ├── layout/grid.mbt [grid bbox, getLayoutRect-style box layout, and cartesian scale building]
     │   ├── coord/cartesian.mbt [cartesian coordinate object]
     │   ├── scale/linear.mbt [linear scale]
     │   ├── scale/ordinal.mbt [ordinal scale]

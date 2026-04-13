@@ -1,5 +1,6 @@
 // Corresponds to: echarts/src/coord/cartesian/Grid.ts
 // and echarts/src/layout/barGrid.ts
+// and echarts/src/util/layout.ts#getLayoutRect
 
 ///|
 /// Resolve a SizeSpec into pixels given a total dimension.
@@ -11,6 +12,29 @@ pub fn resolve_size(spec : @option.SizeSpec, total : Double) -> Double {
 }
 
 ///|
+fn grid_layout_value(value : String, total : Double) -> Double {
+  if value == "center" ||
+    value == "middle" ||
+    value == "right" ||
+    value == "bottom" {
+    0.0 / 0.0
+  } else if value.has_suffix("%") {
+    let pct_str = value[:value.length() - 1]
+    let parsed = try? @strconv.parse_double(pct_str.to_string())
+    match parsed {
+      Ok(pct) => total * pct / 100.0
+      Err(_) => 0.0 / 0.0
+    }
+  } else {
+    let parsed = try? @strconv.parse_double(value)
+    match parsed {
+      Ok(px) => px
+      Err(_) => 0.0 / 0.0
+    }
+  }
+}
+
+///|
 /// Compute the plot-area bounding box from a GridOption and chart dimensions.
 /// This is the rectangle *inside* the axis tick marks and labels.
 pub fn compute_grid_bbox(
@@ -18,15 +42,52 @@ pub fn compute_grid_bbox(
   width : Double,
   height : Double,
 ) -> @graphic.BBox {
-  let left = resolve_size(grid.left, width)
-  let right = resolve_size(grid.right, width)
-  let top = resolve_size(grid.top, height)
-  let bottom = resolve_size(grid.bottom, height)
-  let x = left
-  let y = top
-  let w = width - left - right
-  let h = height - top - bottom
-  @graphic.BBox::new(x, y, w, h)
+  let mut left = grid_layout_value(grid.left, width)
+  let right = grid_layout_value(grid.right, width)
+  let mut top = grid_layout_value(grid.top, height)
+  let bottom = grid_layout_value(grid.bottom, height)
+  let mut bbox_w = match grid.width {
+    Some(value) => grid_layout_value(value, width)
+    None => 0.0 / 0.0
+  }
+  let mut bbox_h = match grid.height {
+    Some(value) => grid_layout_value(value, height)
+    None => 0.0 / 0.0
+  }
+
+  if bbox_w.is_nan() {
+    bbox_w = width - left - right
+  }
+  if bbox_h.is_nan() {
+    bbox_h = height - top - bottom
+  }
+
+  match grid.left {
+    "center" => left = width / 2.0 - bbox_w / 2.0
+    "right" => left = width - bbox_w - right
+    _ => ()
+  }
+  match grid.top {
+    "center" | "middle" => top = height / 2.0 - bbox_h / 2.0
+    "bottom" => top = height - bbox_h - bottom
+    _ => ()
+  }
+
+  if left.is_nan() {
+    left = width - right - bbox_w
+  }
+  if top.is_nan() {
+    top = height - bottom - bbox_h
+  }
+  left = if left.is_nan() { 0.0 } else { left }
+  top = if top.is_nan() { 0.0 } else { top }
+  if bbox_w.is_nan() {
+    bbox_w = width - left - right
+  }
+  if bbox_h.is_nan() {
+    bbox_h = height - top - bottom
+  }
+  @graphic.BBox::new(left, top, bbox_w, bbox_h)
 }
 
 ///|

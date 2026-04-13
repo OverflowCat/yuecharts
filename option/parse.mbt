@@ -14,7 +14,8 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let width = j_number(j, "width", base.width)
   let height = j_number(j, "height", base.height)
   let background_color = j_string_opt(j, "backgroundColor")
-  let text_style = match j_parse_optional(j, "textStyle", parse_chart_text_style_option) {
+  let text_style = match
+    j_parse_optional(j, "textStyle", parse_chart_text_style_option) {
     Some(style) => style
     None => ChartTextStyleOption::default()
   }
@@ -250,12 +251,20 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
 fn parse_grid_option(j : Json) -> GridOption {
   let base = GridOption::default()
   {
-    left: parse_size_spec(j, "left", base.left),
-    right: parse_size_spec(j, "right", base.right),
-    top: parse_size_spec(j, "top", base.top),
-    bottom: parse_size_spec(j, "bottom", base.bottom),
-    width: None,
-    height: None,
+    left: j_string_or_number_as_string_opt(j, "left", Some(base.left)).unwrap_or(
+      base.left,
+    ),
+    right: j_string_or_number_as_string_opt(j, "right", Some(base.right)).unwrap_or(
+      base.right,
+    ),
+    top: j_string_or_number_as_string_opt(j, "top", Some(base.top)).unwrap_or(
+      base.top,
+    ),
+    bottom: j_string_or_number_as_string_opt(j, "bottom", Some(base.bottom)).unwrap_or(
+      base.bottom,
+    ),
+    width: j_string_or_number_as_string_opt(j, "width", base.width),
+    height: j_string_or_number_as_string_opt(j, "height", base.height),
     contain_label: j_bool(j, "containLabel", base.contain_label),
   }
 }

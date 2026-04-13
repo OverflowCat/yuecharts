@@ -101,24 +101,12 @@ pub fn render_axes(
   if has_cartesian_axis_series(opt) {
     let mut i = 0
     while i < opt.x_axis.length() {
-      render_x_axis(
-        opt.x_axis[i],
-        coord,
-        i,
-        elems,
-        global_font_family,
-      )
+      render_x_axis(opt.x_axis[i], coord, i, elems, global_font_family)
       i += 1
     }
     let mut j = 0
     while j < opt.y_axis.length() {
-      render_y_axis(
-        opt.y_axis[j],
-        coord,
-        j,
-        elems,
-        global_font_family,
-      )
+      render_y_axis(opt.y_axis[j], coord, j, elems, global_font_family)
       j += 1
     }
   }
@@ -127,9 +115,8 @@ pub fn render_axes(
     None => ()
   }
   match single {
-    Some(single_coord) => {
+    Some(single_coord) =>
       render_single_axis(opt, single_coord, elems, global_font_family)
-    }
     None => ()
   }
   elems
@@ -749,12 +736,7 @@ fn render_single_axis(
       }
     }
     single_axis_tick_and_label(
-      single_coord,
-      axis_option,
-      layout,
-      tick,
-      elems,
-      global_font_family,
+      single_coord, axis_option, layout, tick, elems, global_font_family,
     )
     i += 1
   }

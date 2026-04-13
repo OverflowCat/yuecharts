@@ -179,12 +179,7 @@ pub(all) struct ChartTextStyleOption {
 
 ///|
 pub impl Default for ChartTextStyleOption with default() {
-  {
-    color: None,
-    font_size: None,
-    font_family: None,
-    font_weight: None,
-  }
+  { color: None, font_size: None, font_family: None, font_weight: None }
 }
 
 ///|
@@ -331,12 +326,12 @@ pub(all) struct MapRegistryOption {
 ///|
 /// Grid layout specification.
 pub(all) struct GridOption {
-  left : SizeSpec
-  right : SizeSpec
-  top : SizeSpec
-  bottom : SizeSpec
-  width : SizeSpec?
-  height : SizeSpec?
+  left : String
+  right : String
+  top : String
+  bottom : String
+  width : String?
+  height : String?
   contain_label : Bool
 }
 
@@ -352,10 +347,10 @@ pub impl Default for GridOption with default() {
   // ECharts default: left='15%', right='10%', top=65, bottom=80
   // See echarts/src/coord/cartesian/GridModel.ts
   {
-    left: SizeSpec::Pct(15.0),
-    right: SizeSpec::Pct(10.0),
-    top: SizeSpec::Px(65.0),
-    bottom: SizeSpec::Px(80.0),
+    left: "15%",
+    right: "10%",
+    top: "65",
+    bottom: "80",
     width: None,
     height: None,
     contain_label: false,

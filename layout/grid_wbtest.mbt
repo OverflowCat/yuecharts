@@ -19,10 +19,10 @@ test "resolve_size Pct" {
 ///|
 test "compute_grid_bbox with Px margins" {
   let grid : @option.GridOption = {
-    left: @option.SizeSpec::Px(60.0),
-    right: @option.SizeSpec::Px(20.0),
-    top: @option.SizeSpec::Px(40.0),
-    bottom: @option.SizeSpec::Px(60.0),
+    left: "60",
+    right: "20",
+    top: "40",
+    bottom: "60",
     width: None,
     height: None,
     contain_label: false,
@@ -37,10 +37,10 @@ test "compute_grid_bbox with Px margins" {
 ///|
 test "compute_grid_bbox with Pct margins" {
   let grid : @option.GridOption = {
-    left: @option.SizeSpec::Pct(10.0),
-    right: @option.SizeSpec::Pct(10.0),
-    top: @option.SizeSpec::Pct(10.0),
-    bottom: @option.SizeSpec::Pct(10.0),
+    left: "10%",
+    right: "10%",
+    top: "10%",
+    bottom: "10%",
     width: None,
     height: None,
     contain_label: false,
@@ -66,10 +66,10 @@ test "compute_grid_bbox default margins" {
 ///|
 test "compute_grid_bbox right and bottom" {
   let grid : @option.GridOption = {
-    left: @option.SizeSpec::Px(10.0),
-    right: @option.SizeSpec::Px(10.0),
-    top: @option.SizeSpec::Px(10.0),
-    bottom: @option.SizeSpec::Px(10.0),
+    left: "10",
+    right: "10",
+    top: "10",
+    bottom: "10",
     width: None,
     height: None,
     contain_label: false,
@@ -77,4 +77,23 @@ test "compute_grid_bbox right and bottom" {
   let bbox = compute_grid_bbox(grid, 200.0, 100.0)
   assert_eq(bbox.right(), 190.0)
   assert_eq(bbox.bottom(), 90.0)
+}
+
+///|
+test "compute_grid_bbox honors centered top with explicit height" {
+  let grid : @option.GridOption = {
+    left: "15%",
+    right: "10%",
+    top: "center",
+    bottom: "80",
+    width: None,
+    height: Some("230"),
+    contain_label: false,
+  }
+  let bbox = compute_grid_bbox(grid, 800.0, 600.0)
+  assert_eq(bbox.x, 120.0)
+  assert_eq(bbox.y, 185.0)
+  assert_eq(bbox.width, 600.0)
+  assert_eq(bbox.height, 230.0)
+  assert_eq(bbox.bottom(), 415.0)
 }

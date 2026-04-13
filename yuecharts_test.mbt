@@ -596,6 +596,42 @@ test "pictorial bar path symbol uses normalized path transform" {
 }
 
 ///|
+test "pictorial bar body-fill centers the grid vertically" {
+  let json_str =
+    #|{
+    #|  "tooltip": {},
+    #|  "legend": {
+    #|    "data": ["typeA", "typeB"],
+    #|    "selectedMode": "single"
+    #|  },
+    #|  "xAxis": {
+    #|    "data": ["a", "b", "c", "d", "e"],
+    #|    "axisTick": {"show": false},
+    #|    "axisLine": {"show": false},
+    #|    "axisLabel": {"show": false}
+    #|  },
+    #|  "yAxis": {
+    #|    "max": 150,
+    #|    "offset": 20,
+    #|    "splitLine": {"show": false}
+    #|  },
+    #|  "grid": {
+    #|    "top": "center",
+    #|    "height": 230
+    #|  },
+    #|  "series": [{
+    #|    "type": "pictorialBar",
+    #|    "symbolClip": true,
+    #|    "symbolBoundingData": 150,
+    #|    "data": [123, 34, 101, 89, 72]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("y1=\"415\""))
+  assert_true(svg.contains("fill=\"#5070dd\""))
+}
+
+///|
 test "pictorial bar item symbol overrides series symbol" {
   let json_str =
     #|{

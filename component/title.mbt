@@ -42,7 +42,10 @@ pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
         @graphic.TextBaseline::Central,
         title.text_style.color,
         title.text_style.font_size,
-        title_font_family(opt.text_style.font_family, title.text_style.font_family),
+        title_font_family(
+          opt.text_style.font_family,
+          title.text_style.font_family,
+        ),
         title.text_style.font_weight,
       ),
     )
