@@ -1140,14 +1140,69 @@ pub impl Default for VisualMapInRange with default() {
 }
 
 ///|
+/// Corresponds to: echarts/src/component/visualMap/PiecewiseModel.ts
+pub(all) struct VisualMapPieceOption {
+  min : Double?
+  max : Double?
+  gt : Double?
+  gte : Double?
+  lt : Double?
+  lte : Double?
+  value : String?
+  label : String?
+  color : String?
+  symbol : String?
+}
+
+///|
+pub impl Default for VisualMapPieceOption with default() {
+  {
+    min: None,
+    max: None,
+    gt: None,
+    gte: None,
+    lt: None,
+    lte: None,
+    value: None,
+    label: None,
+    color: None,
+    symbol: None,
+  }
+}
+
+///|
+pub(all) struct VisualMapSelection {
+  key : String
+  selected : Bool
+}
+
+///|
 pub struct VisualMapOption {
+  map_type : String?
   /// Minimum value of the mapped range.
   min : Double
   /// Maximum value of the mapped range.
   max : Double
   series_index : Int
   dimension : Int
+  color : Array[String]
+  text : Array[String]
   in_range : VisualMapInRange
+  out_of_range : VisualMapInRange?
+  text_style : ChartTextStyleOption?
+  pieces : Array[VisualMapPieceOption]
+  categories : Array[String]
+  split_number : Int
+  selected : Array[VisualMapSelection]
+  selected_mode : String
+  show_label : Bool?
+  item_gap : Double
+  inverse : Bool
+  align : String
+  item_symbol : String
+  min_open : Bool
+  max_open : Bool
+  precision : Int
   // Layout / rendering fields (from VisualMapModel.ts defaults):
   orient : String // "horizontal" | "vertical", default "vertical"
   left : String? // pixel or %; default None (ECharts: left=0 as fallback)
@@ -1163,11 +1218,29 @@ pub struct VisualMapOption {
 ///|
 pub impl Default for VisualMapOption with default() {
   {
+    map_type: None,
     min: 0.0,
     max: 100.0,
     series_index: 0,
     dimension: 0,
+    color: [],
+    text: [],
     in_range: VisualMapInRange::default(),
+    out_of_range: None,
+    text_style: None,
+    pieces: [],
+    categories: [],
+    split_number: 0,
+    selected: [],
+    selected_mode: "multiple",
+    show_label: None,
+    item_gap: 10.0,
+    inverse: false,
+    align: "auto",
+    item_symbol: "roundRect",
+    min_open: false,
+    max_open: false,
+    precision: 0,
     orient: "vertical",
     left: None,
     right: None,

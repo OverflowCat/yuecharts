@@ -871,6 +871,36 @@ test "continuous visual map renders standalone legend bar" {
 }
 
 ///|
+test "piecewise visual map renders standalone items" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 220,
+    #|  "visualMap": [{
+    #|    "type": "piecewise",
+    #|    "left": "20",
+    #|    "top": "10",
+    #|    "showLabel": true,
+    #|    "text": ["High", "Low"],
+    #|    "pieces": [
+    #|      { "min": 0, "max": 10, "label": "0-10", "color": "#d94e5d" },
+    #|      { "min": 10, "max": 20, "label": "10-20" },
+    #|      { "min": 20, "max": 30, "label": "20-30", "color": "#50a3ba" }
+    #|    ],
+    #|    "inRange": { "color": ["#d94e5d", "#eac736", "#50a3ba"] }
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">High</text>"))
+  assert_true(svg.contains(">Low</text>"))
+  assert_true(svg.contains(">0-10</text>"))
+  assert_true(svg.contains(">10-20</text>"))
+  assert_true(svg.contains(">20-30</text>"))
+  assert_true(svg.contains("#d94e5d"))
+  assert_true(svg.contains("#50a3ba"))
+}
+
+///|
 test "effect scatter supports geo coordinate system" {
   let json_str =
     #|{

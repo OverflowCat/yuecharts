@@ -2047,12 +2047,53 @@ fn parse_visual_map(j : Json) -> VisualMapOption {
       Some(parse_visual_map_in_range(j_field_or_self(ctrl, "inRange")))
     None => None
   }
+  let pieces = match j_field(j, "pieces") {
+    Some(Array(arr)) => arr.map(parse_visual_map_piece)
+    _ =>
+      match j_field(j, "splitList") {
+        Some(Array(arr)) => arr.map(parse_visual_map_piece)
+        _ => base.pieces
+      }
+  }
   {
+    map_type: j_string_opt(j, "type"),
     min: j_number(j, "min", base.min),
     max: j_number(j, "max", base.max),
     series_index: j_int(j, "seriesIndex", base.series_index),
     dimension: j_int(j, "dimension", base.dimension),
+    color: j_stringish_array(j, "color", base.color),
+    text: j_stringish_array(j, "text", base.text),
     in_range: parse_visual_map_in_range(j_field_or_self(j, "inRange")),
+    out_of_range: match j_field(j, "outOfRange") {
+      Some(value) => Some(parse_visual_map_in_range(value))
+      None => base.out_of_range
+    },
+    text_style: match j_field(j, "textStyle") {
+      Some(value) => Some(parse_chart_text_style_option(value))
+      None => base.text_style
+    },
+    pieces,
+    categories: j_stringish_array(j, "categories", base.categories),
+    split_number: j_int(j, "splitNumber", base.split_number),
+    selected: parse_visual_map_selected(j),
+    selected_mode: match j_field(j, "selectedMode") {
+      Some(True) => "multiple"
+      Some(False) => ""
+      Some(String(s)) => s
+      _ => base.selected_mode
+    },
+    show_label: match j_field(j, "showLabel") {
+      Some(True) => Some(true)
+      Some(False) => Some(false)
+      _ => base.show_label
+    },
+    item_gap: j_number(j, "itemGap", base.item_gap),
+    inverse: j_bool(j, "inverse", base.inverse),
+    align: j_string(j, "align", base.align),
+    item_symbol: j_string(j, "itemSymbol", base.item_symbol),
+    min_open: j_bool(j, "minOpen", base.min_open),
+    max_open: j_bool(j, "maxOpen", base.max_open),
+    precision: j_int(j, "precision", base.precision),
     orient: match j_field(j, "orient") {
       Some(String(s)) => s
       _ => base.orient
@@ -2071,6 +2112,69 @@ fn parse_visual_map(j : Json) -> VisualMapOption {
       _ => base.item_height
     },
     controller_in_range: controller_inrange,
+  }
+}
+
+///|
+fn parse_visual_map_piece(j : Json) -> VisualMapPieceOption {
+  let base = VisualMapPieceOption::default()
+  match j {
+    Object(_) => {
+      let min = match j_field(j, "min") {
+        Some(Number(n, ..)) => Some(n)
+        _ =>
+          match j_field(j, "start") {
+            Some(Number(n, ..)) => Some(n)
+            _ => base.min
+          }
+      }
+      let max = match j_field(j, "max") {
+        Some(Number(n, ..)) => Some(n)
+        _ =>
+          match j_field(j, "end") {
+            Some(Number(n, ..)) => Some(n)
+            _ => base.max
+          }
+      }
+      {
+        min,
+        max,
+        gt: j_number_opt(j, "gt"),
+        gte: j_number_opt(j, "gte"),
+        lt: j_number_opt(j, "lt"),
+        lte: j_number_opt(j, "lte"),
+        value: match j_field(j, "value") {
+          Some(String(s)) => Some(s)
+          Some(Number(n, ..)) => Some("\{n}")
+          _ => base.value
+        },
+        label: j_string_opt(j, "label"),
+        color: j_string_opt(j, "color"),
+        symbol: j_string_opt(j, "symbol"),
+      }
+    }
+    String(s) => { ..base, value: Some(s) }
+    Number(n, ..) => { ..base, value: Some("\{n}") }
+    _ => base
+  }
+}
+
+///|
+fn parse_visual_map_selected(j : Json) -> Array[VisualMapSelection] {
+  match j_field(j, "selected") {
+    Some(Object(map)) => {
+      let result : Array[VisualMapSelection] = []
+      for key, value in map {
+        let selected = match value {
+          True => true
+          False => false
+          _ => true
+        }
+        result.push({ key, selected })
+      }
+      result
+    }
+    _ => []
   }
 }
 
