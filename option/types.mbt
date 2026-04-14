@@ -477,6 +477,41 @@ pub(all) struct SankeyLevelOption {
 }
 
 ///|
+/// Corresponds to: echarts/src/chart/treemap/TreemapSeries.ts
+pub(all) struct TreemapUpperLabelOption {
+  show : Bool
+  height : Double
+}
+
+///|
+pub impl Default for TreemapUpperLabelOption with default() {
+  { show: false, height: 20.0 }
+}
+
+///|
+pub(all) struct TreemapItemStyleOption {
+  border_color : String?
+  border_width : Double?
+  gap_width : Double?
+}
+
+///|
+pub impl Default for TreemapItemStyleOption with default() {
+  { border_color: None, border_width: None, gap_width: None }
+}
+
+///|
+pub(all) struct TreemapLevelOption {
+  item_style : TreemapItemStyleOption?
+  upper_label : TreemapUpperLabelOption?
+}
+
+///|
+pub impl Default for TreemapLevelOption with default() {
+  { item_style: None, upper_label: None }
+}
+
+///|
 
 ///|
 /// Series configuration.
@@ -601,6 +636,8 @@ pub(all) struct SeriesOption {
   sankey_width : SizeSpec?
   sankey_height : SizeSpec?
   sankey_levels : Array[SankeyLevelOption]
+  treemap_upper_label : TreemapUpperLabelOption?
+  treemap_levels : Array[TreemapLevelOption]
 }
 
 ///|
@@ -720,6 +757,8 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     sankey_width: None,
     sankey_height: None,
     sankey_levels: [],
+    treemap_upper_label: None,
+    treemap_levels: [],
   }
 }
 

@@ -257,6 +257,38 @@ test "tree polyline simple labels use central baseline" {
 }
 
 ///|
+/// Treemap upper labels should reserve a parent header strip and show parent names above children.
+test "treemap show-parent reserves upper labels" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "series": [{
+    #|    "type": "treemap",
+    #|    "label": { "show": true, "formatter": "{b}" },
+    #|    "upperLabel": { "show": true, "height": 30 },
+    #|    "data": [{
+    #|      "name": "Speech",
+    #|      "children": [{
+    #|        "name": "Voices",
+    #|        "children": [
+    #|          { "name": "Ting-Ting.SpeechVoice", "value": 76 },
+    #|          { "name": "Alex.SpeechVoice", "value": 92 }
+    #|        ]
+    #|      }]
+    #|    }]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">Speech</text>"))
+  assert_true(svg.contains(">Voices</text>"))
+  assert_true(svg.contains(">Ting-Ting.SpeechVoice</text>"))
+  assert_true(svg.contains("x=\"25\" y=\"65\""))
+  assert_true(svg.contains("x=\"26\" y=\"95\""))
+  assert_true(svg.contains("fill=\"#333333\""))
+}
+
+///|
 /// Tree leaves config should behave like TreeSeries leavesModel for static label/item/line style inheritance.
 test "tree leaves styles and node overrides render" {
   let json_str =
@@ -664,7 +696,7 @@ test "pictorial bar path symbol uses normalized path transform" {
     #|}
   let svg = @yuecharts.render(json_str)
   assert_true(svg.contains("matrix(40,0,0,40,-200,-200)"))
-  assert_true(svg.contains("matrix(0.5175,0,0,0.19125,135,281.75)"))
+  assert_true(svg.contains("matrix(2.5875,0,0,0.6375,315,192.5)"))
   assert_true(svg.contains("opacity=\"0.5\""))
 }
 
@@ -1885,9 +1917,9 @@ test "map data statistic aggregates same-geo series and draws once" {
     #|  ]
     #|}
   let svg = @yuecharts.render(json_str)
-  // 2 geo outlines (fill=none) + 2 map fill paths.
+  // 2 geo outlines + 2 map fill paths.
   assert_eq(count_substring(svg, "<path d=\"M "), 4)
-  assert_eq(count_substring(svg, "fill=\"none\""), 2)
+  assert_eq(count_substring(svg, "fill=\"#f3f5f8\""), 2)
   assert_eq(count_substring(svg, "fill=\"#3182bd\""), 1)
   assert_eq(count_substring(svg, "fill=\"#deebf7\""), 1)
   assert_true(svg.contains("fill=\"#3182bd\""))

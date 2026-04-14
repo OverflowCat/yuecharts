@@ -223,7 +223,25 @@ fn sort_children_desc(
 }
 
 ///|
+fn treemap_parent_fill_color(depth : Int) -> String {
+  if depth == 0 {
+    "#777777"
+  } else {
+    "#555555"
+  }
+}
+
+///|
+fn treemap_upper_label_height(series : @option.SeriesOption) -> Double {
+  match series.treemap_upper_label {
+    Some(upper_label) => if upper_label.show { upper_label.height } else { 0.0 }
+    None => 0.0
+  }
+}
+
+///|
 fn render_treemap_children(
+  series : @option.SeriesOption,
   elems : Array[@graphic.Element],
   children : Array[@option.DataItem],
   rect : TreemapRect,
@@ -251,60 +269,100 @@ fn render_treemap_children(
     i += 1
   }
   let rects = layout_squarify(areas, rect)
+  let upper_label_height = treemap_upper_label_height(series)
   let mut ri = 0
   while ri < sorted.length() {
     let node = sorted[ri]
     let child_rect = rects[ri]
-    let fill_color = @visual.palette_color(color_seed + ri + depth * 3)
     if child_rect.width > 0.5 && child_rect.height > 0.5 {
-      elems.push(
-        @graphic.Element::rect_colored(
-          child_rect.x,
-          child_rect.y,
-          child_rect.width,
-          child_rect.height,
-          fill_color,
-        ),
-      )
-      elems.push(
-        @graphic.Element::rect_outlined(
-          child_rect.x,
-          child_rect.y,
-          child_rect.width,
-          child_rect.height,
-          "#ffffff",
-          1.0,
-        ),
-      )
       let label = match node.name {
         Some(s) => s
         None => ""
       }
-      if label != "" && child_rect.width >= 48.0 && child_rect.height >= 22.0 {
+      let is_parent = node.children.length() > 0
+      if is_parent {
         elems.push(
-          @graphic.Element::text_colored(
-            child_rect.x + 6.0,
-            child_rect.y + 16.0,
-            label,
-            @graphic.TextAnchor::Start,
-            @graphic.TextBaseline::Middle,
-            "#ffffff",
+          @graphic.Element::rect_colored(
+            child_rect.x,
+            child_rect.y,
+            child_rect.width,
+            child_rect.height,
+            treemap_parent_fill_color(depth),
           ),
         )
-      }
-      if node.children.length() > 0 {
-        render_treemap_children(
-          elems,
-          node.children,
-          {
-            x: child_rect.x + 1.0,
-            y: child_rect.y + 1.0,
-            width: child_rect.width - 2.0,
-            height: child_rect.height - 2.0,
-          },
-          depth + 1,
-          color_seed + ri + 1,
+        elems.push(
+          @graphic.Element::rect_outlined(
+            child_rect.x,
+            child_rect.y,
+            child_rect.width,
+            child_rect.height,
+            "#ffffff",
+            1.0,
+          ),
         )
+        if label != "" &&
+          upper_label_height > 0.0 &&
+          child_rect.height >= upper_label_height + 6.0 {
+          elems.push(
+            @graphic.Element::text_colored(
+              child_rect.x + 5.0,
+              child_rect.y + upper_label_height / 2.0,
+              label,
+              @graphic.TextAnchor::Start,
+              @graphic.TextBaseline::Middle,
+              "#333333",
+            ),
+          )
+        }
+        let content_rect : TreemapRect = {
+          x: child_rect.x + 1.0,
+          y: child_rect.y + upper_label_height,
+          width: child_rect.width - 2.0,
+          height: child_rect.height - upper_label_height - 1.0,
+        }
+        if content_rect.width > 1.0 && content_rect.height > 1.0 {
+          render_treemap_children(
+            series,
+            elems,
+            node.children,
+            content_rect,
+            depth + 1,
+            color_seed + ri + 1,
+          )
+        }
+      } else {
+        let fill_color = @visual.palette_color(color_seed + ri + depth * 3)
+        elems.push(
+          @graphic.Element::rect_colored(
+            child_rect.x,
+            child_rect.y,
+            child_rect.width,
+            child_rect.height,
+            fill_color,
+          ),
+        )
+        elems.push(
+          @graphic.Element::rect_outlined(
+            child_rect.x,
+            child_rect.y,
+            child_rect.width,
+            child_rect.height,
+            "#ffffff",
+            1.0,
+          ),
+        )
+        if label != "" && child_rect.width >= 48.0 && child_rect.height >= 22.0 {
+          elems.push(
+            @graphic.Element::text_colored(
+              child_rect.x + 6.0,
+              child_rect.y + 16.0,
+              label,
+              @graphic.TextAnchor::Start,
+              @graphic.TextBaseline::Middle,
+              "#ffffff",
+            ),
+          )
+        }
       }
     }
     ri += 1
@@ -366,6 +424,13 @@ pub fn render_treemap_series(
     width: chart_width - margin_left - margin_right,
     height: chart_height - margin_top - margin_bottom,
   }
-  render_treemap_children(elems, series.data, root_rect, 0, series_index)
+  render_treemap_children(
+    series,
+    elems,
+    series.data,
+    root_rect,
+    0,
+    series_index,
+  )
   elems
 }

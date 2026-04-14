@@ -991,6 +991,38 @@ fn parse_sankey_level_option(j : Json) -> SankeyLevelOption {
 }
 
 ///|
+fn parse_treemap_upper_label_option(j : Json) -> TreemapUpperLabelOption {
+  let base = TreemapUpperLabelOption::default()
+  {
+    show: j_bool(j, "show", base.show),
+    height: j_number(j, "height", base.height),
+  }
+}
+
+///|
+fn parse_treemap_item_style_option(j : Json) -> TreemapItemStyleOption {
+  {
+    border_color: j_string_opt(j, "borderColor"),
+    border_width: j_number_opt(j, "borderWidth"),
+    gap_width: j_number_opt(j, "gapWidth"),
+  }
+}
+
+///|
+fn parse_treemap_level_option(j : Json) -> TreemapLevelOption {
+  {
+    item_style: match j_field(j, "itemStyle") {
+      Some(value) => Some(parse_treemap_item_style_option(value))
+      None => None
+    },
+    upper_label: match j_field(j, "upperLabel") {
+      Some(value) => Some(parse_treemap_upper_label_option(value))
+      None => None
+    },
+  }
+}
+
+///|
 fn parse_series_option(j : Json) -> SeriesOption {
   let series_type = match j_string(j, "type", "line") {
     "line" => SeriesType::Line
@@ -1311,6 +1343,11 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let sankey_width = parse_size_spec_opt(j, "width", base.sankey_width)
   let sankey_height = parse_size_spec_opt(j, "height", base.sankey_height)
   let sankey_levels = j_parse_array(j, "levels", parse_sankey_level_option, [])
+  let treemap_upper_label = match j_field(j, "upperLabel") {
+    Some(value) => Some(parse_treemap_upper_label_option(value))
+    None => base.treemap_upper_label
+  }
+  let treemap_levels = j_parse_array(j, "levels", parse_treemap_level_option, [])
   {
     series_type,
     name,
@@ -1425,6 +1462,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     sankey_width,
     sankey_height,
     sankey_levels,
+    treemap_upper_label,
+    treemap_levels,
   }
 }
 
