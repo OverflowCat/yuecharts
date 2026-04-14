@@ -1289,10 +1289,13 @@ test "polar bar stack radial renders visible sectors" {
   let svg = @yuecharts.render(json_str)
   assert_true(
     svg.contains(
-      "M 290.63 175.0337 A 26.6667 26.6667 0 0 1 309.37 175.0337 L 300 200 Z",
+      "M 295.315 187.5169 A 13.3333 13.3333 0 0 1 304.685 187.5169 L 300 200 Z",
     ),
   )
-  assert_true(svg.contains("M 271.89 125.1012 A 80 80 0 0 1 328.11 125.1012"))
+  assert_true(
+    svg.contains("M 418.914 183.892 A 120 120 0 0 1 400.1488 266.1076"),
+  )
+  assert_true(svg.contains(">12</text>"))
   assert_true(svg.contains("fill=\"#5070dd\""))
   assert_true(svg.contains("fill=\"#b6d634\""))
   assert_true(svg.contains("fill=\"#505372\""))
