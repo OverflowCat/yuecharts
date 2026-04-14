@@ -111,6 +111,8 @@ fn tree_build(
     states: @option.GeoStatesOption::default(),
     children: data,
     collapsed: None,
+    title_offset_center: None,
+    detail_offset_center: None,
   }
   let all_nodes : Array[TreeNode] = []
   let virtual_root = tree_build_hierarchy(wrapper_item, all_nodes)

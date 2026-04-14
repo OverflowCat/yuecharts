@@ -91,6 +91,28 @@ pub fn compute_grid_bbox(
 }
 
 ///|
+/// Resolve the plot-area bounding box for a specific grid index.
+/// Falls back to grid 0 when the requested index is missing.
+pub fn grid_bbox_for_index(
+  opt : @option.ChartOption,
+  grid_index : Int,
+) -> @graphic.BBox {
+  if opt.grid.length() == 0 {
+    return compute_grid_bbox(
+      @option.GridOption::default(),
+      opt.width,
+      opt.height,
+    )
+  }
+  let index = if grid_index >= 0 && grid_index < opt.grid.length() {
+    grid_index
+  } else {
+    0
+  }
+  compute_grid_bbox(opt.grid[index], opt.width, opt.height)
+}
+
+///|
 /// Build x-axis ordinal scales for all series that reference the given x-axis.
 /// `data` is the category array from AxisOption.
 pub fn make_ordinal_x_scale(
@@ -124,28 +146,25 @@ pub fn make_linear_x_scale(
 
 ///|
 /// Build a Cartesian2D from the parsed chart option.
-/// Uses the first grid by default.
+/// Each axis is resolved against its own `gridIndex`, with grid 0 as fallback.
 pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
-  let grid = if opt.grid.length() > 0 {
-    opt.grid[0]
-  } else {
-    @option.GridOption::default()
-  }
-  let bbox = compute_grid_bbox(grid, opt.width, opt.height)
+  let bbox = grid_bbox_for_index(opt, 0)
   // Build x scales using explicit index loop
   let x_scales : Array[@coord.XScale] = []
   let mut xi = 0
   while xi < opt.x_axis.length() {
     let ax = opt.x_axis[xi]
     xi += 1
+    let axis_grid_index = ax.grid_index.unwrap_or(0)
+    let axis_bbox = grid_bbox_for_index(opt, axis_grid_index)
     let xs : @coord.XScale = match ax.axis_type {
       Category =>
-        @coord.XScale::make_ordinal(make_ordinal_x_scale(ax.data, bbox))
+        @coord.XScale::make_ordinal(make_ordinal_x_scale(ax.data, axis_bbox))
       Value | Log | Time => {
         let (dmin, dmax) = series_x_range(opt, xi - 1)
         let lo = ax.min.unwrap_or(dmin.min(0.0))
         let hi = ax.max.unwrap_or(dmax)
-        @coord.XScale::make_linear(make_linear_x_scale(lo, hi, bbox))
+        @coord.XScale::make_linear(make_linear_x_scale(lo, hi, axis_bbox))
       }
     }
     x_scales.push(xs)
@@ -155,6 +174,8 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
   let mut yi = 0
   while yi < opt.y_axis.length() {
     let ax = opt.y_axis[yi]
+    let axis_grid_index = ax.grid_index.unwrap_or(0)
+    let axis_bbox = grid_bbox_for_index(opt, axis_grid_index)
     let ys : @coord.YScale = match ax.axis_type {
       Value | Log | Time => {
         let (dmin, dmax) = series_y_range(opt, yi)
@@ -162,11 +183,16 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
         // If data min is positive, start axis from 0 (matches ECharts behavior).
         let lo = ax.min.unwrap_or(if dmin > 0.0 { 0.0 } else { dmin })
         let hi = ax.max.unwrap_or(dmax)
-        @coord.YScale::make_linear(make_linear_y_scale(lo, hi, bbox))
+        @coord.YScale::make_linear(make_linear_y_scale(lo, hi, axis_bbox))
       }
       Category =>
         @coord.YScale::make_ordinal(
-          @scale.OrdinalScale::new(ax.data, bbox.y + bbox.height, bbox.y, 0.1),
+          @scale.OrdinalScale::new(
+            ax.data,
+            axis_bbox.y + axis_bbox.height,
+            axis_bbox.y,
+            0.1,
+          ),
         )
     }
     y_scales.push(ys)
