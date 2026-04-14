@@ -1058,31 +1058,41 @@ fn tree_label_position(
   let offset = half_size + distance
   match position {
     "left" =>
-      (x - offset, y, @graphic.TextAnchor::End, @graphic.TextBaseline::Middle)
+      (x - offset, y, @graphic.TextAnchor::End, @graphic.TextBaseline::Central)
     "right" =>
-      (x + offset, y, @graphic.TextAnchor::Start, @graphic.TextBaseline::Middle)
+      (
+        x + offset,
+        y,
+        @graphic.TextAnchor::Start,
+        @graphic.TextBaseline::Central,
+      )
     "top" =>
       (
         x,
         y - offset,
         @graphic.TextAnchor::Middle,
-        @graphic.TextBaseline::Bottom,
+        @graphic.TextBaseline::Central,
       )
     "bottom" =>
       (
         x,
         y + offset,
         @graphic.TextAnchor::Middle,
-        @graphic.TextBaseline::Hanging,
+        @graphic.TextBaseline::Central,
       )
     "inside" =>
-      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
+      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Central)
     "middle" =>
-      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
+      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Central)
     "center" =>
-      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Middle)
+      (x, y, @graphic.TextAnchor::Middle, @graphic.TextBaseline::Central)
     _ =>
-      (x + offset, y, @graphic.TextAnchor::Start, @graphic.TextBaseline::Middle)
+      (
+        x + offset,
+        y,
+        @graphic.TextAnchor::Start,
+        @graphic.TextBaseline::Central,
+      )
   }
 }
 

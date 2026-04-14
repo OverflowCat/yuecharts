@@ -199,6 +199,64 @@ test "themeRiver ignores unnamed items" {
 }
 
 ///|
+/// Tree polyline labels should keep the central baseline and default series text color.
+test "tree polyline simple labels use central baseline" {
+  let json_str =
+    #|{
+    #|  "width": 800,
+    #|  "height": 500,
+    #|  "series": [{
+    #|    "type": "tree",
+    #|    "data": [{
+    #|      "name": "Root",
+    #|      "children": [
+    #|        {
+    #|          "name": "Branch A",
+    #|          "children": [
+    #|            { "name": "Leaf A1" },
+    #|            { "name": "Leaf A2" },
+    #|            { "name": "Leaf A3" }
+    #|          ]
+    #|        },
+    #|        {
+    #|          "name": "Branch B",
+    #|          "children": [
+    #|            { "name": "Leaf B1" },
+    #|            {
+    #|              "name": "Sub B2",
+    #|              "children": [
+    #|                { "name": "Leaf B2a" },
+    #|                { "name": "Leaf B2b" }
+    #|              ]
+    #|            }
+    #|          ]
+    #|        },
+    #|        {
+    #|          "name": "Branch C",
+    #|          "children": [
+    #|            { "name": "Leaf C1" }
+    #|          ]
+    #|        }
+    #|      ]
+    #|    }],
+    #|    "top": "5%",
+    #|    "left": "10%",
+    #|    "bottom": "5%",
+    #|    "right": "25%",
+    #|    "symbolSize": 7,
+    #|    "orient": "LR",
+    #|    "edgeShape": "polyline",
+    #|    "edgeForkPosition": "50%",
+    #|    "expandAndCollapse": false
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("dominant-baseline=\"central\""))
+  assert_true(svg.contains("fill=\"#333333\""))
+  assert_true(!svg.contains("dominant-baseline=\"middle\""))
+}
+
+///|
 /// Tree leaves config should behave like TreeSeries leavesModel for static label/item/line style inheritance.
 test "tree leaves styles and node overrides render" {
   let json_str =

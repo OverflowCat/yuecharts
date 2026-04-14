@@ -855,7 +855,8 @@ pub fn SeriesOption::default_tree() -> SeriesOption {
     tree_node_scale_ratio: 0.4,
     line_style_curveness: Some(0.5),
     line_style_width: Some(1.5),
-    label: Some({ ..GeoLabelOption::default(), show: true }),
+    // Tree labels follow the series text default color in ECharts SSR.
+    label: Some({ ..GeoLabelOption::default(), show: true, color: "#333" }),
   }
 }
 
