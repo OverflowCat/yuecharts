@@ -170,6 +170,26 @@ pub fn install_matrix(registry : @core.Registry) -> Unit {
 }
 
 ///|
+
+///|
+struct VisualMapComponentView {}
+
+///|
+pub impl @core.ComponentViewLike for VisualMapComponentView with render(
+  _self,
+  ctx,
+) {
+  render_visual_map(ctx.option)
+}
+
+///|
+pub fn install_visual_map(registry : @core.Registry) -> Unit {
+  // echarts/src/component/visualMap/install.ts
+  // echarts/src/component/visualMap/ContinuousView.ts
+  register_component(registry, Foreground, false, VisualMapComponentView::{  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_grid_lines(registry)
   install_axis(registry)
@@ -180,4 +200,5 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_calendar(registry)
   install_matrix(registry)
   install_aria(registry)
+  install_visual_map(registry)
 }

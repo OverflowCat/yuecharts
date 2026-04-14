@@ -1148,6 +1148,16 @@ pub struct VisualMapOption {
   series_index : Int
   dimension : Int
   in_range : VisualMapInRange
+  // Layout / rendering fields (from VisualMapModel.ts defaults):
+  orient : String // "horizontal" | "vertical", default "vertical"
+  left : String? // pixel or %; default None (ECharts: left=0 as fallback)
+  right : String? // pixel or %; default None
+  top : String? // pixel or %; default None
+  bottom : String? // pixel or %; default None (ECharts: bottom=0 as fallback)
+  show : Bool // whether to show the legend, default true
+  item_width : Double? // default None → resolved to 20 (DEFAULT_BAR_BOUND[0])
+  item_height : Double? // default None → resolved to 140 (DEFAULT_BAR_BOUND[1])
+  controller_in_range : VisualMapInRange? // from controller.inRange
 }
 
 ///|
@@ -1158,6 +1168,15 @@ pub impl Default for VisualMapOption with default() {
     series_index: 0,
     dimension: 0,
     in_range: VisualMapInRange::default(),
+    orient: "vertical",
+    left: None,
+    right: None,
+    top: None,
+    bottom: None,
+    show: true,
+    item_width: None,
+    item_height: None,
+    controller_in_range: None,
   }
 }
 

@@ -2042,12 +2042,35 @@ fn parse_symbol_offset(j : Json) -> Array[String]? {
 ///|
 fn parse_visual_map(j : Json) -> VisualMapOption {
   let base = VisualMapOption::default()
+  let controller_inrange = match j_field(j, "controller") {
+    Some(ctrl) =>
+      Some(parse_visual_map_in_range(j_field_or_self(ctrl, "inRange")))
+    None => None
+  }
   {
     min: j_number(j, "min", base.min),
     max: j_number(j, "max", base.max),
     series_index: j_int(j, "seriesIndex", base.series_index),
     dimension: j_int(j, "dimension", base.dimension),
     in_range: parse_visual_map_in_range(j_field_or_self(j, "inRange")),
+    orient: match j_field(j, "orient") {
+      Some(String(s)) => s
+      _ => base.orient
+    },
+    left: j_string_or_number_as_string_opt(j, "left", base.left),
+    right: j_string_or_number_as_string_opt(j, "right", base.right),
+    top: j_string_or_number_as_string_opt(j, "top", base.top),
+    bottom: j_string_or_number_as_string_opt(j, "bottom", base.bottom),
+    show: j_bool(j, "show", base.show),
+    item_width: match j_field(j, "itemWidth") {
+      Some(Number(n, ..)) => Some(n)
+      _ => base.item_width
+    },
+    item_height: match j_field(j, "itemHeight") {
+      Some(Number(n, ..)) => Some(n)
+      _ => base.item_height
+    },
+    controller_in_range: controller_inrange,
   }
 }
 
