@@ -2,6 +2,7 @@ import {
   "OverflowCat/yuecharts/core" @core,
   "OverflowCat/yuecharts/graphic" @graphic,
   "OverflowCat/yuecharts/coord" @coord,
+  "OverflowCat/yuecharts/layout" @layout,
   "OverflowCat/yuecharts/option" @option,
   "OverflowCat/yuecharts/visual" @visual,
   "moonbitlang/core/math" @math,

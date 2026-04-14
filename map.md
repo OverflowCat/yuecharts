@@ -454,7 +454,7 @@ E:\recharts\echarts\src
 │   │   ├── GeoJSONResource.ts =>  [missing] Feature: GeoJSON resource loading
 │   │   ├── GeoModel.ts => option/types.mbt, option/parse.mbt, coord/geo.mbt [partial] Feature: geo model
 │   │   ├── geoSourceManager.ts => coord/geo_source_manager.mbt [translated] Feature: registered map source manager
-│   │   ├── GeoSVGResource.ts =>  [missing] Feature: SVG map resource
+│   │   ├── GeoSVGResource.ts => coord/geo_svg_resource.mbt [partial] Feature: SVG map resource
 │   │   ├── geoTypes.ts =>  [missing] Feature: geo type defs
 │   │   ├── parseGeoJson.ts =>  [missing] Feature: GeoJSON parser
 │   │   ├── prepareCustom.ts =>  [missing] Feature: geo custom adapter
@@ -856,8 +856,8 @@ E:\recharts\echarts\src
 │   │   └── TreemapView.ts => chart/treemap.mbt [translated] Feature: treemap renderer
 │   │
 │   ├── funnel
-│   │   ├── FunnelSeries.ts => chart/funnel.mbt [partial] Feature: funnel series model
-│   │   ├── funnelLayout.ts => chart/funnel.mbt [translated] Feature: funnel layout
+│   │   ├── FunnelSeries.ts => chart/funnel.mbt [partial] Feature: funnel series model and box-layout fields
+│   │   ├── funnelLayout.ts => chart/funnel.mbt [translated] Feature: funnel layout / compare align support
 │   │   ├── FunnelView.ts => chart/funnel.mbt [translated] Feature: funnel renderer
 │   │   └── install.ts => chart/funnel.mbt [partial] Feature: funnel install
 │   │

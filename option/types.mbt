@@ -35,6 +35,8 @@ pub(all) struct AxisOption {
   end_angle : Double?
   clockwise : Bool?
   inverse : Bool
+  // echarts/src/coord/axisHelper.ts:makeLabelFormatter
+  label_formatter : String?
 }
 
 ///|
@@ -81,6 +83,7 @@ pub fn AxisOption::default_x() -> AxisOption {
     end_angle: None,
     clockwise: None,
     inverse: false,
+    label_formatter: None,
   }
 }
 
@@ -99,6 +102,7 @@ pub fn AxisOption::default_y() -> AxisOption {
     end_angle: None,
     clockwise: None,
     inverse: false,
+    label_formatter: None,
   }
 }
 
@@ -126,6 +130,8 @@ pub(all) struct GeoLabelOption {
   rotate : Double?
   font_size : Double
   font_family : String
+  // echarts/src/model/mixin/dataFormat.ts: getFormattedLabel -> formatTpl
+  formatter : String?
 }
 
 ///|
@@ -139,6 +145,7 @@ pub impl Default for GeoLabelOption with default() {
     rotate: None,
     font_size: 12.0,
     font_family: "sans-serif",
+    formatter: None,
   }
 }
 
@@ -152,6 +159,7 @@ pub(all) struct GeoLabelPatchOption {
   rotate : Double?
   font_size : Double?
   font_family : String?
+  formatter : String?
 }
 
 ///|
@@ -165,6 +173,7 @@ pub impl Default for GeoLabelPatchOption with default() {
     rotate: None,
     font_size: None,
     font_family: None,
+    formatter: None,
   }
 }
 
@@ -574,6 +583,15 @@ pub(all) struct SeriesOption {
   layout_size : String?
   bounding_coords : Array[Array[Double]]?
   stack : String?
+  // For funnel charts
+  funnel_sort : String
+  funnel_orient : String
+  funnel_gap : Double
+  funnel_align : String
+  funnel_min : Double?
+  funnel_max : Double?
+  funnel_min_size : String
+  funnel_max_size : String
   // For themeRiver: [before, after] gap on axis orthogonal direction
   boundary_gap : Array[String]
   smooth : Bool
@@ -701,6 +719,14 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     layout_size: None,
     bounding_coords: None,
     stack: None,
+    funnel_sort: "descending",
+    funnel_orient: "vertical",
+    funnel_gap: 0.0,
+    funnel_align: "center",
+    funnel_min: None,
+    funnel_max: None,
+    funnel_min_size: "0%",
+    funnel_max_size: "100%",
     boundary_gap: [],
     smooth: false,
     polyline: false,
@@ -785,6 +811,37 @@ pub fn SeriesOption::default_bar() -> SeriesOption {
       border_color: None,
       border_width: Some(0.0),
       opacity: Some(1.0),
+    }),
+  }
+}
+
+///|
+pub fn SeriesOption::default_funnel() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Funnel,
+    left: Some("80"),
+    top: Some("60"),
+    right: Some("80"),
+    bottom: Some("65"),
+    funnel_sort: "descending",
+    funnel_orient: "vertical",
+    funnel_gap: 0.0,
+    funnel_align: "center",
+    funnel_min: None,
+    funnel_max: None,
+    funnel_min_size: "0%",
+    funnel_max_size: "100%",
+    label: Some({
+      show: true,
+      color: "#333",
+      position: Some("outer"),
+      distance: Some(5.0),
+      font_weight: None,
+      rotate: None,
+      font_size: 12.0,
+      font_family: "sans-serif",
+      formatter: None,
     }),
   }
 }
@@ -933,6 +990,7 @@ pub fn SeriesOption::default_chord() -> SeriesOption {
       rotate: None,
       font_size: 12.0,
       font_family: "sans-serif",
+      formatter: None,
     }),
   }
 }
@@ -955,6 +1013,7 @@ pub fn SeriesOption::default_sankey() -> SeriesOption {
       rotate: None,
       font_size: 12.0,
       font_family: "sans-serif",
+      formatter: None,
     }),
     sankey_left: Some(SizeSpec::Pct(5.0)),
     sankey_top: Some(SizeSpec::Pct(5.0)),
@@ -1793,5 +1852,57 @@ pub impl Default for ChartOption with default() {
     background_color: None,
     aria: None,
     visual_map: [],
+  }
+}
+
+///|
+/// Template label formatter.
+/// <=> echarts/src/util/format.ts:formatTpl
+///
+/// Substitutes {a} → series_name, {b} → name, {c} → value, {d} → percent.
+/// Multi-series aliases: {a0} = {a}, {b0} = {b}, etc. (first series only).
+/// Corresponds to TPL_VAR_ALIAS = ['a','b','c','d','e','f','g'] and
+/// $vars = ['seriesName','name','value'] in upstream format.ts.
+pub fn format_label_tpl(
+  tpl : String,
+  series_name : String,
+  name : String,
+  value : String,
+  percent : String?,
+) -> String {
+  // Map single-index aliases {a0}/{b0}/{c0}/{d0} → {a}/{b}/{c}/{d}
+  let mut result = tpl
+  result = result.replace(old="{a0}", new="{a}")
+  result = result.replace(old="{b0}", new="{b}")
+  result = result.replace(old="{c0}", new="{c}")
+  result = result.replace(old="{d0}", new="{d}")
+  // Substitute core variables
+  result = result.replace(old="{a}", new=series_name)
+  result = result.replace(old="{b}", new=name)
+  result = result.replace(old="{c}", new=value)
+  match percent {
+    Some(p) => result = result.replace(old="{d}", new=p)
+    None => ()
+  }
+  // {value} for axis-label style templates (axisHelper.ts:makeLabelFormatter)
+  result = result.replace(old="{value}", new=value)
+  result
+}
+
+///|
+/// Apply GeoLabelOption.formatter to produce the label text for a data item.
+/// Falls back to the item name if no formatter is set.
+/// <=> echarts/src/model/mixin/dataFormat.ts:getFormattedLabel (string branch)
+pub fn apply_label_formatter(
+  label : GeoLabelOption?,
+  series_name : String,
+  item_name : String,
+  value : String,
+  percent : String?,
+) -> String {
+  match label {
+    Some({ formatter: Some(tpl), .. }) if tpl != "" =>
+      format_label_tpl(tpl, series_name, item_name, value, percent)
+    _ => item_name
   }
 }

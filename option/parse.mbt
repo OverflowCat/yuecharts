@@ -231,6 +231,11 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     _ => base.clockwise
   }
   let inverse = j_bool(j, "inverse", base.inverse)
+  // echarts/src/coord/axisHelper.ts:makeLabelFormatter - string template {value}
+  let label_formatter = match j_field(j, "axisLabel") {
+    Some(label_obj) => j_string_opt(label_obj, "formatter")
+    None => None
+  }
   {
     axis_type,
     position,
@@ -244,6 +249,7 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     end_angle,
     clockwise,
     inverse,
+    label_formatter,
   }
 }
 
@@ -599,6 +605,10 @@ fn parse_geo_label_option_with_base(
     },
     font_size: j_number(j, "fontSize", base.font_size),
     font_family: j_string(j, "fontFamily", base.font_family),
+    formatter: match j_string_opt(j, "formatter") {
+      Some(v) => Some(v)
+      None => base.formatter
+    },
   }
 }
 
@@ -617,6 +627,7 @@ fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
     rotate: j_number_opt(j, "rotate"),
     font_size: j_number_opt(j, "fontSize"),
     font_family: j_string_opt(j, "fontFamily"),
+    formatter: j_string_opt(j, "formatter"),
   }
 }
 
@@ -1071,6 +1082,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Gauge => SeriesOption::default_gauge()
     Map => SeriesOption::default_map()
     ThemeRiver => SeriesOption::default_theme_river()
+    Funnel => SeriesOption::default_funnel()
     Tree => SeriesOption::default_tree()
     Chord => SeriesOption::default_chord()
     Sankey => SeriesOption::default_sankey()
@@ -1186,6 +1198,22 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let bar_min_angle = j_number(j, "barMinAngle", base.bar_min_angle)
   let round_cap = j_bool(j, "roundCap", base.round_cap)
   let show_background = j_bool(j, "showBackground", base.show_background)
+  let funnel_sort = j_string(j, "sort", base.funnel_sort)
+  let funnel_orient = j_string(j, "orient", base.funnel_orient)
+  let funnel_gap = j_number(j, "gap", base.funnel_gap)
+  let funnel_align = j_string(j, "funnelAlign", base.funnel_align)
+  let funnel_min = j_number_opt(j, "min")
+  let funnel_max = j_number_opt(j, "max")
+  let funnel_min_size = j_string_or_number_as_string_opt(
+    j,
+    "minSize",
+    Some(base.funnel_min_size),
+  ).unwrap_or(base.funnel_min_size)
+  let funnel_max_size = j_string_or_number_as_string_opt(
+    j,
+    "maxSize",
+    Some(base.funnel_max_size),
+  ).unwrap_or(base.funnel_max_size)
   let background_style = match j_field(j, "backgroundStyle") {
     Some(style) => Some(parse_geo_item_style_patch_option(style))
     None => base.background_style
@@ -1386,6 +1414,14 @@ fn parse_series_option(j : Json) -> SeriesOption {
     bar_min_angle,
     round_cap,
     show_background,
+    funnel_sort,
+    funnel_orient,
+    funnel_gap,
+    funnel_align,
+    funnel_min,
+    funnel_max,
+    funnel_min_size,
+    funnel_max_size,
     x_axis_index,
     y_axis_index,
     parallel_index,
