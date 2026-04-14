@@ -104,6 +104,30 @@ pub fn Geo::build(opt : @option.ChartOption) -> Geo? {
 }
 
 ///|
+/// Build a Geo specifically for an exclusive map series (one with no geoIndex).
+/// Uses the series's own layout settings (aspectScale defaults to 0.75 for GeoJSON).
+pub fn Geo::build_for_map_series(
+  opt : @option.ChartOption,
+  series : @option.SeriesOption,
+) -> Geo? {
+  let map_name = series.map_name.unwrap_or("")
+  if map_name == "" {
+    return None
+  }
+  let geo_opt = geo_option_from_series(series, map_name)
+  let source_manager = GeoSourceManager::from_option(opt)
+  let name_property = geo_opt.name_property.unwrap_or("name")
+  let resource_type = geo_resource_type(
+    source_manager.get_geo_resource(map_name),
+  )
+  source_manager
+  .load(map_name, geo_opt.name_map, name_property)
+  .map_or(None, loaded => {
+    build_geo_from_loaded(opt, geo_opt, loaded, resource_type)
+  })
+}
+
+///|
 fn geo_resource_type(resource : GeoSourceResource?) -> String {
   match resource {
     Some(Json(_)) => "geoJSON"

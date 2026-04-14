@@ -3,7 +3,7 @@
 //                  echarts/src/component/helper/geoGraphic.ts
 
 ///|
-let geo_default_fill = "#f3f5f8"
+let geo_default_fill = "rgba(234,237,245,0.5)"
 
 ///|
 fn geo_region_option_by_name(

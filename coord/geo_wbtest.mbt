@@ -598,3 +598,41 @@ test "geo svg resource loads named region styles" {
   assert_eq(region.data_bbox.width, 10.0)
   assert_eq(region.data_bbox.height, 10.0)
 }
+
+///|
+test "build_for_map_series uses independent geo with default aspectScale 0.75" {
+  // When a series.map has no explicit geoIndex but there are geo components,
+  // build_for_map_series should create a 0.75-aspect geo independent of the
+  // geo component's 1.0-aspect geo.
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 160,
+    #|  "geo": { "map": "demo", "aspectScale": 1 },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "geoJSON": {
+    #|      "type": "FeatureCollection",
+    #|      "features": [{
+    #|        "type": "Feature",
+    #|        "properties": { "name": "Donut" },
+    #|        "geometry": {
+    #|          "type": "Polygon",
+    #|          "coordinates": [[[0,0],[10,0],[10,10],[0,10],[0,0]]]
+    #|        }
+    #|      }]
+    #|    }
+    #|  }],
+    #|  "series": [{ "type": "map", "map": "demo", "data": [] }]
+    #|}
+  let opt = @option.parse(json_str)
+  // Component geo uses aspectScale: 1 → square 128×128 viewport
+  let component_geo = Geo::build(opt).unwrap()
+  assert_eq(component_geo.viewport.width.round(), 128.0)
+  assert_eq(component_geo.viewport.height.round(), 128.0)
+  // Series-specific geo defaults to aspectScale 0.75 → 96×128 viewport
+  let series = opt.series[0]
+  let series_geo = Geo::build_for_map_series(opt, series).unwrap()
+  assert_eq(series_geo.viewport.width.round(), 96.0)
+  assert_eq(series_geo.viewport.height.round(), 128.0)
+}
