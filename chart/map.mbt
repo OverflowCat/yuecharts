@@ -6,7 +6,7 @@
 //                  echarts/src/visual/VisualMapping.ts
 
 ///|
-let map_default_fill = "#f3f5f8"
+let map_default_fill = "#f4f7fd"
 
 ///|
 fn map_patch_area_color(patch : @option.GeoItemStylePatchOption?) -> String? {
@@ -702,8 +702,21 @@ pub fn render_maps(
   while series_index < opt.series.length() {
     let series = opt.series[series_index]
     match series.series_type {
-      Map =>
-        if map_series_matches_geo(opt, series, geo) {
+      Map => {
+        // When there are geo components AND the series has no geoIndex,
+        // the series has its own exclusive geo (potentially different layout
+        // than the geo component's geo, e.g. different aspectScale).
+        let active_geo = if map_series_uses_host_geo(opt, series) {
+          // Series explicitly references a host geo via geoIndex → use it
+          geo
+        } else if opt.geo.length() > 0 {
+          // There are geo components but this series has its own exclusive geo
+          @coord.Geo::build_for_map_series(opt, series).unwrap_or(geo)
+        } else {
+          // No geo components: the passed geo IS the exclusive series geo
+          geo
+        }
+        if map_series_matches_geo(opt, series, active_geo) {
           let group_key = map_series_group_key(opt, series)
           if map_has_drawn_group(drawn_groups, group_key) {
             series_index += 1
@@ -716,13 +729,13 @@ pub fn render_maps(
             []
           }
           let mut region_index = 0
-          while region_index < geo.regions.length() {
-            let region = geo.regions[region_index]
+          while region_index < active_geo.regions.length() {
+            let region = active_geo.regions[region_index]
             let item = map_data_item_by_name(series, region.name)
             let fill = map_region_fill(
               opt,
               geo_opt,
-              geo,
+              active_geo,
               series,
               series_index,
               region.name,
@@ -730,14 +743,14 @@ pub fn render_maps(
             )
             let stroke_color = map_region_stroke_color(
               geo_opt,
-              geo,
+              active_geo,
               series,
               region.name,
               item,
             )
             let stroke_width = map_region_stroke_width(
               geo_opt,
-              geo,
+              active_geo,
               series,
               region.name,
               item,
@@ -760,7 +773,7 @@ pub fn render_maps(
               item,
               "select",
             )
-            let polygons = region.screen_polygon_rings(geo)
+            let polygons = region.screen_polygon_rings(active_geo)
             let mut polygon_index = 0
             while polygon_index < polygons.length() {
               elems.push(
@@ -778,7 +791,7 @@ pub fn render_maps(
               polygon_index += 1
             }
             if map_label_show(series, item, region.name, symbol_names) {
-              let center = region.screen_center(geo)
+              let center = region.screen_center(active_geo)
               let label = @graphic.Element::text_colored(
                 center.x,
                 center.y,
@@ -822,12 +835,12 @@ pub fn render_maps(
                     Some(name) =>
                       match map_data_item_numeric_value(data_item) {
                         Some(_) =>
-                          match geo.region_by_name(name) {
+                          match active_geo.region_by_name(name) {
                             Some(region) => {
                               let offset = map_symbol_next_offset(
                                 symbol_offsets_names, symbol_offsets_counts, name,
                               )
-                              let point = region.screen_center(geo)
+                              let point = region.screen_center(active_geo)
                               elems.push(
                                 @graphic.Element::circle_colored(
                                   point.x + offset.to_double() * 9.0,
@@ -896,6 +909,7 @@ pub fn render_maps(
             }
           }
         }
+      }
       _ => ()
     }
     series_index += 1

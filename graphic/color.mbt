@@ -301,6 +301,25 @@ pub fn Color::svg_opacity(self : Color) -> Double? {
 }
 
 ///|
+/// Format an opacity value (0.0–1.0) for SVG, rounding to 2 decimal places
+/// to match zrender's SVG output (e.g. 128/255 ≈ 0.502 → "0.5").
+pub fn format_opacity(f : Double) -> String {
+  let i = (f * 100.0).round().to_int()
+  if i % 100 == 0 {
+    (i / 100).to_string()
+  } else if i % 10 == 0 {
+    let whole = i / 100
+    let frac = i % 100 / 10
+    "\{whole}.\{frac}"
+  } else {
+    let whole = i / 100
+    let frac = i % 100
+    let frac_s = if frac < 10 { "0\{frac}" } else { frac.to_string() }
+    "\{whole}.\{frac_s}"
+  }
+}
+
+///|
 pub impl Show for Color with output(self, logger) {
   logger.write_string(self.to_svg())
 }

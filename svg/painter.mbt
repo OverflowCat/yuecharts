@@ -210,7 +210,9 @@ fn color_string_attrs(attr_name : String, color_str : String) -> String {
       buf.write_string(" \{attr_name}=\"\{color.to_svg_attr()}\"")
       match color.svg_opacity() {
         Some(opacity) =>
-          buf.write_string(" \{attr_name}-opacity=\"\{opacity}\"")
+          buf.write_string(
+            " \{attr_name}-opacity=\"\{@graphic.format_opacity(opacity)}\"",
+          )
         None => ()
       }
     }
@@ -924,7 +926,11 @@ fn push_color_xml_attrs(
       push_xml_attr(attrs, attr_name, color.to_svg_attr())
       match color.svg_opacity() {
         Some(opacity) =>
-          push_xml_attr(attrs, "\{attr_name}-opacity", opacity.to_string())
+          push_xml_attr(
+            attrs,
+            "\{attr_name}-opacity",
+            @graphic.format_opacity(opacity),
+          )
         None => ()
       }
     }

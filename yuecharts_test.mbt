@@ -289,6 +289,33 @@ test "treemap show-parent reserves upper labels" {
 }
 
 ///|
+/// Treemap parents without upperLabel should keep the JS-style parent/content split while children keep palette fills.
+test "treemap parent content keeps palette fill" {
+  let json_str =
+    #|{
+    #|  "width": 760,
+    #|  "height": 520,
+    #|  "series": [{
+    #|    "type": "treemap",
+    #|    "data": [
+    #|      {
+    #|        "name": "Product",
+    #|        "children": [
+    #|          { "name": "Core", "value": 14 },
+    #|          { "name": "API", "value": 10 }
+    #|        ]
+    #|      }
+    #|    ]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill=\"#ffffff\""))
+  assert_true(svg.contains("fill=\"#5473de\""))
+  assert_true(svg.contains("fill=\"#c2dd55\""))
+  assert_true(svg.contains(">Product</text>"))
+}
+
+///|
 /// Tree leaves config should behave like TreeSeries leavesModel for static label/item/line style inheritance.
 test "tree leaves styles and node overrides render" {
   let json_str =
@@ -1902,6 +1929,7 @@ test "map data statistic aggregates same-geo series and draws once" {
     #|  "series": [
     #|    {
     #|      "type": "map",
+    #|      "geoIndex": 0,
     #|      "mapValueCalculation": "max",
     #|      "data": [
     #|        { "name": "Alpha", "value": 0 },
@@ -1910,6 +1938,7 @@ test "map data statistic aggregates same-geo series and draws once" {
     #|    },
     #|    {
     #|      "type": "map",
+    #|      "geoIndex": 0,
     #|      "data": [
     #|        { "name": "Alpha", "value": 100 }
     #|      ]
@@ -1917,9 +1946,9 @@ test "map data statistic aggregates same-geo series and draws once" {
     #|  ]
     #|}
   let svg = @yuecharts.render(json_str)
-  // 2 geo outlines + 2 map fill paths.
+  // 2 geo outlines (rgba fill) + 2 map fill paths (visual-map colored).
   assert_eq(count_substring(svg, "<path d=\"M "), 4)
-  assert_eq(count_substring(svg, "fill=\"#f3f5f8\""), 2)
+  assert_eq(count_substring(svg, "fill=\"rgb(234,237,245)\""), 2)
   assert_eq(count_substring(svg, "fill=\"#3182bd\""), 1)
   assert_eq(count_substring(svg, "fill=\"#deebf7\""), 1)
   assert_true(svg.contains("fill=\"#3182bd\""))

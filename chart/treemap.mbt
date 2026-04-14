@@ -223,11 +223,228 @@ fn sort_children_desc(
 }
 
 ///|
-fn treemap_parent_fill_color(depth : Int) -> String {
-  if depth == 0 {
-    "#777777"
+fn treemap_item_style_for_depth(
+  series : @option.SeriesOption,
+  depth : Int,
+) -> @option.TreemapItemStyleOption? {
+  if depth < series.treemap_levels.length() {
+    match series.treemap_levels[depth].item_style {
+      Some(style) => Some(style)
+      None => series.treemap_item_style
+    }
   } else {
-    "#555555"
+    series.treemap_item_style
+  }
+}
+
+///|
+fn treemap_parent_fill_color(
+  series : @option.SeriesOption,
+  depth : Int,
+) -> String {
+  match treemap_item_style_for_depth(series, depth) {
+    Some(style) =>
+      match style.border_color {
+        Some(color) => color
+        None => "#ffffff"
+      }
+    None => "#ffffff"
+  }
+}
+
+///|
+fn treemap_leaf_fill_color(
+  series : @option.SeriesOption,
+  depth : Int,
+  color_seed : Int,
+  ri : Int,
+  value : Double,
+  sibling_min : Double,
+  sibling_max : Double,
+) -> String {
+  let fallback = @visual.palette_color(color_seed + ri)
+  match treemap_item_style_for_depth(series, depth) {
+    Some(style) =>
+      match style.color {
+        Some(color) =>
+          treemap_apply_level_visuals(
+            series, depth, color, value, sibling_min, sibling_max,
+          )
+        None =>
+          treemap_apply_level_visuals(
+            series, depth, fallback, value, sibling_min, sibling_max,
+          )
+      }
+    None =>
+      treemap_apply_level_visuals(
+        series, depth, fallback, value, sibling_min, sibling_max,
+      )
+  }
+}
+
+///|
+fn treemap_apply_level_visuals(
+  series : @option.SeriesOption,
+  depth : Int,
+  color : String,
+  value : Double,
+  sibling_min : Double,
+  sibling_max : Double,
+) -> String {
+  let _ = series
+  let _ = value
+  let _ = sibling_min
+  let _ = sibling_max
+  let lightness = if depth > 0 { Some(0.6) } else { None }
+  let alpha = None
+  treemap_modify_color(color, lightness, alpha)
+}
+
+///|
+fn treemap_modify_color(
+  color : String,
+  lightness : Double?,
+  alpha : Double?,
+) -> String {
+  let parsed = match @graphic.Color::from_string(color) {
+    Some(c) => c
+    None => return color
+  }
+  let (h, s, l) = treemap_rgb_to_hsl(parsed.r, parsed.g, parsed.b)
+  let final_l = match lightness {
+    Some(v) => v
+    None => l
+  }
+  let (rgb_r, rgb_g, rgb_b) = treemap_hsl_to_rgb(h, s, final_l)
+  let final_alpha = match alpha {
+    Some(v) =>
+      if v <= 1.0 {
+        (v * 255.0).round().to_int()
+      } else {
+        v.round().to_int()
+      }
+    None => parsed.a
+  }
+  if final_alpha >= 255 {
+    "#\{treemap_hex2(rgb_r)}\{treemap_hex2(rgb_g)}\{treemap_hex2(rgb_b)}"
+  } else {
+    "rgba(\{rgb_r},\{rgb_g},\{rgb_b},\{@graphic.format_opacity(final_alpha.to_double() / 255.0)})"
+  }
+}
+
+///|
+fn treemap_rgb_to_hsl(r : Int, g : Int, b : Int) -> (Double, Double, Double) {
+  let rf = r.to_double() / 255.0
+  let gf = g.to_double() / 255.0
+  let bf = b.to_double() / 255.0
+  let max = if rf > gf {
+    if rf > bf {
+      rf
+    } else {
+      bf
+    }
+  } else if gf > bf {
+    gf
+  } else {
+    bf
+  }
+  let min = if rf < gf {
+    if rf < bf {
+      rf
+    } else {
+      bf
+    }
+  } else if gf < bf {
+    gf
+  } else {
+    bf
+  }
+  let l = (max + min) / 2.0
+  if max == min {
+    (0.0, 0.0, l)
+  } else {
+    let d = max - min
+    let s = if l > 0.5 { d / (2.0 - max - min) } else { d / (max + min) }
+    let mut h = if max == rf {
+      (gf - bf) / d
+    } else if max == gf {
+      (bf - rf) / d + 2.0
+    } else {
+      (rf - gf) / d + 4.0
+    }
+    if max == rf && gf < bf {
+      h = h + 6.0
+    }
+    (h / 6.0, s, l)
+  }
+}
+
+///|
+fn treemap_hsl_to_rgb(h : Double, s : Double, l : Double) -> (Int, Int, Int) {
+  if s <= 0.0 {
+    let v = (l * 255.0).round().to_int()
+    (v, v, v)
+  } else {
+    let q = if l < 0.5 { l * (1.0 + s) } else { l + s - l * s }
+    let p = 2.0 * l - q
+    let r = treemap_hue_to_rgb(p, q, h + 1.0 / 3.0)
+    let g = treemap_hue_to_rgb(p, q, h)
+    let b = treemap_hue_to_rgb(p, q, h - 1.0 / 3.0)
+    (
+      (r * 255.0).round().to_int(),
+      (g * 255.0).round().to_int(),
+      (b * 255.0).round().to_int(),
+    )
+  }
+}
+
+///|
+fn treemap_hue_to_rgb(p : Double, q : Double, t_in : Double) -> Double {
+  let mut t = t_in
+  if t < 0.0 {
+    t = t + 1.0
+  }
+  if t > 1.0 {
+    t = t - 1.0
+  }
+  if t < 1.0 / 6.0 {
+    p + (q - p) * 6.0 * t
+  } else if t < 1.0 / 2.0 {
+    q
+  } else if t < 2.0 / 3.0 {
+    p + (q - p) * (2.0 / 3.0 - t) * 6.0
+  } else {
+    p
+  }
+}
+
+///|
+fn treemap_hex2(v : Int) -> String {
+  let n = if v < 0 { 0 } else if v > 255 { 255 } else { v }
+  let hi = n / 16
+  let lo = n % 16
+  "\{treemap_hex_digit(hi)}\{treemap_hex_digit(lo)}"
+}
+
+///|
+fn treemap_hex_digit(n : Int) -> String {
+  match n {
+    0 => "0"
+    1 => "1"
+    2 => "2"
+    3 => "3"
+    4 => "4"
+    5 => "5"
+    6 => "6"
+    7 => "7"
+    8 => "8"
+    9 => "9"
+    10 => "a"
+    11 => "b"
+    12 => "c"
+    13 => "d"
+    14 => "e"
+    _ => "f"
   }
 }
 
@@ -270,10 +487,26 @@ fn render_treemap_children(
   }
   let rects = layout_squarify(areas, rect)
   let upper_label_height = treemap_upper_label_height(series)
+  let mut sibling_min = 1.0e300
+  let mut sibling_max = -1.0e300
+  let sibling_values : Array[Double] = []
+  let mut vi = 0
+  while vi < sorted.length() {
+    let v = treemap_complete_tree_value(sorted[vi])
+    sibling_values.push(v)
+    if v < sibling_min {
+      sibling_min = v
+    }
+    if v > sibling_max {
+      sibling_max = v
+    }
+    vi += 1
+  }
   let mut ri = 0
   while ri < sorted.length() {
     let node = sorted[ri]
     let child_rect = rects[ri]
+    let node_value = sibling_values[ri]
     if child_rect.width > 0.5 && child_rect.height > 0.5 {
       let label = match node.name {
         Some(s) => s
@@ -281,13 +514,14 @@ fn render_treemap_children(
       }
       let is_parent = node.children.length() > 0
       if is_parent {
+        let parent_fill = treemap_parent_fill_color(series, depth)
         elems.push(
           @graphic.Element::rect_colored(
             child_rect.x,
             child_rect.y,
             child_rect.width,
             child_rect.height,
-            treemap_parent_fill_color(depth),
+            parent_fill,
           ),
         )
         elems.push(
@@ -300,6 +534,35 @@ fn render_treemap_children(
             1.0,
           ),
         )
+        let content_rect : TreemapRect = if upper_label_height > 0.0 {
+          {
+            x: child_rect.x + 1.0,
+            y: child_rect.y + upper_label_height,
+            width: child_rect.width - 2.0,
+            height: child_rect.height - upper_label_height - 1.0,
+          }
+        } else {
+          {
+            x: child_rect.x + 1.0,
+            y: child_rect.y + 1.0,
+            width: child_rect.width - 2.0,
+            height: child_rect.height - 2.0,
+          }
+        }
+        if content_rect.width > 1.0 && content_rect.height > 1.0 {
+          let content_fill = treemap_leaf_fill_color(
+            series, depth, color_seed, ri, node_value, sibling_min, sibling_max,
+          )
+          elems.push(
+            @graphic.Element::rect_colored(
+              content_rect.x,
+              content_rect.y,
+              content_rect.width,
+              content_rect.height,
+              content_fill,
+            ),
+          )
+        }
         if label != "" &&
           upper_label_height > 0.0 &&
           child_rect.height >= upper_label_height + 6.0 {
@@ -314,11 +577,20 @@ fn render_treemap_children(
             ),
           )
         }
-        let content_rect : TreemapRect = {
-          x: child_rect.x + 1.0,
-          y: child_rect.y + upper_label_height,
-          width: child_rect.width - 2.0,
-          height: child_rect.height - upper_label_height - 1.0,
+        if label != "" &&
+          upper_label_height <= 0.0 &&
+          content_rect.width >= 48.0 &&
+          content_rect.height >= 22.0 {
+          elems.push(
+            @graphic.Element::text_colored(
+              content_rect.x + 5.0,
+              content_rect.y + 16.0,
+              label,
+              @graphic.TextAnchor::Start,
+              @graphic.TextBaseline::Middle,
+              "#ffffff",
+            ),
+          )
         }
         if content_rect.width > 1.0 && content_rect.height > 1.0 {
           render_treemap_children(
@@ -327,11 +599,13 @@ fn render_treemap_children(
             node.children,
             content_rect,
             depth + 1,
-            color_seed + ri + 1,
+            color_seed + ri,
           )
         }
       } else {
-        let fill_color = @visual.palette_color(color_seed + ri + depth * 3)
+        let fill_color = treemap_leaf_fill_color(
+          series, depth, color_seed, ri, node_value, sibling_min, sibling_max,
+        )
         elems.push(
           @graphic.Element::rect_colored(
             child_rect.x,

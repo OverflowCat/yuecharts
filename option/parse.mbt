@@ -1002,6 +1002,7 @@ fn parse_treemap_upper_label_option(j : Json) -> TreemapUpperLabelOption {
 ///|
 fn parse_treemap_item_style_option(j : Json) -> TreemapItemStyleOption {
   {
+    color: j_string_opt(j, "color"),
     border_color: j_string_opt(j, "borderColor"),
     border_width: j_number_opt(j, "borderWidth"),
     gap_width: j_number_opt(j, "gapWidth"),
@@ -1018,6 +1019,14 @@ fn parse_treemap_level_option(j : Json) -> TreemapLevelOption {
     upper_label: match j_field(j, "upperLabel") {
       Some(value) => Some(parse_treemap_upper_label_option(value))
       None => None
+    },
+    color_saturation: match j_field(j, "colorSaturation") {
+      Some(Array(arr)) => Some(arr.map(json_number_or_zero))
+      _ => None
+    },
+    color_alpha: match j_field(j, "colorAlpha") {
+      Some(Array(arr)) => Some(arr.map(json_number_or_zero))
+      _ => None
     },
   }
 }
@@ -1347,6 +1356,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(value) => Some(parse_treemap_upper_label_option(value))
     None => base.treemap_upper_label
   }
+  let treemap_item_style = match j_field(j, "itemStyle") {
+    Some(value) => Some(parse_treemap_item_style_option(value))
+    None => base.treemap_item_style
+  }
   let treemap_levels = j_parse_array(j, "levels", parse_treemap_level_option, [])
   {
     series_type,
@@ -1463,6 +1476,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     sankey_height,
     sankey_levels,
     treemap_upper_label,
+    treemap_item_style,
     treemap_levels,
   }
 }
