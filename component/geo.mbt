@@ -3,6 +3,9 @@
 //                  echarts/src/component/helper/geoGraphic.ts
 
 ///|
+let geo_default_fill = "#f3f5f8"
+
+///|
 fn geo_region_option_by_name(
   geo_opt : @option.GeoOption,
   name : String,
@@ -22,13 +25,16 @@ fn geo_region_option_by_name(
 fn geo_region_border_color(
   geo_opt : @option.GeoOption,
   region_opt : @option.GeoRegionOption?,
+  region : @coord.GeoRegion,
 ) -> String {
   match region_opt {
-    Some(region) =>
-      region.item_style
+    Some(region_patch) =>
+      region_patch.item_style
       .bind(style => style.border_color)
-      .unwrap_or(geo_opt.item_style.border_color)
-    None => geo_opt.item_style.border_color
+      .unwrap_or(
+        region.svg_stroke_color().unwrap_or(geo_opt.item_style.border_color),
+      )
+    None => region.svg_stroke_color().unwrap_or(geo_opt.item_style.border_color)
   }
 }
 
@@ -36,13 +42,38 @@ fn geo_region_border_color(
 fn geo_region_border_width(
   geo_opt : @option.GeoOption,
   region_opt : @option.GeoRegionOption?,
+  region : @coord.GeoRegion,
 ) -> Double {
   match region_opt {
-    Some(region) =>
-      region.item_style
+    Some(region_patch) =>
+      region_patch.item_style
       .bind(style => style.border_width)
-      .unwrap_or(geo_opt.item_style.border_width)
-    None => geo_opt.item_style.border_width
+      .unwrap_or(
+        region.svg_stroke_width().unwrap_or(geo_opt.item_style.border_width),
+      )
+    None => region.svg_stroke_width().unwrap_or(geo_opt.item_style.border_width)
+  }
+}
+
+///|
+fn geo_region_fill_color(
+  geo_opt : @option.GeoOption,
+  region_opt : @option.GeoRegionOption?,
+  region : @coord.GeoRegion,
+) -> String {
+  match region_opt {
+    Some(region_patch) =>
+      region_patch.item_style
+      .bind(style => style.area_color)
+      .unwrap_or(
+        geo_opt.item_style.area_color.unwrap_or(
+          region.svg_fill().unwrap_or(geo_default_fill),
+        ),
+      )
+    None =>
+      geo_opt.item_style.area_color.unwrap_or(
+        region.svg_fill().unwrap_or(geo_default_fill),
+      )
   }
 }
 
@@ -163,6 +194,7 @@ fn geo_region_label_state_style(
 ///|
 fn render_geo_region_outline(
   rings : Array[Array[@graphic.Point]],
+  fill : String,
   border_color : String,
   border_width : Double,
   silent : Bool,
@@ -170,12 +202,11 @@ fn render_geo_region_outline(
   emphasis_style : @graphic.DisplayStateStyle?,
   select_style : @graphic.DisplayStateStyle?,
 ) -> @graphic.Element {
-  let element = @graphic.Element::path_stroke_custom(
+  let element = @graphic.Element::path_fill_stroke(
     geo_rings_path_d(rings),
+    fill,
     border_color,
     border_width,
-    "butt",
-    "miter",
     1.0,
   ).with_silent(silent)
   let element = match emphasis_style {
@@ -235,8 +266,9 @@ pub fn render_geo_component(
     let region = geo.regions[region_index]
     let region_opt = geo_region_option_by_name(geo_opt, region.name)
     let polygons = region.screen_polygon_rings(geo)
-    let border_color = geo_region_border_color(geo_opt, region_opt)
-    let border_width = geo_region_border_width(geo_opt, region_opt)
+    let fill = geo_region_fill_color(geo_opt, region_opt, region)
+    let border_color = geo_region_border_color(geo_opt, region_opt, region)
+    let border_width = geo_region_border_width(geo_opt, region_opt, region)
     let silent = geo_opt.silent || geo_region_silent(region_opt)
     let selected = geo_region_is_selected(region_opt)
     let emphasis_style = geo_region_state_style(geo_opt, region_opt, "emphasis")
@@ -246,6 +278,7 @@ pub fn render_geo_component(
       elems.push(
         render_geo_region_outline(
           polygons[polygon_index],
+          fill,
           border_color,
           border_width,
           silent,

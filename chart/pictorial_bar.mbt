@@ -294,44 +294,40 @@ fn render_pictorial_bar_series(
     let (symbol_w, base_symbol_h) = pictorial_symbol_size(
       series, bar_w, bounding_length, symbol_repeat,
     )
-    let mut repeat_times = if symbol_repeat {
-      pictorial_bar_repeat_times(series, bounding_length.abs(), base_symbol_h)
-    } else {
-      1
-    }
+    let mut repeat_times = 1
     let mut symbol_h = if base_symbol_h > 1.0 { base_symbol_h } else { 1.0 }
     let mut margin = pictorial_margin_px(series, symbol_h)
     let mut unit = symbol_h + margin * 2.0
     if symbol_repeat {
       let end_gap = has_end_gap(series)
-      let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
-      let denom = match (end_gap, repeat_times) {
-        (_, _..=1) => 1
-        (true, _) => repeat_times
-        (false, _) => repeat_times - 1
+      // Step 1: Compute initial repeatTimes from bounding_length.
+      // ECharts uses ceil((absBounding + endFix0) / uLen0), where endFix0 and
+      // uLen0 are computed with the INITIAL (unadjusted) margin.
+      let end_fix0 = if end_gap { 0.0 } else { margin * 2.0 }
+      let init_times = match series.symbol_repeat_count {
+        Some(count) => count.max(1)
+        None => to_int_times((bounding_length.abs() + end_fix0) / unit.max(1.0))
       }
+      repeat_times = init_times
+      // Step 2: Adjust margin so all init_times symbols fit within bounding_length.
       let m_diff = bounding_length.abs() - repeat_times.to_double() * symbol_h
+      let denom = if end_gap {
+        repeat_times.max(1)
+      } else {
+        (repeat_times - 1).max(1)
+      }
       margin = m_diff / 2.0 / denom.to_double()
       unit = symbol_h + margin * 2.0
+      // Update endFix AFTER margin adjustment (ECharts does this before cut).
+      let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
+      // Step 3: Reduce repeat_times to only fill actual bar length (repeatCutLength).
+      // Do NOT recompute margin after this step (ECharts keeps the Step-2 margin).
       if series.symbol_repeat != Some("fixed") &&
         series.symbol_repeat_count is None {
-        let adjusted_times = to_int_times(
-          (actual_length.abs() + end_fix) / unit,
+        let cut_times = to_int_times(
+          (actual_length.abs() + end_fix) / unit.max(1.0),
         )
-        if adjusted_times > 0 {
-          let denom2 = if end_gap {
-            adjusted_times
-          } else if adjusted_times > 1 {
-            adjusted_times - 1
-          } else {
-            1
-          }
-          let m_diff2 = bounding_length.abs() -
-            adjusted_times.to_double() * symbol_h
-          margin = m_diff2 / 2.0 / denom2.to_double()
-          unit = symbol_h + margin * 2.0
-          repeat_times = adjusted_times
-        }
+        repeat_times = cut_times.max(0)
       }
     } else {
       symbol_h = bounding_length.abs()
@@ -355,10 +351,12 @@ fn render_pictorial_bar_series(
     let pxSign = -1.0 // vertical bars grow upward (y decreases)
     let size_fix = pxSign * (total_path_len / 2.0)
 
-    // pathPosition[valueDim] relative to bundle_y, based on symbolPosition
+    // pathPosition[valueDim] relative to bundle_y, based on symbolPosition.
+    // ECharts: 'start' -> sizeFix, 'end' -> boundingLength - sizeFix, 'center' -> boundingLength/2
+    // Our bounding_length is positive; ECharts' boundingLength is negative (-bounding_length).
     let path_pos_y = match series.symbol_position {
-      Some("center") => 0.0
-      Some("end") => -bounding_length + size_fix
+      Some("center") => -bounding_length / 2.0
+      Some("end") => -bounding_length - size_fix
       _ => size_fix // "start" is default
     }
 
@@ -397,7 +395,7 @@ fn render_pictorial_bar_series(
       let sym = @graphic.make_symbol(
         item_symbol,
         bar_x + offset_x,
-        raw_symbol_y,
+        raw_symbol_y - symbol_h / 2.0,
         symbol_w,
         symbol_h,
         pictorial_symbol_color(series, series_index),

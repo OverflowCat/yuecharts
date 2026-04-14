@@ -901,6 +901,32 @@ test "piecewise visual map renders standalone items" {
 }
 
 ///|
+test "piecewise visual map splitNumber opens ends" {
+  let json_str =
+    #|{
+    #|  "width": 320,
+    #|  "height": 220,
+    #|  "visualMap": [{
+    #|    "type": "piecewise",
+    #|    "left": "20",
+    #|    "top": "10",
+    #|    "min": 0,
+    #|    "max": 30,
+    #|    "splitNumber": 3,
+    #|    "minOpen": true,
+    #|    "maxOpen": true,
+    #|    "showLabel": true,
+    #|    "text": ["High", "Low"],
+    #|    "inRange": { "color": ["#d94e5d", "#eac736", "#50a3ba"] }
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("&lt; 0"))
+  assert_true(svg.contains("&gt; 30"))
+  assert_true(count_substring(svg, "<path") >= 5)
+}
+
+///|
 test "effect scatter supports geo coordinate system" {
   let json_str =
     #|{
@@ -1644,6 +1670,29 @@ test "geo compressed geojson renders map region" {
   let svg = @yuecharts.render(json_str)
   assert_true(svg.contains("<path d=\"M "))
   assert_true(svg.contains(">Compressed</text>"))
+}
+
+///|
+test "geo svg map renders source fill and stroke" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 160,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1,
+    #|    "label": { "show": true, "color": "#444444" }
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "svg": "<svg width='100' height='100' viewBox='0 0 100 100'><g name='Alpha'><path d='M 0 0 L 10 0 L 10 10 L 0 10 Z' fill='#123456' stroke='#654321' stroke-width='2'/></g></svg>"
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill=\"#123456\""))
+  assert_true(svg.contains("stroke=\"#654321\""))
+  assert_true(svg.contains("stroke-width=\"2\""))
+  assert_true(svg.contains(">Alpha</text>"))
 }
 
 ///|

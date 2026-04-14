@@ -3,6 +3,7 @@
 //                  echarts/src/coord/geo/Region.ts
 //                  echarts/src/coord/geo/parseGeoJson.ts
 //                  echarts/src/coord/geo/GeoJSONResource.ts
+//                  echarts/src/coord/geo/GeoSVGResource.ts
 //                  echarts/src/coord/geo/geoSourceManager.ts
 
 ///|
@@ -11,6 +12,9 @@ pub struct GeoRegion {
   geometries : Array[GeoGeometry]
   center : @graphic.Point
   data_bbox : @graphic.BBox
+  source_fill : String?
+  source_stroke_color : String?
+  source_stroke_width : Double?
 }
 
 ///|
@@ -33,6 +37,7 @@ pub(all) enum GeoGeometry {
 ///|
 pub struct Geo {
   map : String
+  resource_type : String
   viewport : @graphic.BBox
   data_min_x : Double
   data_max_x : Double
@@ -70,9 +75,14 @@ pub fn Geo::build(opt : @option.ChartOption) -> Geo? {
     }
     let source_manager = GeoSourceManager::from_option(opt)
     let name_property = geo_opt.name_property.unwrap_or("name")
+    let resource_type = geo_resource_type(
+      source_manager.get_geo_resource(geo_opt.map),
+    )
     return source_manager
       .load(geo_opt.map, geo_opt.name_map, name_property)
-      .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
+      .map_or(None, loaded => {
+        build_geo_from_loaded(opt, geo_opt, loaded, resource_type)
+      })
   }
   match geo_exclusive_map_series(opt) {
     Some(series) => {
@@ -80,11 +90,25 @@ pub fn Geo::build(opt : @option.ChartOption) -> Geo? {
       let geo_opt = geo_option_from_series(series, map_name)
       let source_manager = GeoSourceManager::from_option(opt)
       let name_property = geo_opt.name_property.unwrap_or("name")
+      let resource_type = geo_resource_type(
+        source_manager.get_geo_resource(map_name),
+      )
       source_manager
       .load(map_name, geo_opt.name_map, name_property)
-      .map_or(None, loaded => build_geo_from_loaded(opt, geo_opt, loaded))
+      .map_or(None, loaded => {
+        build_geo_from_loaded(opt, geo_opt, loaded, resource_type)
+      })
     }
     None => None
+  }
+}
+
+///|
+fn geo_resource_type(resource : GeoSourceResource?) -> String {
+  match resource {
+    Some(Json(_)) => "geoJSON"
+    Some(Svg(_)) => "geoSVG"
+    None => "geoJSON"
   }
 }
 
@@ -118,6 +142,11 @@ pub fn Geo::point_to_data(self : Geo, point : @graphic.Point) -> @graphic.Point 
   let base_x = (point.x - default_center.x) / zoom + center.x
   let base_y = (point.y - default_center.y) / zoom + center.y
   self.base_point_to_data(base_x, base_y)
+}
+
+///|
+pub fn Geo::is_svg(self : Geo) -> Bool {
+  self.resource_type == "geoSVG"
 }
 
 ///|
@@ -229,10 +258,26 @@ pub fn GeoRegion::screen_center(self : GeoRegion, geo : Geo) -> @graphic.Point {
 }
 
 ///|
+pub fn GeoRegion::svg_fill(self : GeoRegion) -> String? {
+  self.source_fill
+}
+
+///|
+pub fn GeoRegion::svg_stroke_color(self : GeoRegion) -> String? {
+  self.source_stroke_color
+}
+
+///|
+pub fn GeoRegion::svg_stroke_width(self : GeoRegion) -> Double? {
+  self.source_stroke_width
+}
+
+///|
 fn build_geo_from_loaded(
   opt : @option.ChartOption,
   geo_opt : @option.GeoOption,
   loaded : GeoLoadedResource,
+  resource_type : String,
 ) -> Geo? {
   let aspect_scale = geo_opt.aspect_scale.unwrap_or(0.75)
   let regions = loaded.regions
@@ -279,6 +324,7 @@ fn build_geo_from_loaded(
   let viewport = compute_geo_viewport(opt, geo_opt, raw_bounds)
   Some({
     map: geo_opt.map,
+    resource_type,
     viewport,
     data_min_x: raw_bounds.x,
     data_max_x: raw_bounds.right(),
@@ -742,7 +788,15 @@ fn parse_geo_feature(
     Some(cp) => cp
     None => geo_geometries_center(geometries, bbox)
   }
-  Some({ name, geometries, center, data_bbox: bbox })
+  Some({
+    name,
+    geometries,
+    center,
+    data_bbox: bbox,
+    source_fill: None,
+    source_stroke_color: None,
+    source_stroke_width: None,
+  })
 }
 
 ///|

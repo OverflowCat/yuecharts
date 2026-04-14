@@ -257,11 +257,21 @@ fn vm_split_number_text(
   max : Double,
   index : Int,
   count : Int,
+  is_first_open : Bool,
+  is_last_open : Bool,
 ) -> String {
   if index == 0 {
-    "<= \{vm_format_number(max)}"
+    if is_first_open {
+      "< \{vm_format_number(max)}"
+    } else {
+      "< \{vm_format_number(max)}"
+    }
   } else if index == count - 1 {
-    ">= \{vm_format_number(min)}"
+    if is_last_open {
+      "> \{vm_format_number(min)}"
+    } else {
+      "> \{vm_format_number(min)}"
+    }
   } else {
     "\{vm_format_number(min)} - \{vm_format_number(max)}"
   }
@@ -361,11 +371,38 @@ fn vm_build_piecewise_items(
   } else if vm.split_number > 0 {
     let split_number = if vm.split_number <= 0 { 1 } else { vm.split_number }
     let step = (vm.max - vm.min) / split_number.to_double()
+    if vm.min_open {
+      content_items.push(
+        vm_make_piecewise_item(
+          "< \{vm_format_number(vm.min)}",
+          if base_colors.length() > 0 {
+            base_colors[0]
+          } else {
+            "#5070dd"
+          },
+          vm.item_symbol,
+          vm_selected_state(vm, "min_open"),
+          true,
+          show_label,
+          item_w,
+          item_h,
+          text_gap,
+          char_w,
+        ),
+      )
+    }
     let mut i = 0
     while i < split_number {
       let min = vm.min + step * i.to_double()
       let max = if i == split_number - 1 { vm.max } else { min + step }
-      let text = vm_split_number_text(min, max, i, split_number)
+      let text = vm_split_number_text(
+        min,
+        max,
+        i,
+        split_number,
+        vm.min_open,
+        vm.max_open,
+      )
       let color = if base_colors.length() > 0 {
         let ratio = if split_number <= 1 {
           0.0
@@ -391,6 +428,26 @@ fn vm_build_piecewise_items(
         ),
       )
       i += 1
+    }
+    if vm.max_open {
+      content_items.push(
+        vm_make_piecewise_item(
+          "> \{vm_format_number(vm.max)}",
+          if base_colors.length() > 0 {
+            base_colors[base_colors.length() - 1]
+          } else {
+            "#5070dd"
+          },
+          vm.item_symbol,
+          vm_selected_state(vm, "max_open"),
+          true,
+          show_label,
+          item_w,
+          item_h,
+          text_gap,
+          char_w,
+        ),
+      )
     }
   }
 

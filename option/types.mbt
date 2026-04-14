@@ -320,6 +320,7 @@ pub(all) struct MapSpecialAreaOption {
 pub(all) struct MapRegistryOption {
   name : String
   geo_json : Json?
+  svg : String?
   special_areas : Array[MapSpecialAreaOption]
 }
 

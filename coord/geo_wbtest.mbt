@@ -572,3 +572,29 @@ test "geo source manager get_map_for_user returns original registration" {
   assert_eq(map_for_user.special_areas.length(), 1)
   assert_eq(map_for_user.special_areas[0].name, "Inset")
 }
+
+///|
+test "geo svg resource loads named region styles" {
+  let json_str =
+    #|{
+    #|  "width": 240,
+    #|  "height": 180,
+    #|  "geo": {
+    #|    "map": "demo",
+    #|    "aspectScale": 1
+    #|  },
+    #|  "maps": [{
+    #|    "name": "demo",
+    #|    "svg": "<svg width='100' height='100' viewBox='0 0 100 100'><g name='Alpha'><path d='M 0 0 L 10 0 L 10 10 L 0 10 Z' fill='#123456' stroke='#654321' stroke-width='2'/></g></svg>"
+    #|  }]
+    #|}
+  let opt = @option.parse(json_str)
+  let geo = Geo::build(opt).unwrap()
+  assert_true(geo.is_svg())
+  let region = geo.region_by_name("Alpha").unwrap()
+  assert_eq(region.svg_fill(), Some("#123456"))
+  assert_eq(region.svg_stroke_color(), Some("#654321"))
+  assert_eq(region.svg_stroke_width(), Some(2.0))
+  assert_eq(region.data_bbox.width, 10.0)
+  assert_eq(region.data_bbox.height, 10.0)
+}

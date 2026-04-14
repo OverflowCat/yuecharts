@@ -628,6 +628,7 @@ fn parse_map_registry_option(j : Json) -> MapRegistryOption {
       Some(value) => Some(value)
       None => j_field(j, "geoJson")
     },
+    svg: j_string_opt(j, "svg"),
     special_areas: parse_map_special_areas(j),
   }
 }

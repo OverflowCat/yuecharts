@@ -370,12 +370,15 @@ fn map_region_option_by_name(
 fn map_region_fill(
   opt : @option.ChartOption,
   geo_opt : @option.GeoOption,
+  geo : @coord.Geo,
   series : @option.SeriesOption,
   series_index : Int,
   region_name : String,
   item : @option.DataItem?,
 ) -> String {
-  let fallback = map_region_fill_fallback(opt, geo_opt, series_index, item)
+  let fallback = map_region_fill_fallback(
+    opt, geo_opt, geo, series_index, region_name, item,
+  )
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
       map_patch_area_color(region.item_style).unwrap_or(
@@ -402,25 +405,42 @@ fn map_region_fill(
 fn map_region_fill_fallback(
   opt : @option.ChartOption,
   geo_opt : @option.GeoOption,
+  geo : @coord.Geo,
   series_index : Int,
+  region_name : String,
   item : @option.DataItem?,
 ) -> String {
+  let source_fill = map_region_source_fill(geo, region_name)
   match item {
     Some(data_item) =>
       geo_visual_map_color(opt, series_index, data_item).unwrap_or(
-        geo_opt.item_style.area_color.unwrap_or(map_default_fill),
+        geo_opt.item_style.area_color.unwrap_or(
+          source_fill.unwrap_or(map_default_fill),
+        ),
       )
-    None => geo_opt.item_style.area_color.unwrap_or(map_default_fill)
+    None =>
+      geo_opt.item_style.area_color.unwrap_or(
+        source_fill.unwrap_or(map_default_fill),
+      )
   }
+}
+
+///|
+fn map_region_source_fill(geo : @coord.Geo, region_name : String) -> String? {
+  geo.region_by_name(region_name).bind(region => region.svg_fill())
 }
 
 ///|
 fn map_region_stroke_color(
   geo_opt : @option.GeoOption,
+  geo : @coord.Geo,
   series : @option.SeriesOption,
   region_name : String,
   item : @option.DataItem?,
 ) -> String {
+  let source_stroke = geo
+    .region_by_name(region_name)
+    .bind(region => region.svg_stroke_color())
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
       map_patch_border_color(region.item_style).unwrap_or(
@@ -428,7 +448,7 @@ fn map_region_stroke_color(
         .bind(data_item => map_patch_border_color(data_item.item_style))
         .unwrap_or(
           map_patch_border_color(series.geo_item_style).unwrap_or(
-            geo_opt.item_style.border_color,
+            source_stroke.unwrap_or(geo_opt.item_style.border_color),
           ),
         ),
       )
@@ -437,7 +457,7 @@ fn map_region_stroke_color(
       .bind(data_item => map_patch_border_color(data_item.item_style))
       .unwrap_or(
         map_patch_border_color(series.geo_item_style).unwrap_or(
-          geo_opt.item_style.border_color,
+          source_stroke.unwrap_or(geo_opt.item_style.border_color),
         ),
       )
   }
@@ -446,10 +466,14 @@ fn map_region_stroke_color(
 ///|
 fn map_region_stroke_width(
   geo_opt : @option.GeoOption,
+  geo : @coord.Geo,
   series : @option.SeriesOption,
   region_name : String,
   item : @option.DataItem?,
 ) -> Double {
+  let source_stroke_width = geo
+    .region_by_name(region_name)
+    .bind(region => region.svg_stroke_width())
   match map_region_option_by_name(geo_opt, region_name) {
     Some(region) =>
       map_patch_border_width(region.item_style).unwrap_or(
@@ -457,7 +481,7 @@ fn map_region_stroke_width(
         .bind(data_item => map_patch_border_width(data_item.item_style))
         .unwrap_or(
           map_patch_border_width(series.geo_item_style).unwrap_or(
-            geo_opt.item_style.border_width,
+            source_stroke_width.unwrap_or(geo_opt.item_style.border_width),
           ),
         ),
       )
@@ -466,7 +490,7 @@ fn map_region_stroke_width(
       .bind(data_item => map_patch_border_width(data_item.item_style))
       .unwrap_or(
         map_patch_border_width(series.geo_item_style).unwrap_or(
-          geo_opt.item_style.border_width,
+          source_stroke_width.unwrap_or(geo_opt.item_style.border_width),
         ),
       )
   }
@@ -698,6 +722,7 @@ pub fn render_maps(
             let fill = map_region_fill(
               opt,
               geo_opt,
+              geo,
               series,
               series_index,
               region.name,
@@ -705,12 +730,14 @@ pub fn render_maps(
             )
             let stroke_color = map_region_stroke_color(
               geo_opt,
+              geo,
               series,
               region.name,
               item,
             )
             let stroke_width = map_region_stroke_width(
               geo_opt,
+              geo,
               series,
               region.name,
               item,

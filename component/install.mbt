@@ -186,6 +186,7 @@ pub impl @core.ComponentViewLike for VisualMapComponentView with render(
 pub fn install_visual_map(registry : @core.Registry) -> Unit {
   // echarts/src/component/visualMap/install.ts
   // echarts/src/component/visualMap/ContinuousView.ts
+  // echarts/src/component/visualMap/PiecewiseView.ts
   register_component(registry, Foreground, false, VisualMapComponentView::{  })
 }
 
