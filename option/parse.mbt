@@ -142,6 +142,7 @@ fn parse_legend(j : Json) -> LegendOption {
     top: j_string(j, "top", base.top),
     bottom: j_string(j, "bottom", base.bottom),
     orient: j_string(j, "orient", base.orient),
+    data: j_string_array_lossy(j, "data", base.data),
     selected: parse_legend_selected(j),
   }
 }

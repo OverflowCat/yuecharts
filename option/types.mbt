@@ -1123,6 +1123,7 @@ pub struct LegendOption {
   top : String
   bottom : String
   orient : String // "horizontal" | "vertical"
+  data : Array[String]
   selected : Array[LegendSelection]
 }
 
@@ -1135,6 +1136,7 @@ pub impl Default for LegendOption with default() {
     top: "",
     bottom: "15",
     orient: "horizontal",
+    data: [],
     selected: [],
   }
 }
