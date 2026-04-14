@@ -33,7 +33,7 @@ pub fn OrdinalScale::band_step(self : OrdinalScale) -> Double {
 ///|
 /// Width of the actual rendered band (excluding padding).
 pub fn OrdinalScale::band_width(self : OrdinalScale) -> Double {
-  self.band_step() * (1.0 - self.padding)
+  self.band_step().abs() * (1.0 - self.padding)
 }
 
 ///|

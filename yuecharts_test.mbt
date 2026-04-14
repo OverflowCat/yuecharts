@@ -11,6 +11,11 @@ let palette_0 = "#5070dd" // series index 0
 let palette_1 = "#b6d634" // series index 1
 
 ///|
+test "version reports current release" {
+  assert_eq(@yuecharts.version(), "0.4.14")
+}
+
+///|
 fn count_substring(haystack : String, needle : String) -> Int {
   haystack.split(needle).map(StringView::to_string).collect().length() - 1
 }
@@ -429,7 +434,6 @@ test "bar example snapshot" {
       #|}
       #|]]></style>
       #|</svg>
-
     ),
   )
 }
@@ -544,7 +548,6 @@ test "mixed example snapshot" {
       #|}
       #|]]></style>
       #|</svg>
-
     ),
   )
 }
@@ -639,7 +642,7 @@ test "pictorial bar body-fill centers the grid vertically" {
     #|  }]
     #|}
   let svg = @yuecharts.render(json_str)
-  assert_true(svg.contains("y1=\"415\""))
+  assert_true(svg.contains("y1=\"315\""))
   assert_true(svg.contains("fill=\"#5070dd\""))
 }
 
@@ -844,6 +847,27 @@ test "geo map and scatter render with visual map" {
   assert_true(svg.contains("fill=\"#3182bd\""))
   assert_true(svg.contains("r=\"2.5\""))
   assert_true(svg.contains("r=\"15\""))
+}
+
+///|
+test "continuous visual map renders standalone legend bar" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 180,
+    #|  "visualMap": [{
+    #|    "min": 0,
+    #|    "max": 100,
+    #|    "show": true,
+    #|    "inRange": { "color": ["#3182bd"] }
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(count_substring(svg, "<rect x=\"15\"") >= 20)
+  assert_true(svg.contains("#3182bd"))
+  assert_true(svg.contains("#b7b9be"))
+  assert_true(svg.contains(">100</text>"))
+  assert_true(svg.contains(">0</text>"))
 }
 
 ///|
@@ -1164,6 +1188,58 @@ test "polar bar stack shares stack layout across series" {
   assert_true(svg.contains("#5070dd"))
   assert_true(svg.contains("#b6d634"))
   assert_true(svg.contains("#505372"))
+}
+
+///|
+test "polar bar stack radial renders visible sectors" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "angleAxis": {
+    #|    "type": "category",
+    #|    "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    #|  },
+    #|  "radiusAxis": {},
+    #|  "polar": {},
+    #|  "series": [
+    #|    {
+    #|      "type": "bar",
+    #|      "data": [1, 2, 3, 4, 3, 5, 1],
+    #|      "coordinateSystem": "polar",
+    #|      "name": "A",
+    #|      "stack": "a",
+    #|      "emphasis": { "focus": "series" }
+    #|    },
+    #|    {
+    #|      "type": "bar",
+    #|      "data": [2, 4, 6, 1, 3, 2, 1],
+    #|      "coordinateSystem": "polar",
+    #|      "name": "B",
+    #|      "stack": "a",
+    #|      "emphasis": { "focus": "series" }
+    #|    },
+    #|    {
+    #|      "type": "bar",
+    #|      "data": [1, 2, 3, 4, 1, 2, 5],
+    #|      "coordinateSystem": "polar",
+    #|      "name": "C",
+    #|      "stack": "a",
+    #|      "emphasis": { "focus": "series" }
+    #|    }
+    #|  ],
+    #|  "legend": { "show": true, "data": ["A", "B", "C"] }
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(
+    svg.contains(
+      "M 290.63 175.0337 A 26.6667 26.6667 0 0 1 309.37 175.0337 L 300 200 Z",
+    ),
+  )
+  assert_true(svg.contains("M 271.89 125.1012 A 80 80 0 0 1 328.11 125.1012"))
+  assert_true(svg.contains("fill=\"#5070dd\""))
+  assert_true(svg.contains("fill=\"#b6d634\""))
+  assert_true(svg.contains("fill=\"#505372\""))
 }
 
 ///|

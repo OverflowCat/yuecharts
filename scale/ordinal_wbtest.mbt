@@ -23,6 +23,13 @@ test "ordinal_scale band_width with padding" {
 }
 
 ///|
+test "ordinal_scale band_width stays positive for reversed extent" {
+  let s = OrdinalScale::new(["a", "b", "c"], 300.0, 0.0, 0.0)
+  assert_true(approx_eq_ord(s.band_step(), -100.0))
+  assert_true(approx_eq_ord(s.band_width(), 100.0))
+}
+
+///|
 test "ordinal_scale band_center" {
   let s = OrdinalScale::new(["a", "b", "c"], 0.0, 300.0, 0.0)
   // step = 100; centers at 50, 150, 250
