@@ -6,14 +6,13 @@
 //   Subtext:       tokens.color.quaternary = #86878c
 //
 // ECharts title defaults (from echarts/src/component/title/install.ts):
-//   left: 'center', top: tokens.size.m (= 15), padding 5
+//   left: 'center', top: tokens.size.m (= 15), padding: 5
 //   textStyle.fontSize: 18, textStyle.fontWeight: 'bold'
 //   subtextStyle.fontSize: 12
 //
-// The MoonBit port keeps the static title subset and renders the common
-// top/bottom placement cases used by the examples. Text is drawn with
-// dominant-baseline="central" so the serialized SVG matches ECharts' title
-// baseline choice.
+// Pixel position: ty = top + padding = 15 + 5 = 20
+// Text is drawn with dominant-baseline="central" so the center of the glyph
+// is at ty + fontSize/2.  We emit x/y directly instead of transform=translate.
 
 ///|
 /// Render the title and optional subtext to scene graph elements.
@@ -32,13 +31,12 @@ pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
     "right" => (opt.width - 10.0, @graphic.TextAnchor::End)
     _ => (10.0, @graphic.TextAnchor::Start)
   }
-  let title_y = title_y_for_top(title.top, opt.height)
-  let subtext_y = subtext_y_for_top(title.top, opt.height, title_y)
+  let ty_title = 20.0 + 18.0 / 2.0
   if title.text != "" {
     elems.push(
       @graphic.Element::text_custom(
         tx,
-        title_y,
+        ty_title,
         title.text,
         anchor,
         @graphic.TextBaseline::Central,
@@ -53,10 +51,11 @@ pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
     )
   }
   if title.subtext != "" {
+    let ty_sub = ty_title + 9.0 + 3.0 + 6.0
     elems.push(
       @graphic.Element::text_custom(
         tx,
-        subtext_y,
+        ty_sub,
         title.subtext,
         anchor,
         @graphic.TextBaseline::Central,
@@ -71,24 +70,6 @@ pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
     )
   }
   elems
-}
-
-///|
-fn title_y_for_top(top : String, height : Double) -> Double {
-  match top {
-    "bottom" => height - 14.0
-    "center" | "middle" => height * 0.5 - 9.0
-    _ => 29.0
-  }
-}
-
-///|
-fn subtext_y_for_top(top : String, height : Double, title_y : Double) -> Double {
-  match top {
-    "bottom" => height + 17.0
-    "center" | "middle" => height * 0.5 + 13.0
-    _ => title_y + 18.0
-  }
 }
 
 ///|

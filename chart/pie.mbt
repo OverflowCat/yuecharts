@@ -192,11 +192,34 @@ pub fn render_pie_series(
     )
 
     // Label: midpoint angle, outside the slice
-    let label_name = match item.name {
+    // Apply formatter: {a}=seriesName {b}=name {c}=value {d}=percent
+    // <=> echarts/src/chart/pie/PieView.ts + dataFormat.ts getFormattedLabel
+    let item_name = match item.name {
       Some(n) => n
       None => ""
     }
-    if label_name != "" {
+    let series_name = series.name.unwrap_or("")
+    let value_str = if value.to_int().to_double() == value {
+      value.to_int().to_string()
+    } else {
+      value.to_string()
+    }
+    let pct_raw = value / total * 100.0
+    let pct_int = (pct_raw * 100.0).round().to_int()
+    let pct_f = pct_int.to_double() / 100.0
+    let percent_str = if pct_f.to_int().to_double() == pct_f {
+      pct_f.to_int().to_string()
+    } else {
+      pct_f.to_string()
+    }
+    let label_text = @option.apply_label_formatter(
+      series.label,
+      series_name,
+      item_name,
+      value_str,
+      Some(percent_str),
+    )
+    if label_text != "" {
       let mid_angle = (a0 + a1) / 2.0
       let label_r = r_outer + 20.0
       let lx = cx + label_r * @math.cos(mid_angle)
@@ -211,7 +234,7 @@ pub fn render_pie_series(
         @graphic.Element::text_colored(
           lx,
           ly,
-          label_name,
+          label_text,
           anchor,
           @graphic.TextBaseline::Middle,
           "#333333",

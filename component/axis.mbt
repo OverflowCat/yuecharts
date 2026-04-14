@@ -8,6 +8,17 @@
 let axis_line_color : String = "#54555a"
 
 ///|
+/// Apply an axisLabel string template formatter to a tick label.
+/// Template uses {value} as the substitution variable.
+/// <=> echarts/src/coord/axisHelper.ts:makeLabelFormatter (string branch)
+fn apply_axis_label_fmt(formatter : String?, label : String) -> String {
+  match formatter {
+    Some(tpl) if tpl != "" => tpl.replace(old="{value}", new=label)
+    _ => label
+  }
+}
+
+///|
 let polar_axis_split_line_color : String = "#dbdee4"
 
 ///|
@@ -173,7 +184,7 @@ fn render_x_axis(
           @graphic.Element::text_custom(
             px,
             label_y,
-            tick.label,
+            apply_axis_label_fmt(ax.label_formatter, tick.label),
             @graphic.TextAnchor::Middle,
             baseline,
             axis_line_color,
@@ -208,7 +219,7 @@ fn render_x_axis(
           @graphic.Element::text_custom(
             px,
             label_y,
-            tick.label,
+            apply_axis_label_fmt(ax.label_formatter, tick.label),
             @graphic.TextAnchor::Middle,
             baseline,
             axis_line_color,
@@ -273,7 +284,7 @@ fn render_y_axis(
           @graphic.Element::text_custom(
             label_x,
             py,
-            tick.label,
+            apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
             @graphic.TextBaseline::Middle,
             axis_line_color,
@@ -308,7 +319,7 @@ fn render_y_axis(
           @graphic.Element::text_custom(
             label_x,
             py,
-            tick.label,
+            apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
             @graphic.TextBaseline::Middle,
             axis_line_color,
