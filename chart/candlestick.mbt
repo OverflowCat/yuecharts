@@ -62,37 +62,49 @@ pub fn render_candlestick_series(
         let body_bot = if open_y > close_y { open_y } else { close_y }
         let body_h = (body_bot - body_top).max(1.0)
         let color = if close_v >= open_v {
-          candle_color_up
+          series.candle_color_up.unwrap_or(candle_color_up)
         } else {
-          candle_color_down
+          series.candle_color_down.unwrap_or(candle_color_down)
         }
-        // Body rect
+        let border_color = if close_v >= open_v {
+          series.candle_border_color_up.unwrap_or(color)
+        } else {
+          series.candle_border_color_down.unwrap_or(color)
+        }
+        let border_width = series.candle_border_width
+        // Body rect with fill and border
         elems.push(
-          @graphic.Element::rect_colored(
+          @graphic.Element::rect_border(
             cx - candle_w * 0.5,
             body_top,
             candle_w,
             body_h,
             color,
+            border_color,
+            border_width,
           ),
         )
         // Upper wick: from body_top to high_y (high_y < body_top in pixel coords)
         if high_y < body_top {
           elems.push(
-            @graphic.Element::line_colored(cx, high_y, cx, body_top, color, 1.0),
+            @graphic.Element::line_colored(
+              cx, high_y, cx, body_top, border_color, 1.0,
+            ),
           )
         }
         // Lower wick: from body_bot to low_y (low_y > body_bot in pixel coords)
         if low_y > body_bot {
           elems.push(
-            @graphic.Element::line_colored(cx, body_bot, cx, low_y, color, 1.0),
+            @graphic.Element::line_colored(
+              cx, body_bot, cx, low_y, border_color, 1.0,
+            ),
           )
         }
       }
       _ => ()
     }
   }
-  let _ = series_index // suppress unused warning — color driven by close/open sign
+  let _ = series_index // suppress unused warning
   elems
 }
 

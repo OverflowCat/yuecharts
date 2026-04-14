@@ -29,6 +29,9 @@ pub(all) struct AxisOption {
   data : Array[String] // category labels
   min : Double?
   max : Double?
+  // echarts/src/coord/axisCommonTypes.ts: scale
+  // When true, axis does not force include 0; fits to data range.
+  scale : Bool
   grid_index : Int?
   polar_index : Int?
   start_angle : Double?
@@ -77,6 +80,7 @@ pub fn AxisOption::default_x() -> AxisOption {
     data: [],
     min: None,
     max: None,
+    scale: false,
     grid_index: None,
     polar_index: None,
     start_angle: None,
@@ -96,6 +100,7 @@ pub fn AxisOption::default_y() -> AxisOption {
     data: [],
     min: None,
     max: None,
+    scale: false,
     grid_index: None,
     polar_index: None,
     start_angle: None,
@@ -680,6 +685,13 @@ pub(all) struct SeriesOption {
   gauge_detail_offset_center : Array[String] // default ["0", "40%"]
   gauge_title_font_size : Double // default 16.0
   gauge_title_offset_center : Array[String] // default ["0", "20%"]
+  // Candlestick-specific itemStyle
+  // Corresponds to: echarts/src/chart/candlestick/CandlestickSeries.ts
+  candle_color_up : String? // itemStyle.color (bullish/close>=open)
+  candle_color_down : String? // itemStyle.color0 (bearish/close<open)
+  candle_border_color_up : String? // itemStyle.borderColor
+  candle_border_color_down : String? // itemStyle.borderColor0
+  candle_border_width : Double // itemStyle.borderWidth, default 1.0
 }
 
 ///|
@@ -819,6 +831,11 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     gauge_detail_offset_center: ["0", "40%"],
     gauge_title_font_size: 16.0,
     gauge_title_offset_center: ["0", "20%"],
+    candle_color_up: None,
+    candle_color_down: None,
+    candle_border_color_up: None,
+    candle_border_color_down: None,
+    candle_border_width: 1.0,
   }
 }
 

@@ -180,8 +180,16 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
       Value | Log | Time => {
         let (dmin, dmax) = series_y_range(opt, yi)
         // ECharts default: scale=false means include 0 in the extent.
-        // If data min is positive, start axis from 0 (matches ECharts behavior).
-        let lo = ax.min.unwrap_or(if dmin > 0.0 { 0.0 } else { dmin })
+        // scale=true: fit axis to actual data range (do not force include 0).
+        let lo = ax.min.unwrap_or(
+          if ax.scale {
+            dmin
+          } else if dmin > 0.0 {
+            0.0
+          } else {
+            dmin
+          },
+        )
         let hi = ax.max.unwrap_or(dmax)
         @coord.YScale::make_linear(make_linear_y_scale(lo, hi, axis_bbox))
       }
@@ -235,19 +243,14 @@ fn series_y_range(opt : @option.ChartOption, y_idx : Int) -> (Double, Double) {
               hi = n
             }
           }
-        Vec(arr) => {
+        Vec(arr) =>
           // For [x, y] scatter-style data, use arr[1] as the y value.
-          // For single-element arrays, use arr[0].
-          let v_opt : Double? = if arr.length() >= 2 {
-            Some(arr[1])
-          } else if arr.length() == 1 {
-            Some(arr[0])
-          } else {
-            None
-          }
-          match v_opt {
-            None => ()
-            Some(v) =>
+          // For OHLC/boxplot 4+-value arrays, ALL values are on the y-axis.
+          if arr.length() >= 4 {
+            let mut ai = 0
+            while ai < arr.length() {
+              let v = arr[ai]
+              ai += 1
               if first {
                 lo = v
                 hi = v
@@ -260,8 +263,32 @@ fn series_y_range(opt : @option.ChartOption, y_idx : Int) -> (Double, Double) {
                   hi = v
                 }
               }
+            }
+          } else {
+            let v_opt : Double? = if arr.length() >= 2 {
+              Some(arr[1])
+            } else if arr.length() == 1 {
+              Some(arr[0])
+            } else {
+              None
+            }
+            match v_opt {
+              None => ()
+              Some(v) =>
+                if first {
+                  lo = v
+                  hi = v
+                  first = false
+                } else {
+                  if v < lo {
+                    lo = v
+                  }
+                  if v > hi {
+                    hi = v
+                  }
+                }
+            }
           }
-        }
         DateValue(_, n) =>
           if first {
             lo = n

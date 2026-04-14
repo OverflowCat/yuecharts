@@ -224,6 +224,8 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
   let name = j_string_opt(j, "name")
   let min = j_number_opt(j, "min")
   let max = j_number_opt(j, "max")
+  // "scale": true means axis does not force-include 0 (fits to data range)
+  let scale = j_bool(j, "scale", base.scale)
   let grid_index = Some(j_int(j, "gridIndex", base.grid_index.unwrap_or(0)))
   let polar_index = Some(j_int(j, "polarIndex", base.polar_index.unwrap_or(0)))
   let start_angle = match j_field(j, "startAngle") {
@@ -252,6 +254,7 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     data,
     min,
     max,
+    scale,
     grid_index,
     polar_index,
     start_angle,
@@ -1239,6 +1242,29 @@ fn parse_series_option(j : Json) -> SeriesOption {
       }
     _ => None
   }
+  // Candlestick-specific itemStyle fields
+  // Corresponds to: echarts/src/chart/candlestick/CandlestickSeries.ts
+  let candle_item_style = j_field(j, "itemStyle")
+  let candle_color_up = match candle_item_style {
+    Some(style) => j_string_opt(style, "color")
+    None => base.candle_color_up
+  }
+  let candle_color_down = match candle_item_style {
+    Some(style) => j_string_opt(style, "color0")
+    None => base.candle_color_down
+  }
+  let candle_border_color_up = match candle_item_style {
+    Some(style) => j_string_opt(style, "borderColor")
+    None => base.candle_border_color_up
+  }
+  let candle_border_color_down = match candle_item_style {
+    Some(style) => j_string_opt(style, "borderColor0")
+    None => base.candle_border_color_down
+  }
+  let candle_border_width = match candle_item_style {
+    Some(style) => j_number(style, "borderWidth", base.candle_border_width)
+    None => base.candle_border_width
+  }
   let geo_item_style = match j_field(j, "itemStyle") {
     Some(style) => Some(parse_geo_item_style_patch_option(style))
     None => None
@@ -1594,6 +1620,11 @@ fn parse_series_option(j : Json) -> SeriesOption {
     gauge_detail_offset_center,
     gauge_title_font_size,
     gauge_title_offset_center,
+    candle_color_up,
+    candle_color_down,
+    candle_border_color_up,
+    candle_border_color_down,
+    candle_border_width,
   }
 }
 
