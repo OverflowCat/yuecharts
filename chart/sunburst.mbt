@@ -124,6 +124,29 @@ fn sorted_indices_desc(values : Array[Double]) -> Array[Int] {
 }
 
 ///|
+fn sunburst_color_at_ratio(colors : Array[String], ratio : Double) -> String {
+  if colors.length() == 0 {
+    return "#cccccc"
+  }
+  if colors.length() == 1 {
+    return colors[0]
+  }
+  let t = if ratio < 0.0 { 0.0 } else if ratio > 1.0 { 1.0 } else { ratio }
+  let total = colors.length() - 1
+  let scaled = t * total.to_double()
+  let index = scaled.floor().to_int()
+  let next_index = if index + 1 < colors.length() { index + 1 } else { index }
+  let local_t = scaled - index.to_double()
+  let start_color = @graphic.Color::from_string(colors[index]).unwrap_or(
+    @graphic.black,
+  )
+  let end_color = @graphic.Color::from_string(colors[next_index]).unwrap_or(
+    start_color,
+  )
+  @graphic.Color::lerp(start_color, end_color, local_t).to_svg()
+}
+
+///|
 fn render_sunburst_node(
   elems : Array[@graphic.Element],
   node : @option.DataItem,
@@ -137,10 +160,24 @@ fn render_sunburst_node(
   inner_radius : Double,
   radius_per_level : Double,
   clockwise : Bool,
+  vm_colors : Array[String],
+  vm_min : Double,
+  vm_max : Double,
 ) -> Unit {
   let r0 = inner_radius + depth.to_double() * radius_per_level
   let r1 = r0 + radius_per_level
-  let fill_color = @visual.palette_color(top_color_idx)
+  // Determine fill color: itemStyle override > visualMap > palette
+  let node_value = complete_tree_value(node)
+  let fill_color = if vm_colors.length() > 0 && vm_max > vm_min {
+    // visualMap overrides itemStyle.color (matches ECharts visual processor order)
+    let ratio = (node_value - vm_min) / (vm_max - vm_min)
+    sunburst_color_at_ratio(vm_colors, ratio)
+  } else {
+    match node.item_style {
+      Some(style) => style.color.unwrap_or(@visual.palette_color(top_color_idx))
+      None => @visual.palette_color(top_color_idx)
+    }
+  }
   let opacity = {
     let o = 0.95 - depth.to_double() * 0.14
     if o < 0.38 {
@@ -191,13 +228,28 @@ fn render_sunburst_node(
   }
 
   let child_values : Array[Double] = []
-  let mut total = 0.0
   let mut i = 0
   while i < node.children.length() {
     let v = complete_tree_value(node.children[i])
     child_values.push(v)
-    total = total + v
     i += 1
+  }
+  // Use the parent node's own declared value as denominator, not sum of children.
+  // This matches ECharts sunburstLayout.ts: each node's angle = node.getValue() * unitRadian,
+  // so children only fill the portion proportional to their value vs parent's value.
+  let total = {
+    let pv = data_item_value(node)
+    if pv > 0.0 {
+      pv
+    } else {
+      let mut s = 0.0
+      let mut fi = 0
+      while fi < child_values.length() {
+        s = s + child_values[fi]
+        fi += 1
+      }
+      s
+    }
   }
   let order = sorted_indices_desc(child_values)
   let mut child_angle = start_angle
@@ -241,6 +293,9 @@ fn render_sunburst_node(
         inner_radius,
         radius_per_level,
         clockwise,
+        vm_colors,
+        vm_min,
+        vm_max,
       )
       child_angle = if clockwise {
         child_angle + child_span
@@ -258,6 +313,26 @@ pub fn render_sunbursts(
   _coord : @coord.Cartesian2D,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
+  // Find first continuous visualMap for sunburst color mapping
+  let vm_colors : Array[String] = []
+  let mut vm_min = 0.0
+  let mut vm_max = 0.0
+  let mut vi = 0
+  while vi < opt.visual_map.length() {
+    let vm = opt.visual_map[vi]
+    let colors = vm.in_range.color
+    if colors.length() >= 2 {
+      let mut ci = 0
+      while ci < colors.length() {
+        vm_colors.push(colors[ci])
+        ci += 1
+      }
+      vm_min = vm.min
+      vm_max = vm.max
+      break
+    }
+    vi += 1
+  }
   let mut color_idx = 0
   let mut si = 0
   while si < opt.series.length() {
@@ -275,6 +350,9 @@ pub fn render_sunbursts(
       color_idx,
       opt.width,
       opt.height,
+      vm_colors,
+      vm_min,
+      vm_max,
     )
     let mut i = 0
     while i < series_elems.length() {
@@ -292,6 +370,9 @@ pub fn render_sunburst_series(
   series_index : Int,
   chart_width : Double,
   chart_height : Double,
+  vm_colors : Array[String],
+  vm_min : Double,
+  vm_max : Double,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   if series.data.length() == 0 {
@@ -388,6 +469,9 @@ pub fn render_sunburst_series(
         r_inner,
         radius_per_level,
         series.clockwise,
+        vm_colors,
+        vm_min,
+        vm_max,
       )
       current_angle = if series.clockwise {
         current_angle + sweep
