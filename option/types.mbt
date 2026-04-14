@@ -463,6 +463,10 @@ pub(all) struct DataItem {
   states : GeoStatesOption
   children : Array[DataItem]
   collapsed : Bool?
+  // For gauge chart per-item title/detail offsetCenter overrides
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts GaugeDataItemOption
+  title_offset_center : Array[String]? // [x%, y%] relative to gauge radius
+  detail_offset_center : Array[String]? // [x%, y%] relative to gauge radius
 }
 
 ///|
@@ -665,6 +669,17 @@ pub(all) struct SeriesOption {
   treemap_upper_label : TreemapUpperLabelOption?
   treemap_item_style : TreemapItemStyleOption?
   treemap_levels : Array[TreemapLevelOption]
+  // Gauge-specific series-level options
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts
+  gauge_progress_show : Bool
+  gauge_progress_overlap : Bool
+  gauge_progress_width : Double // default 10.0
+  gauge_detail_formatter : String?
+  gauge_detail_color : String?
+  gauge_detail_font_size : Double // default 30.0
+  gauge_detail_offset_center : Array[String] // default ["0", "40%"]
+  gauge_title_font_size : Double // default 16.0
+  gauge_title_offset_center : Array[String] // default ["0", "20%"]
 }
 
 ///|
@@ -795,6 +810,15 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     treemap_upper_label: None,
     treemap_item_style: None,
     treemap_levels: [],
+    gauge_progress_show: false,
+    gauge_progress_overlap: true,
+    gauge_progress_width: 10.0,
+    gauge_detail_formatter: None,
+    gauge_detail_color: None,
+    gauge_detail_font_size: 30.0,
+    gauge_detail_offset_center: ["0", "40%"],
+    gauge_title_font_size: 16.0,
+    gauge_title_offset_center: ["0", "20%"],
   }
 }
 

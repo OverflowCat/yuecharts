@@ -59,13 +59,13 @@ Excluded on purpose:
 - `coord/geo.mbt` now also carries the static `Geo.ts` roam anchor subset (`center` / `zoom`) and applies it in `Geo::data_to_point`, so top-level `geo` and exclusive `series.map` both honor the resolved raw-center roam transform in the static path.
 - `coord/geo.mbt` now also honors `boundingCoords` before roam, matching the upstream `resizeGeo` priority order and keeping `aspectScale` limited to layout aspect computation.
 - `coord/geo.mbt` now threads `nameProperty` through `GeoJSONResource` loading, so custom geoJSON property names now resolve region names like upstream `parseGeoJson.ts` / `MapSeries.ts`.
-- The remaining geo gap is still `GeoSVGResource.ts`, projection support, and the interactive roam/resize behavior around `geoCreator.ts` / `Geo.ts`.
+- `GeoJSONResource.ts` is now translated into `coord/geo_json_resource.mbt`, and `GeoSVGResource.ts` still exists in a partial static-loading form. The remaining geo gap is mostly projection support and the interactive roam/resize behavior around `geoCreator.ts` / `Geo.ts`.
 
 ## 2026-04-08 Map Symbol Layout Update
 
 - `chart/map.mbt` now preserves each map series' `original_data` before `mapDataStatistic` rewrites `data`, matching the upstream `mapDataStatistic.ts` split between raw and aggregated series data.
 - `chart/map.mbt` now also carries the static `mapSymbolLayout.ts` subset that depends on `showLegendSymbol` and `legend` existence: legend-enabled map groups collect symbol offsets from `original_data`, and region labels stay gated by whether a legend symbol already occupies that region.
-- The next map gap is still the fuller `MapDraw.ts` / `GeoView` event, tooltip, and hover wiring plus the remaining `GeoSVGResource.ts` / projection work.
+- The next map gap is still the fuller `MapDraw.ts` / `GeoView` event, tooltip, and hover wiring plus the remaining projection / SVG resource work.
 
 ## 2026-04-09 Runtime / SingleAxis Update
 
@@ -451,7 +451,7 @@ E:\recharts\echarts\src
 │   ├── geo
 │   │   ├── Geo.ts => coord/geo.mbt [partial] Feature: geo coordinate system
 │   │   ├── geoCreator.ts => coord/geo.mbt [partial] Feature: geo creator incl. standalone map geo fallback
-│   │   ├── GeoJSONResource.ts =>  [missing] Feature: GeoJSON resource loading
+│   │   ├── GeoJSONResource.ts => coord/geo_json_resource.mbt [translated] Feature: GeoJSON resource loading
 │   │   ├── GeoModel.ts => option/types.mbt, option/parse.mbt, coord/geo.mbt [partial] Feature: geo model
 │   │   ├── geoSourceManager.ts => coord/geo_source_manager.mbt [translated] Feature: registered map source manager
 │   │   ├── GeoSVGResource.ts => coord/geo_svg_resource.mbt [partial] Feature: SVG map resource

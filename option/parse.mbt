@@ -168,7 +168,15 @@ fn parse_legend_selected(j : Json) -> Array[LegendSelection] {
 
 ///|
 fn parse_axis_option_x(j : Json) -> AxisOption {
-  parse_axis_option(j, AxisOption::default_x())
+  let axis = parse_axis_option(j, AxisOption::default_x())
+  // Scatter examples such as Anscombe's quartet omit `type` on xAxis but
+  // still expect a numeric axis. ECharts treats an untyped, data-less xAxis as
+  // value-like in this case, so mirror that static inference here.
+  if j_field(j, "type") is None && axis.data.length() == 0 {
+    { ..axis, axis_type: AxisType::Value }
+  } else {
+    axis
+  }
 }
 
 ///|
@@ -1286,6 +1294,68 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let min_val = j_number(j, "min", base.min_val)
   let max_val = j_number(j, "max", base.max_val)
   let split_number = j_int(j, "splitNumber", base.split_number)
+  // Gauge-specific: progress, title, detail
+  let gauge_progress = j_field(j, "progress")
+  let gauge_progress_show = match gauge_progress {
+    Some(p) => j_bool(p, "show", base.gauge_progress_show)
+    None => base.gauge_progress_show
+  }
+  let gauge_progress_overlap = match gauge_progress {
+    Some(p) => j_bool(p, "overlap", base.gauge_progress_overlap)
+    None => base.gauge_progress_overlap
+  }
+  let gauge_progress_width = match gauge_progress {
+    Some(p) => j_number(p, "width", base.gauge_progress_width)
+    None => base.gauge_progress_width
+  }
+  let gauge_detail_obj = j_field(j, "detail")
+  let gauge_detail_formatter = match gauge_detail_obj {
+    Some(d) => j_string_opt(d, "formatter")
+    None => base.gauge_detail_formatter
+  }
+  let gauge_detail_color = match gauge_detail_obj {
+    Some(d) => j_string_opt(d, "color")
+    None => base.gauge_detail_color
+  }
+  let gauge_detail_font_size = match gauge_detail_obj {
+    Some(d) => j_number(d, "fontSize", base.gauge_detail_font_size)
+    None => base.gauge_detail_font_size
+  }
+  let gauge_detail_offset_center = match gauge_detail_obj {
+    Some(d) =>
+      match j_field(d, "offsetCenter") {
+        Some(Array(arr)) =>
+          arr.map(fn(x) {
+            match x {
+              String(s) => s
+              Number(n, ..) => "\{n}"
+              _ => "0"
+            }
+          })
+        _ => base.gauge_detail_offset_center
+      }
+    None => base.gauge_detail_offset_center
+  }
+  let gauge_title_obj = j_field(j, "title")
+  let gauge_title_font_size = match gauge_title_obj {
+    Some(t) => j_number(t, "fontSize", base.gauge_title_font_size)
+    None => base.gauge_title_font_size
+  }
+  let gauge_title_offset_center = match gauge_title_obj {
+    Some(t) =>
+      match j_field(t, "offsetCenter") {
+        Some(Array(arr)) =>
+          arr.map(fn(x) {
+            match x {
+              String(s) => s
+              Number(n, ..) => "\{n}"
+              _ => "0"
+            }
+          })
+        _ => base.gauge_title_offset_center
+      }
+    None => base.gauge_title_offset_center
+  }
   let map_value_calculation = match j_string(j, "mapValueCalculation", "sum") {
     "average" => MapValueCalculationType::Average
     "min" => MapValueCalculationType::Min
@@ -1515,6 +1585,15 @@ fn parse_series_option(j : Json) -> SeriesOption {
     treemap_upper_label,
     treemap_item_style,
     treemap_levels,
+    gauge_progress_show,
+    gauge_progress_overlap,
+    gauge_progress_width,
+    gauge_detail_formatter,
+    gauge_detail_color,
+    gauge_detail_font_size,
+    gauge_detail_offset_center,
+    gauge_title_font_size,
+    gauge_title_offset_center,
   }
 }
 
@@ -1543,6 +1622,8 @@ fn parse_data_item(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     Null =>
       {
@@ -1566,6 +1647,8 @@ fn parse_data_item(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     True =>
       {
@@ -1589,6 +1672,8 @@ fn parse_data_item(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     False =>
       {
@@ -1612,6 +1697,8 @@ fn parse_data_item(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     Array(arr) => parse_data_array_item(arr)
     { "value": Number(n, ..), .. } => parse_data_object(j, DataValue::Num(n))
@@ -1640,6 +1727,8 @@ fn parse_data_item(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
   }
 }
@@ -1667,6 +1756,8 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     states: GeoStatesOption::default(),
     children: [],
     collapsed: None,
+    title_offset_center: None,
+    detail_offset_center: None,
   }
 }
 
@@ -1704,6 +1795,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     Array([Number(x, ..), Number(val, ..), String(name)]) => {
       let key = if x.to_int().to_double() == x {
@@ -1732,6 +1825,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     }
     Array([String(date), Number(val, ..)]) =>
@@ -1756,6 +1851,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     Array([Number(x, ..), Number(val, ..)]) => {
       let key = if x.to_int().to_double() == x {
@@ -1784,6 +1881,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         states: GeoStatesOption::default(),
         children: [],
         collapsed: None,
+        title_offset_center: None,
+        detail_offset_center: None,
       }
     }
     _ => parse_data_item(j)
@@ -2474,6 +2573,8 @@ fn empty_data_item_with_coords(coords : Array[Array[Double]]) -> DataItem {
     states: GeoStatesOption::default(),
     children: [],
     collapsed: None,
+    title_offset_center: None,
+    detail_offset_center: None,
   }
 }
 
@@ -2549,6 +2650,41 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     Some(False) => Some(false)
     _ => None
   }
+  // Gauge per-item title/detail offsetCenter
+  let title_offset_center = match j_field(j, "title") {
+    Some(t) =>
+      match j_field(t, "offsetCenter") {
+        Some(Array(arr)) =>
+          Some(
+            arr.map(fn(x) {
+              match x {
+                String(s) => s
+                Number(n, ..) => "\{n}"
+                _ => "0"
+              }
+            }),
+          )
+        _ => None
+      }
+    None => None
+  }
+  let detail_offset_center = match j_field(j, "detail") {
+    Some(d) =>
+      match j_field(d, "offsetCenter") {
+        Some(Array(arr)) =>
+          Some(
+            arr.map(fn(x) {
+              match x {
+                String(s) => s
+                Number(n, ..) => "\{n}"
+                _ => "0"
+              }
+            }),
+          )
+        _ => None
+      }
+    None => None
+  }
   {
     value,
     raw_value_parts,
@@ -2570,6 +2706,8 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     states: parse_geo_states_option(j),
     children,
     collapsed,
+    title_offset_center,
+    detail_offset_center,
   }
 }
 
