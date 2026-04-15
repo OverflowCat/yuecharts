@@ -2191,6 +2191,69 @@ test "matrix heatmap renders headers and colored body cells" {
 }
 
 ///|
+test "heatmap uses the last matching visualMap for a series" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 180,
+    #|  "xAxis": { "type": "category", "data": ["A"] },
+    #|  "yAxis": { "type": "category", "data": ["B"] },
+    #|  "visualMap": [
+    #|    {
+    #|      "show": false,
+    #|      "seriesIndex": 0,
+    #|      "min": 0,
+    #|      "max": 10,
+    #|      "inRange": { "color": ["#111111"] }
+    #|    },
+    #|    {
+    #|      "show": false,
+    #|      "seriesIndex": 0,
+    #|      "min": 0,
+    #|      "max": 10,
+    #|      "inRange": { "color": ["#ff0000"] }
+    #|    }
+    #|  ],
+    #|  "series": [{
+    #|    "type": "heatmap",
+    #|    "data": [[0, 0, 5]]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill=\"#ff0000\""))
+  assert_true(!svg.contains("#111111"))
+}
+
+///|
+test "heatmap piecewise selection uses inactive color for unselected pieces" {
+  let json_str =
+    #|{
+    #|  "width": 220,
+    #|  "height": 180,
+    #|  "xAxis": { "type": "category", "data": ["A", "B"] },
+    #|  "yAxis": { "type": "category", "data": ["C"] },
+    #|  "visualMap": {
+    #|    "show": false,
+    #|    "type": "piecewise",
+    #|    "seriesIndex": 0,
+    #|    "pieces": [
+    #|      { "min": 0, "max": 5, "color": "#00aa00" },
+    #|      { "min": 5, "max": 10, "color": "#ff0000" }
+    #|    ],
+    #|    "selected": { "0": false, "1": true }
+    #|  },
+    #|  "series": [{
+    #|    "type": "heatmap",
+    #|    "data": [[0, 0, 2], [1, 0, 8]]
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("fill=\"none\""))
+  assert_true(svg.contains("fill=\"#ff0000\""))
+  assert_true(!svg.contains("#00aa00"))
+}
+
+///|
 test "matrix body coordClamp mergeCells and corner locators render once" {
   let json_str =
     #|{

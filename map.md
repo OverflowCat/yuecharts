@@ -740,7 +740,7 @@ E:\recharts\echarts\src
 │   ├── funnel.ts => chart/funnel.mbt [partial] Feature: funnel chart entry
 │   ├── gauge.ts => chart/gauge.mbt [partial] Feature: gauge chart entry
 │   ├── graph.ts =>  [missing] Feature: graph chart entry
-│   ├── heatmap.ts => chart/heatmap.mbt [partial] Feature: heatmap chart entry
+│   ├── heatmap.ts => chart/heatmap.mbt [partial] Feature: heatmap chart entry + static visualMap binding
 │   ├── line.ts => chart/line.mbt [partial] Feature: line chart entry
 │   ├── lines.ts => chart/lines.mbt [partial] Feature: lines chart entry
 │   ├── map.ts => chart/install.mbt [partial] Feature: map chart entry
@@ -854,7 +854,7 @@ E:\recharts\echarts\src
 │   ├── heatmap
 │   │   ├── HeatmapLayer.ts =>  [missing] Feature: canvas heatmap layer
 │   │   ├── HeatmapSeries.ts => chart/heatmap.mbt, option/types.mbt, option/parse.mbt [partial] Feature: heatmap series model incl. calendar/matrix coordinateSystem/data parsing
-│   │   ├── HeatmapView.ts => chart/heatmap.mbt [translated] Feature: heatmap renderer incl. calendar/matrix branches
+│   │   ├── HeatmapView.ts => chart/heatmap.mbt [translated] Feature: heatmap renderer incl. calendar/matrix branches and visualMap selection
 │   │   └── install.ts => chart/install.mbt, chart/heatmap.mbt [partial] Feature: heatmap install
 │   │
 │   ├── candlestick

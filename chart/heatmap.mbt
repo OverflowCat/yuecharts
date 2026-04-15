@@ -19,6 +19,19 @@ fn heatmap_default_gradient_colors() -> Array[String] {
 }
 
 ///|
+/// Reverse a color stop array to match `visualMap.color` compatibility.
+/// Corresponds to: echarts/src/component/visualMap/VisualMapModel.ts completeSingle()
+fn heatmap_reverse_colors(colors : Array[String]) -> Array[String] {
+  let result : Array[String] = []
+  let mut i = colors.length()
+  while i > 0 {
+    i -= 1
+    result.push(colors[i])
+  }
+  result
+}
+
+///|
 /// Clamp t to [0, 1].
 fn heatmap_clamp01(t : Double) -> Double {
   if t < 0.0 {
@@ -27,6 +40,37 @@ fn heatmap_clamp01(t : Double) -> Double {
     1.0
   } else {
     t
+  }
+}
+
+///|
+/// Resolve the active in-range colors for heatmap series rendering.
+/// Corresponds to: echarts/src/component/visualMap/VisualMapModel.ts completeVisualOption()
+fn heatmap_vm_in_range_colors(vm : @option.VisualMapOption?) -> Array[String] {
+  match vm {
+    None => heatmap_default_gradient_colors()
+    Some(vm_opt) =>
+      if vm_opt.in_range.color.length() > 0 {
+        vm_opt.in_range.color
+      } else if vm_opt.color.length() > 0 {
+        heatmap_reverse_colors(vm_opt.color)
+      } else {
+        heatmap_default_gradient_colors()
+      }
+  }
+}
+
+///|
+/// Resolve the inactive color used for out-of-range heatmap values.
+/// Corresponds to: echarts/src/component/visualMap/VisualMapModel.ts completeInactive()
+fn heatmap_vm_out_of_range_color(vm : @option.VisualMapOption?) -> String {
+  match vm {
+    Some(vm_opt) =>
+      match vm_opt.out_of_range {
+        Some(out_range) if out_range.color.length() > 0 => out_range.color[0]
+        _ => "none"
+      }
+    None => "none"
   }
 }
 
@@ -58,22 +102,41 @@ fn heatmap_find_vm(
   opt : @option.ChartOption,
   series_index : Int,
 ) -> @option.VisualMapOption? {
+  let mut matched : @option.VisualMapOption? = None
   let mut i = 0
   while i < opt.visual_map.length() {
     let vm = opt.visual_map[i]
     i += 1
     match vm.series_index {
-      None => return Some(vm)
-      Some(si) if si == series_index => return Some(vm)
+      None => matched = Some(vm)
+      Some(si) if si == series_index => matched = Some(vm)
       _ => ()
     }
   }
-  None
+  matched
+}
+
+///|
+/// Mirror PiecewiseModel's selected-state lookup for static heatmap coloring.
+/// Corresponds to: echarts/src/component/visualMap/PiecewiseModel.ts getValueState()
+fn heatmap_vm_piece_selected(
+  vm : @option.VisualMapOption,
+  key : String,
+) -> Bool {
+  let mut i = 0
+  while i < vm.selected.length() {
+    let sel = vm.selected[i]
+    if sel.key == key {
+      return sel.selected
+    }
+    i += 1
+  }
+  true
 }
 
 ///|
 /// Resolve color string for value v in [vm_min, vm_max] using visualMap option.
-/// Supports continuous (in_range.color stops) and piecewise (pieces[].color).
+/// Supports continuous (in_range.color stops) and piecewise (pieces[].color / selected).
 /// Corresponds to: HeatmapView.ts _renderOnGridLike data.getItemVisual(idx,'style').fill
 fn heatmap_vm_color_for_value(
   vm : @option.VisualMapOption?,
@@ -86,8 +149,7 @@ fn heatmap_vm_color_for_value(
   match vm {
     None => heatmap_color_at_ratio(heatmap_default_gradient_colors(), ratio)
     Some(vm_opt) =>
-      // Piecewise: match value to a piece interval and use piece color.
-      // Corresponds to: PiecewiseModel.ts piece matching logic.
+      // Piecewise: match value to a piece interval and respect selected state.
       if vm_opt.pieces.length() > 0 {
         let mut pi = 0
         while pi < vm_opt.pieces.length() {
@@ -106,27 +168,26 @@ fn heatmap_vm_color_for_value(
             _ => vm_max
           }
           if v >= lo && v <= hi {
+            let piece_index = pi - 1
+            let color = heatmap_vm_out_of_range_color(vm)
+            if !heatmap_vm_piece_selected(vm_opt, piece_index.to_string()) {
+              return color
+            }
             match piece.color {
-              Some(c) => return c
-              None => ()
+              Some(c) if c != "" => return c
+              _ =>
+                return heatmap_color_at_ratio(
+                  heatmap_vm_in_range_colors(vm),
+                  ratio,
+                )
             }
           }
         }
-        // Fallback to continuous interpolation using in_range.color
-        let colors = if vm_opt.in_range.color.length() > 0 {
-          vm_opt.in_range.color
-        } else {
-          heatmap_default_gradient_colors()
-        }
-        heatmap_color_at_ratio(colors, ratio)
+        heatmap_vm_out_of_range_color(vm)
+      } else if v < vm_min || v > vm_max {
+        heatmap_vm_out_of_range_color(vm)
       } else {
-        // Continuous: use in_range.color stops
-        let colors = if vm_opt.in_range.color.length() > 0 {
-          vm_opt.in_range.color
-        } else {
-          heatmap_default_gradient_colors()
-        }
-        heatmap_color_at_ratio(colors, ratio)
+        heatmap_color_at_ratio(heatmap_vm_in_range_colors(vm), ratio)
       }
   }
 }
@@ -406,6 +467,7 @@ fn matrix_heatmap_visual_opacity(
   series_index : Int,
   ratio : Double,
 ) -> Double {
+  let mut opacity = 1.0
   let mut i = 0
   while i < opt.visual_map.length() {
     let visual_map = opt.visual_map[i]
@@ -417,10 +479,12 @@ fn matrix_heatmap_visual_opacity(
     if visual_map.in_range.opacity.length() >= 2 {
       let min_opacity = visual_map.in_range.opacity[0]
       let max_opacity = visual_map.in_range.opacity[1]
-      return min_opacity + (max_opacity - min_opacity) * ratio
+      opacity = min_opacity + (max_opacity - min_opacity) * ratio
+    } else {
+      opacity = 1.0
     }
   }
-  1.0
+  opacity
 }
 
 ///|
