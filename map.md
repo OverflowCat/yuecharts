@@ -227,6 +227,7 @@ E:\yuecharts
 │   ├── sankey.json / .svg / .ref.svg
 │   ├── sankey-levels.json / .svg / .ref.svg
 │   ├── sankey-vertical.json / .svg / .ref.svg
+│   ├── scatter-anscombe-quartet.json / .svg / .ref.svg
 │   ├── scatter.json / .svg / .ref.svg
 │   ├── sunburst.json / .svg / .echarts.svg
 │   ├── themeRiver-lastfm.json / .svg / .ref.svg

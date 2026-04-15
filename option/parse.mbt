@@ -9,6 +9,48 @@ pub fn parse(json_str : String) -> ChartOption raise @json.ParseError {
 }
 
 ///|
+fn large_bar_render_limit() -> Int {
+  3000
+}
+
+///|
+fn[T] array_prefix(arr : Array[T], limit : Int) -> Array[T] {
+  let out : Array[T] = []
+  let mut i = 0
+  let max = if arr.length() < limit { arr.length() } else { limit }
+  while i < max {
+    out.push(arr[i])
+    i += 1
+  }
+  out
+}
+
+///|
+fn trim_large_bar_chart_option(opt : ChartOption) -> ChartOption {
+  let limit = large_bar_render_limit()
+  let mut needs_axis_trim = false
+  for s in opt.series {
+    if s.series_type == Bar && s.large && s.data.length() > limit {
+      needs_axis_trim = true
+    }
+  }
+  let x_axis = if needs_axis_trim {
+    let axes : Array[AxisOption] = []
+    for axis in opt.x_axis {
+      if axis.data.length() > limit {
+        axes.push({ ..axis, data: array_prefix(axis.data, limit) })
+      } else {
+        axes.push(axis)
+      }
+    }
+    axes
+  } else {
+    opt.x_axis
+  }
+  { ..opt, x_axis, }
+}
+
+///|
 fn parse_chart_option(j : Json) -> ChartOption {
   let base = ChartOption::default()
   let width = j_number(j, "width", base.width)
@@ -64,7 +106,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let series = j_parse_one_or_many(j, "series", parse_series_option, [])
   let map_registry = j_parse_one_or_many(j, "maps", parse_map_registry_option, [])
   let visual_map = j_parse_one_or_many(j, "visualMap", parse_visual_map, [])
-  {
+  trim_large_bar_chart_option({
     width,
     height,
     text_style,
@@ -88,7 +130,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     background_color,
     aria,
     visual_map,
-  }
+  })
 }
 
 ///|
@@ -1208,6 +1250,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
   )
   let bar_min_height = j_number(j, "barMinHeight", base.bar_min_height)
   let bar_min_angle = j_number(j, "barMinAngle", base.bar_min_angle)
+  let large = j_bool(j, "large", base.large)
+  let large_threshold = j_int(j, "largeThreshold", base.large_threshold)
   let round_cap = j_bool(j, "roundCap", base.round_cap)
   let show_background = j_bool(j, "showBackground", base.show_background)
   let funnel_sort = j_string(j, "sort", base.funnel_sort)
@@ -1509,6 +1553,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     bar_category_gap,
     bar_min_height,
     bar_min_angle,
+    large,
+    large_threshold,
     round_cap,
     show_background,
     funnel_sort,
@@ -1656,6 +1702,61 @@ fn parse_data_item(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
       }
+    String(s) => {
+      let parsed = try? @strconv.parse_double(s)
+      match parsed {
+        Ok(n) =>
+          {
+            value: DataValue::Num(n),
+            raw_value_parts: None,
+            raw_item: None,
+            id: None,
+            name: None,
+            depth: None,
+            source: None,
+            target: None,
+            symbol: None,
+            coords: None,
+            from_name: None,
+            to_name: None,
+            cursor: None,
+            selected: None,
+            silent: None,
+            label: None,
+            item_style: None,
+            states: GeoStatesOption::default(),
+            children: [],
+            collapsed: None,
+            title_offset_center: None,
+            detail_offset_center: None,
+          }
+        Err(_) =>
+          {
+            value: DataValue::Null,
+            raw_value_parts: None,
+            raw_item: None,
+            id: None,
+            name: None,
+            depth: None,
+            source: None,
+            target: None,
+            symbol: None,
+            coords: None,
+            from_name: None,
+            to_name: None,
+            cursor: None,
+            selected: None,
+            silent: None,
+            label: None,
+            item_style: None,
+            states: GeoStatesOption::default(),
+            children: [],
+            collapsed: None,
+            title_offset_center: None,
+            detail_offset_center: None,
+          }
+      }
+    }
     Null =>
       {
         value: DataValue::Null,
@@ -1736,31 +1837,6 @@ fn parse_data_item(j : Json) -> DataItem {
     { "value": Array(arr), .. } =>
       parse_data_object(j, parse_data_array_value(arr))
     Object(_) => parse_data_object(j, DataValue::Null)
-    _ =>
-      {
-        value: DataValue::Null,
-        raw_value_parts: None,
-        raw_item: None,
-        id: None,
-        name: None,
-        depth: None,
-        source: None,
-        target: None,
-        symbol: None,
-        coords: None,
-        from_name: None,
-        to_name: None,
-        cursor: None,
-        selected: None,
-        silent: None,
-        label: None,
-        item_style: None,
-        states: GeoStatesOption::default(),
-        children: [],
-        collapsed: None,
-        title_offset_center: None,
-        detail_offset_center: None,
-      }
   }
 }
 

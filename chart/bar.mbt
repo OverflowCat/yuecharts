@@ -381,6 +381,229 @@ fn bar_render_path(d : String, style : BarResolvedStyle) -> @graphic.Element {
 }
 
 ///|
+/// <=> echarts/src/core/Scheduler.ts
+fn bar_series_is_large(series : @option.SeriesOption) -> Bool {
+  series.large && series.data.length() >= series.large_threshold
+}
+
+///|
+/// <=> echarts/src/chart/bar/BaseBarSeries.ts:defaultOption.progressive
+fn bar_large_render_limit() -> Int {
+  3000
+}
+
+///|
+fn bar_append_rect_path(
+  buf : StringBuilder,
+  x : Double,
+  y : Double,
+  w : Double,
+  h : Double,
+) -> Unit {
+  buf.write_string(
+    "M\{bar_r1(x)} \{bar_r1(y)}l\{bar_r1(w)} 0l0 \{bar_r1(h)}l\{bar_r1(-w)} 0Z",
+  )
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:createProgressiveLayout
+/// <=> echarts/src/chart/bar/BarView.ts:_renderLarge
+fn bar_render_series_cartesian_large_impl(
+  series : @option.SeriesOption,
+  series_index : Int,
+  series_order : Int,
+  coord : @coord.Cartesian2D,
+  bar_index : Int,
+  total_bars : Int,
+  draw_background : Bool,
+  draw_bars : Bool,
+) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  let x_idx = series.x_axis_index
+  let y_idx = series.y_axis_index
+  let base_y = coord.bbox.y + coord.bbox.height
+  if x_idx >= coord.x_scales.length() {
+    return elems
+  }
+  match coord.x_scales[x_idx] {
+    Ordinal(s) => {
+      let band_width = s.band_width()
+      let n = if total_bars > 0 { total_bars } else { 1 }
+      let cat_gap_pct = if 35 - n * 4 > 15 {
+        (35 - n * 4).to_double()
+      } else {
+        15.0
+      }
+      let category_gap = band_width * cat_gap_pct / 100.0
+      let gap_percent = if series.bar_gap != None {
+        bar_parse_percent_like(series.bar_gap.unwrap_or("10%"), 1.0)
+      } else {
+        0.1
+      }
+      let auto_width = if n > 0 {
+        ((band_width - category_gap) /
+        (n.to_double() + (n - 1).to_double() * gap_percent)).max(0.0)
+      } else {
+        0.0
+      }
+      let bar_w = if auto_width < 0.5 { 0.5 } else { auto_width }
+      let total_span = if n > 0 {
+        bar_w * n.to_double() + bar_w * gap_percent * (n - 1).to_double()
+      } else {
+        bar_w
+      }
+      let nd = series.data.length()
+      let render_nd = if nd > bar_large_render_limit() {
+        bar_large_render_limit()
+      } else {
+        nd
+      }
+      let bar_fill = bar_fill_color(series, series_index)
+      let bar_opacity = bar_fill_opacity(series)
+      let bg_style = bar_resolve_background_style(series)
+      let chunk_limit = 1000
+      let mut fg_buf = StringBuilder::new()
+      let mut bg_buf = StringBuilder::new()
+      let mut fg_count = 0
+      let mut bg_count = 0
+      let children : Array[@graphic.Element] = []
+      let mut di = 0
+      while di < render_nd {
+        let item = series.data[di]
+        di += 1
+        let cat_px = if di - 1 < s.categories.length() {
+          s.band_center(di - 1)
+        } else {
+          coord.bbox.x
+        }
+        let bar_x = cat_px -
+          total_span / 2.0 +
+          bar_index.to_double() * bar_w * (1.0 + gap_percent)
+        if draw_background && series.show_background {
+          bar_append_rect_path(
+            bg_buf,
+            bar_x,
+            coord.bbox.y,
+            bar_w,
+            coord.bbox.height,
+          )
+          bg_count += 1
+          if bg_count >= chunk_limit {
+            children.push(
+              @graphic.Element::path_filled(
+                bg_buf.to_string(),
+                bg_style.fill_color,
+                bg_style.opacity,
+              ).with_silent(true),
+            )
+            bg_buf = StringBuilder::new()
+            bg_count = 0
+          }
+        }
+        if !draw_bars {
+          continue
+        }
+        let value = match item.value {
+          Num(n) => n
+          Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
+          DateValue(_, n) => n
+          Null => 0.0
+        }
+        let top_y = coord.num_y(y_idx, value)
+        let bar_h = top_y - base_y
+        bar_append_rect_path(fg_buf, bar_x, base_y, bar_w, bar_h)
+        fg_count += 1
+        if fg_count >= chunk_limit {
+          children.push(
+            bar_render_path(fg_buf.to_string(), {
+              fill_color: bar_fill,
+              opacity: bar_opacity,
+              border_color: None,
+              border_width: 0.0,
+            }).with_ecmeta_attr("series_index", series_order.to_string()),
+          )
+          fg_buf = StringBuilder::new()
+          fg_count = 0
+        }
+      }
+      if draw_background && series.show_background {
+        if bg_count > 0 {
+          children.push(
+            @graphic.Element::path_filled(
+              bg_buf.to_string(),
+              bg_style.fill_color,
+              bg_style.opacity,
+            ).with_silent(true),
+          )
+        }
+      }
+      if draw_bars && fg_count > 0 {
+        children.push(
+          bar_render_path(fg_buf.to_string(), {
+            fill_color: bar_fill,
+            opacity: bar_opacity,
+            border_color: None,
+            border_width: 0.0,
+          }).with_ecmeta_attr("series_index", series_order.to_string()),
+        )
+      }
+      if children.length() > 0 {
+        elems.push(@graphic.Element::group_clipped(children, coord.bbox))
+      }
+    }
+    Linear(s) => {
+      let nd = series.data.length()
+      let render_nd = if nd > bar_large_render_limit() {
+        bar_large_render_limit()
+      } else {
+        nd
+      }
+      let bar_w = 10.0
+      let bar_fill = bar_fill_color(series, series_index)
+      let bar_opacity = bar_fill_opacity(series)
+      let fg_buf = StringBuilder::new()
+      let mut di = 0
+      while di < render_nd {
+        let item = series.data[di]
+        di += 1
+        let (x_val, y_val) = match item.value {
+          Num(n) => (di.to_double(), n)
+          Vec(arr) =>
+            if arr.length() > 1 {
+              (arr[0], arr[1])
+            } else if arr.length() > 0 {
+              (di.to_double(), arr[0])
+            } else {
+              (di.to_double(), 0.0)
+            }
+          DateValue(_, n) => (di.to_double(), n)
+          Null => (di.to_double(), 0.0)
+        }
+        let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5
+        if !draw_bars {
+          continue
+        }
+        let top_y = coord.num_y(y_idx, y_val)
+        let bar_h = top_y - base_y
+        bar_append_rect_path(fg_buf, bar_x, base_y, bar_w, bar_h)
+      }
+      if draw_bars {
+        let children : Array[@graphic.Element] = [
+          bar_render_path(fg_buf.to_string(), {
+            fill_color: bar_fill,
+            opacity: bar_opacity,
+            border_color: None,
+            border_width: 0.0,
+          }).with_ecmeta_attr("series_index", series_order.to_string()),
+        ]
+        elems.push(@graphic.Element::group_clipped(children, coord.bbox))
+      }
+    }
+  }
+  elems
+}
+
+///|
 fn bar_parse_percent_like(value : String, reference : Double) -> Double {
   if value.has_suffix("%") {
     let pct_str = value[:value.length() - 1].to_string()
@@ -813,9 +1036,15 @@ pub fn render_bar_series_cartesian(
   bar_index : Int,
   total_bars : Int,
 ) -> Array[@graphic.Element] {
-  bar_render_series_cartesian_impl(
-    series, series_index, series_index, coord, bar_index, total_bars, true, true,
-  )
+  if bar_series_is_large(series) {
+    bar_render_series_cartesian_large_impl(
+      series, series_index, series_index, coord, bar_index, total_bars, true, true,
+    )
+  } else {
+    bar_render_series_cartesian_impl(
+      series, series_index, series_index, coord, bar_index, total_bars, true, true,
+    )
+  }
 }
 
 ///|
@@ -893,16 +1122,29 @@ pub fn render_bars(
       let total = bar_counts[xi]
       let rank = bar_rank_cursor_bg[xi]
       bar_rank_cursor_bg[xi] = rank + 1
-      let series_elems = bar_render_series_cartesian_impl(
-        series,
-        color_idx,
-        sr_bg - 1,
-        coord,
-        rank,
-        total,
-        true,
-        false,
-      )
+      let series_elems = if bar_series_is_large(series) {
+        bar_render_series_cartesian_large_impl(
+          series,
+          color_idx,
+          sr_bg - 1,
+          coord,
+          rank,
+          total,
+          true,
+          false,
+        )
+      } else {
+        bar_render_series_cartesian_impl(
+          series,
+          color_idx,
+          sr_bg - 1,
+          coord,
+          rank,
+          total,
+          true,
+          false,
+        )
+      }
       background_elems.append(series_elems)
     }
     color_idx += 1
@@ -946,16 +1188,29 @@ pub fn render_bars(
       let total = bar_counts[xi]
       let rank = bar_rank_cursor_fg[xi]
       bar_rank_cursor_fg[xi] = rank + 1
-      let series_elems = bar_render_series_cartesian_impl(
-        series,
-        color_idx,
-        sr - 1,
-        coord,
-        rank,
-        total,
-        false,
-        true,
-      )
+      let series_elems = if bar_series_is_large(series) {
+        bar_render_series_cartesian_large_impl(
+          series,
+          color_idx,
+          sr - 1,
+          coord,
+          rank,
+          total,
+          false,
+          true,
+        )
+      } else {
+        bar_render_series_cartesian_impl(
+          series,
+          color_idx,
+          sr - 1,
+          coord,
+          rank,
+          total,
+          false,
+          true,
+        )
+      }
       foreground_elems.append(series_elems)
     }
     color_idx += 1
