@@ -21,6 +21,52 @@ pub enum AxisPosition {
 }
 
 ///|
+/// Corresponds to: echarts/src/util/types.ts AxisBreakOption
+/// An axis break removes a segment [start, end] from the visible axis range,
+/// replacing it with a small visual gap.
+pub(all) struct AxisBreakOption {
+  start : Double
+  end : Double
+  /// Gap size: percentage string like "1.5%" or absolute number string like "50".
+  gap : String
+}
+
+///|
+pub impl Default for AxisBreakOption with default() {
+  { start: 0.0, end: 0.0, gap: "1.5%" }
+}
+
+///|
+/// Corresponds to: echarts/src/coord/axisCommonTypes.ts BreakAreaOption
+/// Controls the visual appearance of axis break markers (zigzag shapes).
+pub(all) struct BreakAreaOption {
+  /// Zigzag amplitude in pixels (half-width of the zigzag wave on each side).
+  zigzag_amplitude : Double
+  /// Min span between zigzag points in pixels.
+  zigzag_min_span : Double
+  /// Max span between zigzag points in pixels.
+  zigzag_max_span : Double
+  /// Zigzag z-index (visual priority among chart elements).
+  zigzag_z : Double?
+  /// Fill color of the break area; None means use background color.
+  color : String?
+  /// Opacity of the break area fill (0–1).
+  opacity : Double
+}
+
+///|
+pub impl Default for BreakAreaOption with default() {
+  {
+    zigzag_amplitude: 4.0,
+    zigzag_min_span: 8.0,
+    zigzag_max_span: 15.0,
+    zigzag_z: None,
+    color: None,
+    opacity: 1.0,
+  }
+}
+
+///|
 /// X or Y axis configuration.
 pub(all) struct AxisOption {
   axis_type : AxisType
@@ -40,6 +86,10 @@ pub(all) struct AxisOption {
   inverse : Bool
   // echarts/src/coord/axisHelper.ts:makeLabelFormatter
   label_formatter : String?
+  // echarts/src/util/types.ts: AxisBreakOption — axis break segments
+  breaks : Array[AxisBreakOption]
+  // echarts/src/coord/axisCommonTypes.ts: BreakAreaOption — break visual style
+  break_area : BreakAreaOption?
 }
 
 ///|
@@ -88,6 +138,8 @@ pub fn AxisOption::default_x() -> AxisOption {
     clockwise: None,
     inverse: false,
     label_formatter: None,
+    breaks: [],
+    break_area: None,
   }
 }
 
@@ -108,6 +160,8 @@ pub fn AxisOption::default_y() -> AxisOption {
     clockwise: None,
     inverse: false,
     label_formatter: None,
+    breaks: [],
+    break_area: None,
   }
 }
 

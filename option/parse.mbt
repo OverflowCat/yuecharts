@@ -209,6 +209,67 @@ fn parse_legend_selected(j : Json) -> Array[LegendSelection] {
 }
 
 ///|
+/// Parse the `breaks` array on an axis option.
+/// Corresponds to: echarts/src/scale/breakImpl.ts parseAxisBreakOption
+fn parse_axis_breaks(j : Json) -> Array[AxisBreakOption] {
+  match j_field(j, "breaks") {
+    Some(Array(arr)) => {
+      let out : Array[AxisBreakOption] = []
+      for item in arr {
+        match item {
+          Object(_) => {
+            let start = j_number(item, "start", 0.0)
+            let end = j_number(item, "end", 0.0)
+            // gap may be a percent string "1.5%" or a number
+            let gap = match j_field(item, "gap") {
+              Some(String(s)) => s
+              Some(Number(n, ..)) => n.to_string()
+              _ => "1.5%"
+            }
+            // Skip expanded breaks (interactive-only; not relevant for static render)
+            let is_expanded = j_bool(item, "isExpanded", false)
+            if !is_expanded && start < end {
+              out.push({ start, end, gap })
+            }
+          }
+          _ => ()
+        }
+      }
+      out
+    }
+    _ => []
+  }
+}
+
+///|
+/// Parse the `breakArea` option for axis break visual style.
+/// Corresponds to: echarts/src/coord/axisCommonTypes.ts BreakAreaOption
+fn parse_break_area_option(j : Json) -> BreakAreaOption {
+  let base = BreakAreaOption::default()
+  let zigzag_amplitude = j_number(j, "zigzagAmplitude", base.zigzag_amplitude)
+  let zigzag_min_span = j_number(j, "zigzagMinSpan", base.zigzag_min_span)
+  let zigzag_max_span = j_number(j, "zigzagMaxSpan", base.zigzag_max_span)
+  let zigzag_z = j_number_opt(j, "zigzagZ")
+  let item_style = j_field(j, "itemStyle")
+  let opacity = match item_style {
+    Some(js) => j_number(js, "opacity", base.opacity)
+    None => base.opacity
+  }
+  let color = match item_style {
+    Some(js) => j_string_opt(js, "color")
+    None => None
+  }
+  {
+    zigzag_amplitude,
+    zigzag_min_span,
+    zigzag_max_span,
+    zigzag_z,
+    color,
+    opacity,
+  }
+}
+
+///|
 fn parse_axis_option_x(j : Json) -> AxisOption {
   let axis = parse_axis_option(j, AxisOption::default_x())
   // Scatter examples such as Anscombe's quartet omit `type` on xAxis but
@@ -289,6 +350,10 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     Some(label_obj) => j_string_opt(label_obj, "formatter")
     None => None
   }
+  // echarts/src/util/types.ts AxisBreakOption — parse the breaks array
+  let breaks = parse_axis_breaks(j)
+  // echarts/src/coord/axisCommonTypes.ts BreakAreaOption
+  let break_area = j_parse_optional(j, "breakArea", parse_break_area_option)
   {
     axis_type,
     position,
@@ -304,6 +369,8 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     clockwise,
     inverse,
     label_formatter,
+    breaks,
+    break_area,
   }
 }
 
@@ -1446,12 +1513,11 @@ fn parse_series_option(j : Json) -> SeriesOption {
   // Gauge axisLine styling
   // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderMain
   let gauge_axis_line_obj = j_field(j, "axisLine")
-  let gauge_axis_line_line_style = gauge_axis_line_obj.bind(al =>
+  let gauge_axis_line_line_style = gauge_axis_line_obj.bind(al => {
     j_field(al, "lineStyle")
-  )
-  let gauge_axis_line_colors : Array[(Double, String)] = match gauge_axis_line_line_style.bind(ls =>
-    j_field(ls, "color")
-  ) {
+  })
+  let gauge_axis_line_colors : Array[(Double, String)] = match
+    gauge_axis_line_line_style.bind(ls => j_field(ls, "color")) {
     Some(Array(arr)) => {
       let result : Array[(Double, String)] = []
       for entry in arr {
@@ -1488,9 +1554,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(sl) => j_number(sl, "distance", base.gauge_split_line_distance)
     None => base.gauge_split_line_distance
   }
-  let gauge_split_line_line_style = gauge_split_line_obj.bind(sl =>
+  let gauge_split_line_line_style = gauge_split_line_obj.bind(sl => {
     j_field(sl, "lineStyle")
-  )
+  })
   let gauge_split_line_color = match gauge_split_line_line_style {
     Some(ls) => j_string(ls, "color", base.gauge_split_line_color)
     None => base.gauge_split_line_color
@@ -1518,9 +1584,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(t) => j_int(t, "splitNumber", base.gauge_axis_tick_split_number)
     None => base.gauge_axis_tick_split_number
   }
-  let gauge_axis_tick_line_style = gauge_axis_tick_obj.bind(t =>
+  let gauge_axis_tick_line_style = gauge_axis_tick_obj.bind(t => {
     j_field(t, "lineStyle")
-  )
+  })
   let gauge_axis_tick_color = match gauge_axis_tick_line_style {
     Some(ls) => j_string(ls, "color", base.gauge_axis_tick_color)
     None => base.gauge_axis_tick_color
@@ -1555,9 +1621,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(p) => j_bool(p, "show", base.gauge_pointer_show)
     None => base.gauge_pointer_show
   }
-  let gauge_pointer_item_style = gauge_pointer_obj.bind(p =>
+  let gauge_pointer_item_style = gauge_pointer_obj.bind(p => {
     j_field(p, "itemStyle")
-  )
+  })
   let gauge_pointer_color = match gauge_pointer_item_style {
     Some(pis) => j_string_opt(pis, "color")
     None => base.gauge_pointer_color
@@ -1574,9 +1640,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(p) => j_string_opt(p, "icon")
     None => base.gauge_pointer_icon
   }
-  let gauge_pointer_offset_center = match gauge_pointer_obj.bind(p =>
-    j_field(p, "offsetCenter")
-  ) {
+  let gauge_pointer_offset_center = match
+    gauge_pointer_obj.bind(p => j_field(p, "offsetCenter")) {
     Some(Array(arr)) =>
       arr.map(fn(x) {
         match x {
@@ -1598,9 +1663,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(a) => j_number(a, "size", base.gauge_anchor_size)
     None => base.gauge_anchor_size
   }
-  let gauge_anchor_item_style = gauge_anchor_obj.bind(a =>
+  let gauge_anchor_item_style = gauge_anchor_obj.bind(a => {
     j_field(a, "itemStyle")
-  )
+  })
   let gauge_anchor_color = match gauge_anchor_item_style {
     Some(ais) => j_string_opt(ais, "color")
     None => base.gauge_anchor_color

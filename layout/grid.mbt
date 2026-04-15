@@ -305,7 +305,24 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
           },
         )
         let hi = ax.max.unwrap_or(dmax)
-        @coord.YScale::make_linear(make_linear_y_scale(lo, hi, axis_bbox))
+        if ax.breaks.length() > 0 {
+          // Build a break-aware scale.
+          // <=> echarts/src/scale/breakImpl.ts parseAxisBreakOption + update
+          let inner = make_linear_y_scale(lo, hi, axis_bbox)
+          let parsed_breaks : Array[@scale.ParsedBreak] = []
+          for brk in ax.breaks {
+            if brk.start < brk.end {
+              parsed_breaks.push(
+                @scale.ParsedBreak::from_option(brk.start, brk.end, brk.gap),
+              )
+            }
+          }
+          @coord.YScale::make_break_linear(
+            @scale.BreakLinearScale::new(inner, parsed_breaks),
+          )
+        } else {
+          @coord.YScale::make_linear(make_linear_y_scale(lo, hi, axis_bbox))
+        }
       }
       Category =>
         @coord.YScale::make_ordinal(

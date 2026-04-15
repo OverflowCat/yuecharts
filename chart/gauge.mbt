@@ -134,7 +134,7 @@ fn svg_path_bbox(path_data : String) -> (Double, Double, Double, Double) {
         }
       }
       if i > start {
-        let tok = path_data.substring(start=start, end=i)
+        let tok = path_data.substring(start~, end=i)
         let r = try? @strconv.parse_double(tok)
         match r {
           Ok(v) => nums.push(v)
@@ -172,7 +172,20 @@ fn svg_path_bbox(path_data : String) -> (Double, Double, Double, Double) {
   }
   let bw = max_x - min_x
   let bh = max_y - min_y
-  (min_x, min_y, if bw > 0.0 { bw } else { 1.0 }, if bh > 0.0 { bh } else { 1.0 })
+  (
+    min_x,
+    min_y,
+    if bw > 0.0 {
+      bw
+    } else {
+      1.0
+    },
+    if bh > 0.0 {
+      bh
+    } else {
+      1.0
+    },
+  )
 }
 
 ///|
@@ -413,7 +426,9 @@ pub fn render_gauge_series(
       let ix = cx + sl_inner_r * ux
       let iy = cy + sl_inner_r * uy
       elems.push(
-        @graphic.Element::line_colored(ox, oy, ix, iy, split_color, split_line_width),
+        @graphic.Element::line_colored(
+          ox, oy, ix, iy, split_color, split_line_width,
+        ),
       )
     }
     if series.gauge_axis_label_show {
@@ -488,7 +503,13 @@ pub fn render_gauge_series(
     }
     let ptr_pct = if max_v > min_v {
       let p = (ptr_value - min_v) / (max_v - min_v)
-      if p < 0.0 { 0.0 } else if p > 1.0 { 1.0 } else { p }
+      if p < 0.0 {
+        0.0
+      } else if p > 1.0 {
+        1.0
+      } else {
+        p
+      }
     } else {
       0.0
     }

@@ -230,6 +230,10 @@ pub fn render_heatmap_series(
         let diff = s.range_max - s.range_min
         (if diff < 0.0 { -diff } else { diff }) / 10.0
       }
+      BreakLinear(s) => {
+        let diff = s.inner.range_max - s.inner.range_min
+        (if diff < 0.0 { -diff } else { diff }) / 10.0
+      }
     }
   } else {
     10.0
@@ -256,6 +260,7 @@ pub fn render_heatmap_series(
           match coord.y_scales[y_idx] {
             Ordinal(s) => s.band_center(yi)
             Linear(s) => s.data_to_pixel(arr[1])
+            BreakLinear(s) => s.data_to_pixel(arr[1]) // ?
           }
         } else {
           coord.bbox.y + (yi.to_double() + 0.5) * cell_h

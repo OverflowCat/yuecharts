@@ -330,7 +330,205 @@ fn render_y_axis(
         )
       }
     }
+    BreakLinear(s) => {
+      // Render ticks and labels for a break-aware linear scale.
+      // <=> echarts/src/component/axis/AxisBuilder.ts (break tick rendering)
+      let ticks = s.ticks(5)
+      let mut ti = 0
+      while ti < ticks.length() {
+        let tick = ticks[ti]
+        ti += 1
+        let py = s.data_to_pixel(tick.value)
+        let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
+        let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
+        elems.push(
+          @graphic.Element::line_colored(
+            tick_x1, py, tick_x2, py, axis_line_color, 1.0,
+          ),
+        )
+        let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
+        let anchor : @graphic.TextAnchor = if pos == bbox.x {
+          @graphic.TextAnchor::End
+        } else {
+          @graphic.TextAnchor::Start
+        }
+        elems.push(
+          @graphic.Element::text_custom(
+            label_x,
+            py,
+            apply_axis_label_fmt(ax.label_formatter, tick.label),
+            anchor,
+            @graphic.TextBaseline::Middle,
+            axis_line_color,
+            12.0,
+            axis_font_family(global_font_family),
+            "normal",
+          ),
+        )
+      }
+      // Render zigzag break markers.
+      // <=> echarts/src/component/axis/axisBreakHelperImpl.ts rectCoordBuildBreakAxis
+      let break_area = ax.break_area.unwrap_or(
+        @option.BreakAreaOption::default(),
+      )
+      for brk in s.breaks {
+        let py_min = s.data_to_pixel(brk.vmin)
+        let py_max = s.data_to_pixel(brk.vmax)
+        // On a Y axis, vmin has larger pixel Y (bottom) since Y is inverted.
+        let y_top = py_min.min(py_max)
+        let y_bot = py_min.max(py_max)
+        render_y_axis_break(
+          bbox, pos, ax, break_area, y_top, y_bot, elems, global_font_family,
+        )
+      }
+    }
   }
+}
+
+///|
+/// Background pass: render only break-boundary tick marks on the Y axis.
+/// The polygon fill + zigzag polylines are deferred to render_break_polygon_overlay
+/// (Foreground) so they paint OVER bar series.
+/// <=> echarts/src/component/axis/axisBreakHelperImpl.ts addZigzagShapes background ticks
+fn render_y_axis_break(
+  bbox : @graphic.BBox,
+  pos : Double, // x position of the axis line
+  ax : @option.AxisOption,
+  break_area : @option.BreakAreaOption,
+  y_top : Double, // pixel y of the upper break boundary
+  y_bot : Double, // pixel y of the lower break boundary
+  elems : Array[@graphic.Element],
+  global_font_family : String?,
+) -> Unit {
+  let _ = bbox
+  let _ = break_area
+  // NOTE: polygon fill + zigzag polylines are rendered in the Foreground pass
+  // (render_break_polygon_overlay) so they paint OVER bars.
+  // Here we only emit break-boundary tick marks.
+  let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
+  let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
+  elems.push(
+    @graphic.Element::line_colored(
+      tick_x1, y_top, tick_x2, y_top, axis_line_color, 1.0,
+    ),
+  )
+  elems.push(
+    @graphic.Element::line_colored(
+      tick_x1, y_bot, tick_x2, y_bot, axis_line_color, 1.0,
+    ),
+  )
+  // Labels for break boundaries (show the vmin/vmax values)
+  let _ = global_font_family
+  let _ = ax
+}
+
+///|
+/// Foreground pass: draw the filled polygon + zigzag polylines for one break.
+/// Must run AFTER bar/line series so the overlay covers bar segments in the break.
+/// <=> echarts/src/component/axis/axisBreakHelperImpl.ts addZigzagShapes (Foreground z)
+pub fn render_break_polygon_overlay(
+  bbox : @graphic.BBox,
+  y_top : Double,
+  y_bot : Double,
+  break_area : @option.BreakAreaOption,
+) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  let amp = break_area.zigzag_amplitude
+  let span = break_area.zigzag_max_span.max(break_area.zigzag_min_span)
+  let fill = break_area.color.unwrap_or("#ffffff")
+  let opacity = break_area.opacity
+  let x_start = bbox.x
+  let x_end = bbox.x + bbox.width
+  let points_a : Array[@graphic.Point] = []
+  let points_b : Array[@graphic.Point] = []
+  let mut x = x_start
+  let mut swap = true
+  let mut first = true
+  while x <= x_end + 0.001 {
+    let cx = if x > x_end { x_end } else { x }
+    let ya : Double = if first || cx == x_end {
+      y_top
+    } else if swap {
+      y_top - amp
+    } else {
+      y_top + amp
+    }
+    let yb : Double = if first || cx == x_end {
+      y_bot
+    } else if swap {
+      y_bot + amp
+    } else {
+      y_bot - amp
+    }
+    points_a.push({ x: cx, y: ya })
+    points_b.push({ x: cx, y: yb })
+    first = false
+    swap = !swap
+    if cx >= x_end {
+      break
+    }
+    x += span
+  }
+  let polygon_pts : Array[@graphic.Point] = []
+  for p in points_a {
+    polygon_pts.push(p)
+  }
+  let nb = points_b.length()
+  let mut bi = nb - 1
+  while bi >= 0 {
+    polygon_pts.push(points_b[bi])
+    bi -= 1
+  }
+  let fill_color = match @graphic.Color::from_string(fill) {
+    Some(c) => c
+    None => @graphic.white
+  }
+  elems.push(@graphic.Element::polygon_filled(polygon_pts, fill_color, opacity))
+  elems.push(@graphic.Element::polyline_stroked(points_a, "#aaaaaa"))
+  elems.push(@graphic.Element::polyline_stroked(points_b, "#aaaaaa"))
+  elems
+}
+
+///|
+/// Foreground: render break area overlays for all Y-axes that have breaks.
+/// <=> echarts/src/component/axis/axisBreakHelperImpl.ts rectCoordBuildBreakAxis (overlay phase)
+pub fn render_break_area_overlays(
+  opt : @option.ChartOption,
+  coord : @coord.Cartesian2D,
+) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  let mut axis_index = 0
+  while axis_index < opt.y_axis.length() {
+    let ax = opt.y_axis[axis_index]
+    if ax.breaks.length() > 0 && axis_index < coord.y_scales.length() {
+      match coord.y_scales[axis_index] {
+        BreakLinear(s) => {
+          let bbox = coord.bbox
+          let pos = if axis_index == 0 { bbox.x } else { bbox.x + bbox.width }
+          let break_area = ax.break_area.unwrap_or(
+            @option.BreakAreaOption::default(),
+          )
+          for brk in s.breaks {
+            let py_min = s.data_to_pixel(brk.vmin)
+            let py_max = s.data_to_pixel(brk.vmax)
+            let y_top = py_min.min(py_max)
+            let y_bot = py_min.max(py_max)
+            let overlay = render_break_polygon_overlay(
+              bbox, y_top, y_bot, break_area,
+            )
+            for e in overlay {
+              elems.push(e)
+            }
+            // Also add tick marks on the right edge of the chart plot area
+            let _ = pos
+          }
+        }
+        _ => ()
+      }
+    }
+    axis_index += 1
+  }
+  elems
 }
 
 ///|

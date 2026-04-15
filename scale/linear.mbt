@@ -335,3 +335,275 @@ pub fn add_safe(a : Double, b : Double) -> Double {
   let multiplier = f64_pow10(max_prec)
   ((a * multiplier).round() + (b * multiplier).round()) / multiplier
 }
+
+// ---- Axis Break Scale ----
+// Corresponds to: echarts/src/scale/breakImpl.ts (ScaleBreakContextImpl)
+//                 echarts/src/scale/Interval.ts (with break support)
+
+///|
+/// A parsed axis break: the data range [vmin, vmax] that is replaced by a visual gap.
+/// Corresponds to: echarts/src/util/types.ts ParsedAxisBreak
+pub(all) struct ParsedBreak {
+  vmin : Double
+  vmax : Double
+  /// gap_pct: Some(fraction) if gap is percentage-based (e.g. "1.5%" → 0.015).
+  gap_pct : Double?
+  /// gap_abs: Some(value) if gap is absolute in data units.
+  gap_abs : Double?
+  /// Computed gap size in data units (set by update_gap_real).
+  mut gap_real : Double
+}
+
+///|
+/// A LinearScale that compresses break regions to small visual gaps.
+/// Corresponds to: echarts/src/scale/breakImpl.ts ScaleBreakContextImpl
+///                 echarts/src/scale/Interval.ts (break-aware ticks/normalize)
+pub struct BreakLinearScale {
+  inner : LinearScale
+  breaks : Array[ParsedBreak]
+  mut elapsed_min : Double
+  mut elapsed_max : Double
+}
+
+///|
+/// Parse a gap string ("1.5%", "50") into a ParsedBreak.
+/// <=> echarts/src/scale/breakImpl.ts parseAxisBreakOption
+pub fn ParsedBreak::from_option(
+  vmin : Double,
+  vmax : Double,
+  gap_str : String,
+) -> ParsedBreak {
+  let brk : ParsedBreak = {
+    vmin,
+    vmax,
+    gap_pct: None,
+    gap_abs: None,
+    gap_real: 0.0,
+  }
+  let s = gap_str.trim_space()
+  if s.ends_with("%") {
+    let num_str = s[0:s.length() - 1].to_string()
+    let parsed = try? @strconv.parse_double(num_str)
+    match parsed {
+      Ok(pct) => { ..brk, gap_pct: Some(pct / 100.0) }
+      Err(_) => brk
+    }
+  } else {
+    let parsed = try? @strconv.parse_double(s)
+    match parsed {
+      Ok(abs) => { ..brk, gap_abs: Some(abs) }
+      Err(_) => brk
+    }
+  }
+}
+
+///|
+/// Compute the actual gap_real for each break given the scale extent.
+/// <=> echarts/src/scale/breakImpl.ts updateAxisBreakGapReal (simplified: fully-in-extent case)
+fn update_gap_real(
+  breaks : Array[ParsedBreak],
+  extent_min : Double,
+  extent_max : Double,
+) -> Unit {
+  let full_span = extent_max - extent_min
+  // Compute sums for percent-based breaks
+  let mut gap_pct_sum = 0.0
+  let mut pct_span_sum = 0.0
+  let mut abs_gap_sum = 0.0
+  let mut abs_span_sum = 0.0
+  for brk in breaks {
+    let vmin = brk.vmin.max(extent_min)
+    let vmax = brk.vmax.min(extent_max)
+    if vmin >= vmax {
+      continue
+    }
+    let span = vmax - vmin
+    match brk.gap_pct {
+      Some(pct) => {
+        gap_pct_sum += pct
+        pct_span_sum += span
+      }
+      None => ()
+    }
+    match brk.gap_abs {
+      Some(abs) => {
+        abs_gap_sum += abs
+        abs_span_sum += span
+      }
+      None => ()
+    }
+  }
+  // prctBrksGapRealSum formula from ECharts breakImpl.ts:
+  //   = gapPrctSum * (full_span + (abs_gap - abs_span) - pct_span) / (1 - gapPrctSum)
+  let denom = 1.0 - gap_pct_sum
+  let prct_gap_real_sum = if denom > 1.0e-10 {
+    gap_pct_sum *
+    (full_span + (abs_gap_sum - abs_span_sum) - pct_span_sum) /
+    denom
+  } else {
+    0.0
+  }
+  for brk in breaks {
+    let gap_real = match brk.gap_pct {
+      Some(pct) =>
+        if gap_pct_sum > 1.0e-10 {
+          (if prct_gap_real_sum < 0.0 { 0.0 } else { prct_gap_real_sum }) *
+          pct /
+          gap_pct_sum
+        } else {
+          0.0
+        }
+      None =>
+        match brk.gap_abs {
+          Some(abs) => abs
+          None => 0.0
+        }
+    }
+    brk.gap_real = gap_real
+  }
+}
+
+///|
+/// Elapse a data value: compress break regions to their gap_real size.
+/// <=> echarts/src/scale/breakImpl.ts ScaleBreakContextImpl#elapse
+fn elapse(breaks : Array[ParsedBreak], val : Double) -> Double {
+  let mut elapsed = 0.0
+  let mut last_end = 0.0
+  let mut still_over = true
+  for brk in breaks {
+    if val <= brk.vmax {
+      if val > brk.vmin {
+        elapsed += brk.vmin -
+          last_end +
+          (val - brk.vmin) / (brk.vmax - brk.vmin) * brk.gap_real
+      } else {
+        elapsed += val - last_end
+      }
+      last_end = brk.vmax
+      still_over = false
+      break
+    }
+    elapsed += brk.vmin - last_end + brk.gap_real
+    last_end = brk.vmax
+  }
+  if still_over {
+    elapsed += val - last_end
+  }
+  elapsed
+}
+
+///|
+/// Unelapse: map elapsed value back to data value.
+/// <=> echarts/src/scale/breakImpl.ts ScaleBreakContextImpl#unelapse
+fn unelapse(breaks : Array[ParsedBreak], elapsed_val : Double) -> Double {
+  let mut last_elapsed_end = 0.0
+  let mut last_break_end = 0.0
+  let mut still_over = true
+  let mut result = 0.0
+  for brk in breaks {
+    let elapsed_start = last_elapsed_end + brk.vmin - last_break_end
+    let elapsed_end = elapsed_start + brk.gap_real
+    if elapsed_val <= elapsed_end {
+      if elapsed_val > elapsed_start {
+        result = brk.vmin +
+          (elapsed_val - elapsed_start) /
+          (elapsed_end - elapsed_start) *
+          (brk.vmax - brk.vmin)
+      } else {
+        result = last_break_end + elapsed_val - last_elapsed_end
+      }
+      last_break_end = brk.vmax
+      still_over = false
+      break
+    }
+    last_elapsed_end = elapsed_end
+    last_break_end = brk.vmax
+  }
+  if still_over {
+    result = last_break_end + elapsed_val - last_elapsed_end
+  }
+  result
+}
+
+///|
+/// Create a BreakLinearScale from a LinearScale and a list of ParsedBreaks.
+/// <=> echarts/src/scale/Interval.ts (setBreaks + update calls)
+pub fn BreakLinearScale::new(
+  inner : LinearScale,
+  breaks : Array[ParsedBreak],
+) -> BreakLinearScale {
+  let s : BreakLinearScale = {
+    inner,
+    breaks,
+    elapsed_min: 0.0,
+    elapsed_max: 0.0,
+  }
+  s.update()
+  s
+}
+
+///|
+fn BreakLinearScale::update(self : BreakLinearScale) -> Unit {
+  update_gap_real(self.breaks, self.inner.nice_min, self.inner.nice_max)
+  self.elapsed_min = elapse(self.breaks, self.inner.nice_min)
+  self.elapsed_max = elapse(self.breaks, self.inner.nice_max)
+}
+
+///|
+/// Map a data value to a pixel coordinate, compressing break regions.
+/// <=> echarts/src/scale/Interval.ts#normalize + Scale#parse used in dataToCoord
+pub fn BreakLinearScale::data_to_pixel(
+  self : BreakLinearScale,
+  value : Double,
+) -> Double {
+  let elapsed_span = self.elapsed_max - self.elapsed_min
+  if elapsed_span == 0.0 {
+    return self.inner.range_min
+  }
+  let t = (elapse(self.breaks, value) - self.elapsed_min) / elapsed_span
+  self.inner.range_min + t * (self.inner.range_max - self.inner.range_min)
+}
+
+///|
+/// Generate break-aware ticks, skipping values inside break regions.
+/// Break boundary ticks are added for label rendering.
+/// <=> echarts/src/scale/Interval.ts getTicks (with breakTicks logic)
+pub fn BreakLinearScale::ticks(
+  self : BreakLinearScale,
+  count : Int,
+) -> Array[Tick] {
+  let step = self.inner.step(count)
+  let result : Array[Tick] = []
+  let mut value = self.inner.nice_min
+  let limit = self.inner.nice_max + step * 0.0001
+  while value <= limit {
+    // Skip ticks that fall inside a break region (within 3/4 step of boundary)
+    let gap = step * 0.75
+    let mut in_break = false
+    for brk in self.breaks {
+      if value > brk.vmin - gap && value < brk.vmax + gap {
+        in_break = true
+        break
+      }
+    }
+    if !in_break {
+      let label = format_tick(value, step)
+      result.push({ value, label })
+    }
+    value += step
+  }
+  // Add break boundary ticks
+  for brk in self.breaks {
+    if brk.vmin >= self.inner.nice_min && brk.vmin <= self.inner.nice_max {
+      let label = format_tick(brk.vmin, step)
+      result.push({ value: brk.vmin, label })
+    }
+    if brk.vmax >= self.inner.nice_min && brk.vmax <= self.inner.nice_max {
+      let label = format_tick(brk.vmax, step)
+      result.push({ value: brk.vmax, label })
+    }
+  }
+  // Sort by value
+  result.sort_by(fn(a, b) { Double::compare(a.value, b.value) })
+  result
+}

@@ -34,6 +34,7 @@ pub enum XScale {
 pub enum YScale {
   Ordinal(@scale.OrdinalScale)
   Linear(@scale.LinearScale)
+  BreakLinear(@scale.BreakLinearScale)
 }
 
 ///|
@@ -54,6 +55,11 @@ pub fn YScale::make_ordinal(s : @scale.OrdinalScale) -> YScale {
 ///|
 pub fn YScale::make_linear(s : @scale.LinearScale) -> YScale {
   Linear(s)
+}
+
+///|
+pub fn YScale::make_break_linear(s : @scale.BreakLinearScale) -> YScale {
+  BreakLinear(s)
 }
 
 ///|
@@ -104,6 +110,7 @@ pub fn Cartesian2D::num_y(
   }
   match self.y_scales[index] {
     Linear(s) => s.data_to_pixel(v)
+    BreakLinear(s) => s.data_to_pixel(v)
     Ordinal(s) =>
       match s.data_to_pixel(v.to_string()) {
         Some(px) => px

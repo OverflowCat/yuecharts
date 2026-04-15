@@ -191,6 +191,25 @@ pub fn install_visual_map(registry : @core.Registry) -> Unit {
 }
 
 ///|
+struct BreakAreaOverlayView {}
+
+///|
+pub impl @core.ComponentViewLike for BreakAreaOverlayView with render(
+  _self,
+  ctx,
+) {
+  render_break_area_overlays(ctx.option, ctx.coord)
+}
+
+///|
+pub fn install_break_area_overlay(registry : @core.Registry) -> Unit {
+  // Renders break area polygons AFTER series (Foreground) so they mask bars
+  // inside break regions.
+  // <=> echarts/src/component/axis/axisBreakHelperImpl.ts (overlay z pass)
+  register_component(registry, Foreground, false, BreakAreaOverlayView::{  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_grid_lines(registry)
   install_axis(registry)
@@ -202,4 +221,5 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_matrix(registry)
   install_aria(registry)
   install_visual_map(registry)
+  install_break_area_overlay(registry)
 }

@@ -1,0 +1,56 @@
+{
+  "width": 700,
+  "height": 500,
+  "title": {
+    "text": "Bar Chart with Axis Breaks",
+    "subtext": "Axis break compresses large gaps in data",
+    "left": "center",
+    "textStyle": { "fontSize": 18 },
+    "subtextStyle": { "color": "#175ce5", "fontSize": 13, "fontWeight": "bold" }
+  },
+  "legend": {},
+  "grid": { "top": 110 },
+  "xAxis": [
+    {
+      "type": "category",
+      "data": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    }
+  ],
+  "yAxis": [
+    {
+      "type": "value",
+      "breaks": [
+        { "start": 5000, "end": 100000, "gap": "1.5%" },
+        { "start": 105000, "end": 3100000, "gap": "1.5%" }
+      ],
+      "breakArea": {
+        "zigzagAmplitude": 4,
+        "zigzagMinSpan": 10,
+        "zigzagMaxSpan": 20,
+        "itemStyle": { "opacity": 1 }
+      }
+    }
+  ],
+  "series": [
+    {
+      "name": "Data A",
+      "type": "bar",
+      "data": [1500, 2032, 2001, 3154, 2190, 4330, 2410]
+    },
+    {
+      "name": "Data B",
+      "type": "bar",
+      "data": [1200, 1320, 1010, 1340, 900, 2300, 2100]
+    },
+    {
+      "name": "Data C",
+      "type": "bar",
+      "data": [103200, 100320, 103010, 102340, 103900, 103300, 103200]
+    },
+    {
+      "name": "Data D",
+      "type": "bar",
+      "data": [3106212, 3102118, 3102643, 3104631, 3106679, 3100130, 3107022]
+    }
+  ]
+}
