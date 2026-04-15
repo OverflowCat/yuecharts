@@ -136,9 +136,8 @@ pub fn render_boxplots(
   let elems : Array[@graphic.Element] = []
   let mut si = 0
   let mut color_idx = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       Boxplot => ()
       _ => {

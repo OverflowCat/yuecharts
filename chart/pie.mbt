@@ -55,9 +55,8 @@ pub fn render_pies(
   let elems : Array[@graphic.Element] = []
   let mut color_idx = 0
   let mut si = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       Pie => ()
       _ => {
@@ -72,9 +71,8 @@ pub fn render_pies(
       opt.height,
     )
     let mut i = 0
-    while i < series_elems.length() {
+    for i, _ in series_elems {
       elems.push(series_elems[i])
-      i += 1
     }
     color_idx = color_idx + 1
   }

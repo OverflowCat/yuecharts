@@ -200,9 +200,8 @@ pub fn render_line_series(
         let path_buf = StringBuilder::new()
         path_buf.write_string("M \{points[0].x} \{base_y}")
         let mut pi = 0
-        while pi < points.length() {
+        for pi, _ in points {
           let p = points[pi]
-          pi += 1
           path_buf.write_string(" L \{p.x} \{p.y}")
         }
         path_buf.write_string(" L \{points[points.length() - 1].x} \{base_y} Z")
@@ -223,9 +222,8 @@ pub fn render_line_series(
     ),
   )
   let mut pi = 0
-  while pi < points.length() {
+  for pi, _ in points {
     let p = points[pi]
-    pi += 1
     elems.push(
       @graphic.Element::circle_colored(
         p.x,
@@ -247,9 +245,8 @@ pub fn render_lines(
   let elems : Array[@graphic.Element] = []
   let mut si = 0
   let mut color_idx = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       Line => ()
       _ => {

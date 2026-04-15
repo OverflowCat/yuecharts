@@ -89,26 +89,7 @@ fn map_series_matches_geo(
 
 ///|
 fn map_has_drawn_group(drawn_groups : Array[String], key : String) -> Bool {
-  let mut i = 0
-  while i < drawn_groups.length() {
-    if drawn_groups[i] == key {
-      return true
-    }
-    i += 1
-  }
-  false
-}
-
-///|
-fn map_contains_name(names : Array[String], name : String) -> Bool {
-  let mut i = 0
-  while i < names.length() {
-    if names[i] == name {
-      return true
-    }
-    i += 1
-  }
-  false
+  drawn_groups.contains(key)
 }
 
 ///|
@@ -116,13 +97,10 @@ fn map_data_item_by_name(
   series : @option.SeriesOption,
   name : String,
 ) -> @option.DataItem? {
-  let mut i = 0
-  while i < series.data.length() {
-    let item = series.data[i]
+  for item in series.data {
     if item.name == Some(name) {
       return Some(item)
     }
-    i += 1
   }
   None
 }
@@ -133,28 +111,24 @@ fn map_group_symbol_names(
   group_key : String,
 ) -> Array[String] {
   let names : Array[String] = []
-  let mut series_index = 0
-  while series_index < opt.series.length() {
+  for series_index, _ in opt.series {
     let series = opt.series[series_index]
     if series.series_type == Map &&
       map_series_group_key(opt, series) == group_key &&
       series.show_legend_symbol {
       let symbol_data = map_series_original_data(series)
-      let mut data_index = 0
-      while data_index < symbol_data.length() {
+      for data_index, _ in symbol_data {
         let data_item = symbol_data[data_index]
         match data_item.name {
           Some(name) =>
             match map_data_item_numeric_value(data_item) {
-              Some(_) => if !map_contains_name(names, name) { names.push(name) }
-              None => ()
+              Some(_) => if !names.contains(name) { names.push(name) }
+              _ => ()
             }
-          None => ()
+          _ => ()
         }
-        data_index += 1
       }
     }
-    series_index += 1
   }
   names
 }
@@ -174,11 +148,10 @@ fn map_value_list_by_name(
   name : String,
 ) -> Array[Double]? {
   let mut i = 0
-  while i < names.length() {
+  for i, _ in names {
     if names[i] == name {
       return Some(values_list[i])
     }
-    i += 1
   }
   None
 }
@@ -190,13 +163,11 @@ fn map_push_stat_value(
   name : String,
   value : Double,
 ) -> Unit {
-  let mut i = 0
-  while i < names.length() {
+  for i, _ in names {
     if names[i] == name {
       values_list[i].push(value)
       return
     }
-    i += 1
   }
   names.push(name)
   values_list.push([value])
@@ -214,7 +185,7 @@ fn map_statistic_value(
   let mut min = values[0]
   let mut max = values[0]
   let mut i = 0
-  while i < values.length() {
+  for i, _ in values {
     let value = values[i]
     if value < min {
       min = value
@@ -223,7 +194,6 @@ fn map_statistic_value(
       max = value
     }
     sum += value
-    i += 1
   }
   Some(
     match statistic_type {
@@ -243,10 +213,10 @@ fn map_aggregated_data_for_group(
   let values_list : Array[Array[Double]] = []
   let templates : Array[@option.DataItem] = []
   let mut group_index = 0
-  while group_index < series_group.length() {
+  for group_index, _ in series_group {
     let series = series_group[group_index]
     let mut item_index = 0
-    while item_index < series.data.length() {
+    for item_index, _ in series.data {
       let item = series.data[item_index]
       match item.name {
         Some(name) => {
@@ -260,14 +230,12 @@ fn map_aggregated_data_for_group(
         }
         None => ()
       }
-      item_index += 1
     }
-    group_index += 1
   }
   let statistic_type = series_group[0].map_value_calculation
   let aggregated : Array[@option.DataItem] = []
   let mut i = 0
-  while i < names.length() {
+  for i, _ in names {
     let template = templates[i]
     let values = values_list[i]
     let value = map_statistic_value(values, statistic_type).map_or(
@@ -275,7 +243,6 @@ fn map_aggregated_data_for_group(
       statistic => @option.DataValue::Num(statistic),
     )
     aggregated.push({ ..template, value, name: Some(names[i]) })
-    i += 1
   }
   aggregated
 }
@@ -289,13 +256,12 @@ fn map_series_group(
   let target_key = map_series_group_key(opt, target)
   let group : Array[@option.SeriesOption] = []
   let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let series = opt.series[i]
     if series.series_type == Map &&
       map_series_group_key(opt, series) == target_key {
       group.push(series)
     }
-    i += 1
   }
   group
 }
@@ -306,13 +272,12 @@ pub fn apply_map_data_statistic(
 ) -> @option.ChartOption {
   let next_series : Array[@option.SeriesOption] = []
   let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     next_series.push(opt.series[i])
-    i += 1
   }
   let processed_groups : Array[String] = []
   let mut series_index = 0
-  while series_index < opt.series.length() {
+  for series_index, _ in opt.series {
     let series = opt.series[series_index]
     if series.series_type == Map {
       let group_key = map_series_group_key(opt, series)
@@ -321,7 +286,7 @@ pub fn apply_map_data_statistic(
         let group = map_series_group(opt, series_index)
         let aggregated = map_aggregated_data_for_group(group)
         let mut j = 0
-        while j < opt.series.length() {
+        for j, _ in opt.series {
           let candidate = opt.series[j]
           if candidate.series_type == Map &&
             map_series_group_key(opt, candidate) == group_key {
@@ -332,11 +297,9 @@ pub fn apply_map_data_statistic(
               data: aggregated,
             }
           }
-          j += 1
         }
       }
     }
-    series_index += 1
   }
   { ..opt, series: next_series }
 }
@@ -355,13 +318,10 @@ fn map_region_option_by_name(
   geo_opt : @option.GeoOption,
   name : String,
 ) -> @option.GeoRegionOption? {
-  let mut i = 0
-  while i < geo_opt.regions.length() {
-    let region_opt = geo_opt.regions[i]
+  for region_opt in geo_opt.regions {
     if region_opt.name == name {
       return Some(region_opt)
     }
-    i += 1
   }
   None
 }
@@ -545,7 +505,7 @@ fn map_label_show(
   symbol_names : Array[String],
 ) -> Bool {
   let base_show = map_label_base_show(series, item)
-  base_show && !map_contains_name(symbol_names, region_name)
+  base_show && !symbol_names.contains(region_name)
 }
 
 ///|
@@ -615,13 +575,12 @@ fn map_symbol_next_offset(
   name : String,
 ) -> Int {
   let mut i = 0
-  while i < names.length() {
+  for i, _ in names {
     if names[i] == name {
       let offset = offsets[i]
       offsets[i] = offset + 1
       return offset
     }
-    i += 1
   }
   names.push(name)
   offsets.push(1)
@@ -665,7 +624,7 @@ fn render_map_region_polygon(
 fn map_rings_path_d(rings : Array[Array[@graphic.Point]]) -> String {
   let buf = StringBuilder::new()
   let mut ring_index = 0
-  while ring_index < rings.length() {
+  for ring_index, _ in rings {
     let points = rings[ring_index]
     if points.length() > 0 {
       buf.write_string("M ")
@@ -678,7 +637,6 @@ fn map_rings_path_d(rings : Array[Array[@graphic.Point]]) -> String {
       }
       buf.write_string(" Z")
     }
-    ring_index += 1
   }
   buf.to_string()
 }
@@ -693,9 +651,7 @@ pub fn render_maps(
   let geo_opt = map_geo_option(opt)
   let has_legend = map_has_legend(opt)
   let drawn_groups : Array[String] = []
-  let mut series_index = 0
-  while series_index < opt.series.length() {
-    let series = opt.series[series_index]
+  for series_index, series in opt.series {
     match series.series_type {
       Map => {
         // When there are geo components AND the series has no geoIndex,
@@ -714,7 +670,6 @@ pub fn render_maps(
         if map_series_matches_geo(opt, series, active_geo) {
           let group_key = map_series_group_key(opt, series)
           if map_has_drawn_group(drawn_groups, group_key) {
-            series_index += 1
             continue
           }
           drawn_groups.push(group_key)
@@ -724,7 +679,7 @@ pub fn render_maps(
             []
           }
           let mut region_index = 0
-          while region_index < active_geo.regions.length() {
+          for region_index, _ in active_geo.regions {
             let region = active_geo.regions[region_index]
             let item = map_data_item_by_name(series, region.name)
             let fill = map_region_fill(
@@ -770,7 +725,7 @@ pub fn render_maps(
             )
             let polygons = region.screen_polygon_rings(active_geo)
             let mut polygon_index = 0
-            while polygon_index < polygons.length() {
+            for polygon_index, _ in polygons {
               elems.push(
                 render_map_region_polygon(
                   polygons[polygon_index],
@@ -783,7 +738,6 @@ pub fn render_maps(
                   select_style,
                 ),
               )
-              polygon_index += 1
             }
             if map_label_show(series, item, region.name, symbol_names) {
               let center = region.screen_center(active_geo)
@@ -811,20 +765,19 @@ pub fn render_maps(
               }
               elems.push(label)
             }
-            region_index += 1
           }
           if has_legend {
             let symbol_offsets_names : Array[String] = []
             let symbol_offsets_counts : Array[Int] = []
             let mut symbol_series_index = 0
-            while symbol_series_index < opt.series.length() {
+            for symbol_series_index, _ in opt.series {
               let symbol_series = opt.series[symbol_series_index]
               if symbol_series.series_type == Map &&
                 map_series_group_key(opt, symbol_series) == group_key &&
                 symbol_series.show_legend_symbol {
                 let symbol_data = map_series_original_data(symbol_series)
                 let mut data_index = 0
-                while data_index < symbol_data.length() {
+                for data_index, _ in symbol_data {
                   let data_item = symbol_data[data_index]
                   match data_item.name {
                     Some(name) =>
@@ -897,17 +850,14 @@ pub fn render_maps(
                       }
                     None => ()
                   }
-                  data_index += 1
                 }
               }
-              symbol_series_index += 1
             }
           }
         }
       }
       _ => ()
     }
-    series_index += 1
   }
   elems
 }

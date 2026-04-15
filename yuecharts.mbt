@@ -6,9 +6,8 @@
 /// Returns true if any series uses the Cartesian coordinate system.
 fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
   let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let s = opt.series[i]
-    i += 1
     match s.series_type {
       @option.Bar
       | @option.Line
@@ -39,10 +38,8 @@ fn append_elements(
   elems : Array[@graphic.Element],
   items : Array[@graphic.Element],
 ) -> Unit {
-  let mut i = 0
-  while i < items.length() {
+  for i, _ in items {
     elems.push(items[i])
-    i += 1
   }
 }
 
@@ -80,11 +77,10 @@ fn has_registered_series_type(
     None => true
     Some(target) => {
       let mut i = 0
-      while i < opt.series.length() {
+      for i, _ in opt.series {
         if opt.series[i].series_type == target {
           return true
         }
-        i += 1
       }
       false
     }
@@ -105,25 +101,20 @@ fn filter_series_data_by_legend(
   series : @option.SeriesOption,
 ) -> @option.SeriesOption {
   let filtered : Array[@option.DataItem] = []
-  let mut i = 0
-  while i < series.data.length() {
+  for i, _ in series.data {
     let item = series.data[i]
     if is_legend_selected(opt, item.name) {
       filtered.push(item)
     }
-    i += 1
   }
   let filtered_links : Array[@option.DataItem] = []
   if series.series_type == @option.SeriesType::Chord {
-    let mut link_index = 0
-    while link_index < series.link_data.length() {
-      let item = series.link_data[link_index]
+    for item in series.link_data {
       let source_selected = is_legend_selected(opt, item.source)
       let target_selected = is_legend_selected(opt, item.target)
       if source_selected && target_selected {
         filtered_links.push(item)
       }
-      link_index += 1
     }
   }
   {
@@ -142,8 +133,7 @@ fn filter_series_negative_values(
   series : @option.SeriesOption,
 ) -> @option.SeriesOption {
   let filtered : Array[@option.DataItem] = []
-  let mut i = 0
-  while i < series.data.length() {
+  for i, _ in series.data {
     let item = series.data[i]
     let keep = match item.value {
       @option.Num(n) => n >= 0.0
@@ -152,7 +142,6 @@ fn filter_series_negative_values(
     if keep {
       filtered.push(item)
     }
-    i += 1
   }
   { ..series, data: filtered }
 }
@@ -167,8 +156,7 @@ fn apply_processor_to_option(
     return @chart.apply_map_data_statistic(opt)
   }
   let next_series : Array[@option.SeriesOption] = []
-  let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let series = opt.series[i]
     let matches_type = series_type.map_or(true, target => {
       series.series_type == target
@@ -183,20 +171,8 @@ fn apply_processor_to_option(
       series
     }
     next_series.push(next)
-    i += 1
   }
   { ..opt, series: next_series }
-}
-
-///|
-fn new_flags(count : Int) -> Array[Bool] {
-  let flags : Array[Bool] = []
-  let mut i = 0
-  while i < count {
-    flags.push(false)
-    i += 1
-  }
-  flags
 }
 
 ///|
@@ -208,7 +184,7 @@ fn next_visual_index(
   let mut best_index = -1
   let mut best_priority = 0
   let mut i = 0
-  while i < registry.visuals.length() {
+  for i, _ in registry.visuals {
     let registration = registry.visuals[i]
     if !visited[i] && has_registered_series_type(opt, registration.series_type) {
       if best_index == -1 || registration.priority < best_priority {
@@ -216,7 +192,6 @@ fn next_visual_index(
         best_priority = registration.priority
       }
     }
-    i += 1
   }
   if best_index == -1 {
     None
@@ -233,16 +208,13 @@ fn next_processor_index(
 ) -> Int? {
   let mut best_index = -1
   let mut best_priority = 0
-  let mut i = 0
-  while i < registry.processors.length() {
-    let registration = registry.processors[i]
+  for i, registration in registry.processors {
     if !visited[i] && has_registered_series_type(opt, registration.series_type) {
       if best_index == -1 || registration.priority < best_priority {
         best_index = i
         best_priority = registration.priority
       }
     }
-    i += 1
   }
   if best_index == -1 {
     None
@@ -256,7 +228,7 @@ fn run_registered_processors(
   registry : @core.Registry,
   opt : @option.ChartOption,
 ) -> @option.ChartOption {
-  let visited = new_flags(registry.processors.length())
+  let visited = Array::make(registry.processors.length(), false)
   let mut current = opt
   let mut done = 0
   while done < registry.processors.length() {
@@ -306,7 +278,7 @@ fn run_registered_visuals(
   registry : @core.Registry,
   opt : @option.ChartOption,
 ) -> String? {
-  let visited = new_flags(registry.visuals.length())
+  let visited = Array::make(registry.visuals.length(), false)
   let mut aria_label = None
   let mut done = 0
   while done < registry.visuals.length() {
@@ -334,10 +306,7 @@ fn render_registered_components(
   stage : @core.ComponentRenderStage,
   has_cartesian : Bool,
 ) -> Unit {
-  let mut i = 0
-  while i < registry.components.length() {
-    let registration = registry.components[i]
-    i += 1
+  for registration in registry.components {
     let stage_matches = match registration.render_stage {
       Background => stage == @core.ComponentRenderStage::Background
       Foreground => stage == @core.ComponentRenderStage::Foreground
@@ -358,10 +327,8 @@ fn render_registered_charts(
   registry : @core.Registry,
   ctx : @core.RenderContext,
 ) -> Unit {
-  let mut i = 0
-  while i < registry.charts.length() {
+  for i, _ in registry.charts {
     let registration = registry.charts[i]
-    i += 1
     if !has_registered_series_type(ctx.option, Some(registration.series_type)) {
       continue
     }
@@ -373,7 +340,7 @@ fn render_registered_charts(
 /// Render an ECharts JSON option string to an SVG string.
 /// Returns an error string with "ERROR: ..." prefix on failure.
 pub fn version() -> String {
-  "0.4.14"
+  "0.4.15"
 }
 
 ///|

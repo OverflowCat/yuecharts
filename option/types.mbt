@@ -1356,12 +1356,11 @@ pub impl Default for LegendOption with default() {
 ///|
 pub fn LegendOption::is_selected(self : LegendOption, name : String) -> Bool {
   let mut i = 0
-  while i < self.selected.length() {
+  for i, _ in self.selected {
     let item = self.selected[i]
     if item.name == name {
       return item.selected
     }
-    i += 1
   }
   true
 }

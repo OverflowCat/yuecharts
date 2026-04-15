@@ -15,17 +15,17 @@ pub fn render_parallel_series(
   let width = series.line_style_width.unwrap_or(1.0)
   let opacity = series.line_style_opacity.unwrap_or(0.45)
   let mut i = 0
-  while i < series.data.length() {
+  for i, _ in series.data {
     let item = series.data[i]
     let points = parallel_series_line_points(item, parallel)
-    if points.length() >= 2 {
-      line_elems.push(
-        @graphic.Element::polyline_custom_opacity(
-          points, color, width, "round", "round", opacity,
-        ),
-      )
+    if points.length() < 2 {
+      continue
     }
-    i += 1
+    line_elems.push(
+      @graphic.Element::polyline_custom_opacity(
+        points, color, width, "round", "round", opacity,
+      ),
+    )
   }
   if line_elems.length() == 0 {
     []
@@ -43,12 +43,11 @@ pub fn render_parallels(
   guard parallel is Some(coord) else { elems }
   let mut si = 0
   let mut color_index = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
     if series.series_type == @option.SeriesType::Parallel {
       elems.append(render_parallel_series(series, color_index, coord))
     }
-    si += 1
     color_index += 1
   }
   elems
@@ -61,13 +60,12 @@ fn parallel_series_line_points(
 ) -> Array[@graphic.Point] {
   let points : Array[@graphic.Point] = []
   let mut i = 0
-  while i < parallel.dimensions.length() {
+  for i, _ in parallel.dimensions {
     let dim = parallel.dimensions[i]
     match parallel.data_to_point(item.value, dim) {
       Some(point) => points.push(point)
       None => ()
     }
-    i += 1
   }
   points
 }

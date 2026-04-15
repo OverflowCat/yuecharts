@@ -47,8 +47,7 @@ fn matrix_append_cells(
   cells : Array[@coord.MatrixCell],
   global_font_family : String?,
 ) -> Unit {
-  let mut i = 0
-  while i < cells.length() {
+  for i, _ in cells {
     let cell = cells[i]
     elems.push(matrix_rect_element(cell.bbox, cell.item_style))
     if cell.label.show {
@@ -70,7 +69,6 @@ fn matrix_append_cells(
         _ => ()
       }
     }
-    i += 1
   }
 }
 

@@ -11,14 +11,13 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
   let bbox = coord.bbox
   // X-axis grid lines (vertical)
   let mut i = 0
-  while i < coord.x_scales.length() {
+  for i, _ in coord.x_scales {
     match coord.x_scales[i] {
       Linear(s) => {
         let ticks = s.ticks(5)
         let mut ti = 0
-        while ti < ticks.length() {
+        for ti, _ in ticks {
           let tick = ticks[ti]
-          ti += 1
           let px = s.data_to_pixel(tick.value)
           elems.push(
             @graphic.Element::line_colored(
@@ -35,9 +34,8 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
       Ordinal(s) => {
         let ticks = s.ticks()
         let mut ti = 0
-        while ti < ticks.length() {
+        for ti, _ in ticks {
           let tick = ticks[ti]
-          ti += 1
           let px = tick.value
           elems.push(
             @graphic.Element::line_colored(
@@ -52,7 +50,6 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
         }
       }
     }
-    i += 1
   }
   // Y-axis grid lines (horizontal)
   i = 0
@@ -61,9 +58,8 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
       Linear(s) => {
         let ticks = s.ticks(5)
         let mut ti = 0
-        while ti < ticks.length() {
+        for ti, _ in ticks {
           let tick = ticks[ti]
-          ti += 1
           let py = s.data_to_pixel(tick.value)
           elems.push(
             @graphic.Element::line_colored(
@@ -80,9 +76,8 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
       BreakLinear(s) => {
         let ticks = s.ticks(5)
         let mut ti = 0
-        while ti < ticks.length() {
+        for ti, _ in ticks {
           let tick = ticks[ti]
-          ti += 1
           let py = s.data_to_pixel(tick.value)
           elems.push(
             @graphic.Element::line_colored(
@@ -99,9 +94,8 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
       Ordinal(s) => {
         let ticks = s.ticks()
         let mut ti = 0
-        while ti < ticks.length() {
+        for ti, _ in ticks {
           let tick = ticks[ti]
-          ti += 1
           let py = tick.value
           elems.push(
             @graphic.Element::line_colored(

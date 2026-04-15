@@ -82,10 +82,8 @@ fn funnel_sorted_indices(
   sort : String,
 ) -> Array[Int] {
   let indices : Array[Int] = []
-  let mut i = 0
-  while i < data.length() {
+  for i, _ in data {
     indices.push(i)
-    i += 1
   }
   if sort == "none" {
     return indices
@@ -517,10 +515,8 @@ pub fn render_funnels(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut series_index = 0
-  let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let series = opt.series[i]
-    i += 1
     match series.series_type {
       Funnel => {
         let series_elems = render_funnel_series(
@@ -608,7 +604,7 @@ pub fn render_funnel_series(
   }
 
   let mut i = 0
-  while i < indices.length() {
+  for i, _ in indices {
     let idx = indices[i]
     let next_idx = if i + 1 < indices.length() {
       indices[i + 1]
@@ -680,7 +676,6 @@ pub fn render_funnel_series(
     }
 
     cursor += item_size + gap
-    i += 1
   }
 
   elems

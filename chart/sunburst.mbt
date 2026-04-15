@@ -11,9 +11,8 @@ fn data_item_value(item : @option.DataItem) -> Double {
     @option.Null => {
       let mut sum = 0.0
       let mut i = 0
-      while i < item.children.length() {
+      for i, _ in item.children {
         sum = sum + complete_tree_value(item.children[i])
-        i += 1
       }
       sum
     }
@@ -29,9 +28,8 @@ fn data_item_value(item : @option.DataItem) -> Double {
 fn complete_tree_value(item : @option.DataItem) -> Double {
   let mut child_sum = 0.0
   let mut i = 0
-  while i < item.children.length() {
+  for i, _ in item.children {
     child_sum = child_sum + complete_tree_value(item.children[i])
-    i += 1
   }
   let own_value = match item.value {
     @option.Num(n) => n
@@ -53,12 +51,11 @@ fn tree_height(item : @option.DataItem) -> Int {
   }
   let mut max_child = 0
   let mut i = 0
-  while i < item.children.length() {
+  for i, _ in item.children {
     let h = tree_height(item.children[i])
     if h > max_child {
       max_child = h
     }
-    i += 1
   }
   max_child + 1
 }
@@ -118,7 +115,7 @@ fn sorted_indices_desc(values : Array[Double]) -> Array[Int] {
       indices[b] = tmp
       b = b - 1
     }
-    a = a + 1
+    a += 1
   }
   indices
 }
@@ -229,10 +226,9 @@ fn render_sunburst_node(
 
   let child_values : Array[Double] = []
   let mut i = 0
-  while i < node.children.length() {
+  for i, _ in node.children {
     let v = complete_tree_value(node.children[i])
     child_values.push(v)
-    i += 1
   }
   // Use the parent node's own declared value as denominator, not sum of children.
   // This matches ECharts sunburstLayout.ts: each node's angle = node.getValue() * unitRadian,
@@ -244,9 +240,8 @@ fn render_sunburst_node(
     } else {
       let mut s = 0.0
       let mut fi = 0
-      while fi < child_values.length() {
+      for fi, _ in child_values {
         s = s + child_values[fi]
-        fi += 1
       }
       s
     }
@@ -317,27 +312,19 @@ pub fn render_sunbursts(
   let vm_colors : Array[String] = []
   let mut vm_min = 0.0
   let mut vm_max = 0.0
-  let mut vi = 0
-  while vi < opt.visual_map.length() {
-    let vm = opt.visual_map[vi]
+  for vm in opt.visual_map {
     let colors = vm.in_range.color
     if colors.length() >= 2 {
-      let mut ci = 0
-      while ci < colors.length() {
-        vm_colors.push(colors[ci])
-        ci += 1
-      }
+      vm_colors.append(colors)
       vm_min = vm.min
       vm_max = vm.max
       break
     }
-    vi += 1
   }
   let mut color_idx = 0
   let mut si = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       Sunburst => ()
       _ => {
@@ -355,9 +342,8 @@ pub fn render_sunbursts(
       vm_max,
     )
     let mut i = 0
-    while i < series_elems.length() {
+    for i, _ in series_elems {
       elems.push(series_elems[i])
-      i += 1
     }
     color_idx = color_idx + 1
   }
@@ -412,7 +398,7 @@ pub fn render_sunburst_series(
   let mut max_height = 0
   let root_values : Array[Double] = []
   let mut i = 0
-  while i < series.data.length() {
+  for i, _ in series.data {
     let node = series.data[i]
     let v = data_item_value(node)
     root_values.push(v)
@@ -421,7 +407,6 @@ pub fn render_sunburst_series(
     if h > max_height {
       max_height = h
     }
-    i += 1
   }
   if max_height <= 0 {
     return elems

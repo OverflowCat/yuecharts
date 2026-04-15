@@ -264,13 +264,10 @@ fn vm_reverse_items(
 
 ///|
 fn vm_selected_state(vm : @option.VisualMapOption, key : String) -> Bool {
-  let mut i = 0
-  while i < vm.selected.length() {
-    let sel = vm.selected[i]
+  for sel in vm.selected {
     if sel.key == key {
       return sel.selected
     }
-    i += 1
   }
   true
 }
@@ -404,9 +401,7 @@ fn vm_build_piecewise_items(
   let mut content_items : Array[VmPiecewiseViewItem] = []
 
   if vm.pieces.length() > 0 {
-    let mut i = 0
-    while i < vm.pieces.length() {
-      let piece = vm.pieces[i]
+    for i, piece in vm.pieces {
       let text = vm_piece_text(piece)
       let selected = vm_selected_state(vm, i.to_string())
       let color = match piece.color {
@@ -433,12 +428,9 @@ fn vm_build_piecewise_items(
           char_w,
         ),
       )
-      i += 1
     }
   } else if vm.categories.length() > 0 {
-    let mut i = 0
-    while i < vm.categories.length() {
-      let text = vm.categories[i]
+    for i, text in vm.categories {
       let selected = vm_selected_state(vm, text)
       let color = if base_colors.length() > 0 {
         let ratio = if vm.categories.length() <= 1 {
@@ -464,30 +456,28 @@ fn vm_build_piecewise_items(
           char_w,
         ),
       )
-      i += 1
     }
   } else if vm.split_number > 0 {
     let split_number = if vm.split_number <= 0 { 1 } else { vm.split_number }
     let step = (vm.max - vm.min) / split_number.to_double()
     if vm.min_open {
-      content_items.push(
-        vm_make_piecewise_item(
-          "< \{vm_format_number(vm.min)}",
-          if base_colors.length() > 0 {
-            base_colors[0]
-          } else {
-            "#5070dd"
-          },
-          vm.item_symbol,
-          vm_selected_state(vm, "min_open"),
-          true,
-          show_label,
-          item_w,
-          item_h,
-          text_gap,
-          char_w,
-        ),
+      let item = vm_make_piecewise_item(
+        "< \{vm_format_number(vm.min)}",
+        if base_colors.length() > 0 {
+          base_colors[0]
+        } else {
+          "#5070dd"
+        },
+        vm.item_symbol,
+        vm_selected_state(vm, "min_open"),
+        true,
+        show_label,
+        item_w,
+        item_h,
+        text_gap,
+        char_w,
       )
+      content_items.push(item)
     }
     let mut i = 0
     while i < split_number {
@@ -511,41 +501,39 @@ fn vm_build_piecewise_items(
       } else {
         "#5070dd"
       }
-      content_items.push(
-        vm_make_piecewise_item(
-          text,
-          color,
-          vm.item_symbol,
-          vm_selected_state(vm, i.to_string()),
-          true,
-          show_label,
-          item_w,
-          item_h,
-          text_gap,
-          char_w,
-        ),
+      let item = vm_make_piecewise_item(
+        text,
+        color,
+        vm.item_symbol,
+        vm_selected_state(vm, i.to_string()),
+        true,
+        show_label,
+        item_w,
+        item_h,
+        text_gap,
+        char_w,
       )
+      content_items.push(item)
       i += 1
     }
     if vm.max_open {
-      content_items.push(
-        vm_make_piecewise_item(
-          "> \{vm_format_number(vm.max)}",
-          if base_colors.length() > 0 {
-            base_colors[base_colors.length() - 1]
-          } else {
-            "#5070dd"
-          },
-          vm.item_symbol,
-          vm_selected_state(vm, "max_open"),
-          true,
-          show_label,
-          item_w,
-          item_h,
-          text_gap,
-          char_w,
-        ),
+      let item = vm_make_piecewise_item(
+        "> \{vm_format_number(vm.max)}",
+        if base_colors.length() > 0 {
+          base_colors[base_colors.length() - 1]
+        } else {
+          "#5070dd"
+        },
+        vm.item_symbol,
+        vm_selected_state(vm, "max_open"),
+        true,
+        show_label,
+        item_w,
+        item_h,
+        text_gap,
+        char_w,
       )
+      content_items.push(item)
     }
   }
 
@@ -571,11 +559,7 @@ fn vm_build_piecewise_items(
         char_w,
       ),
     )
-    let mut i = 0
-    while i < content_items.length() {
-      view_items.push(content_items[i])
-      i += 1
-    }
+    view_items.append(content_items)
     view_items.push(
       vm_make_piecewise_item(
         end_high, inactive_color, "", true, false, true, item_w, item_h, text_gap,
@@ -583,11 +567,7 @@ fn vm_build_piecewise_items(
       ),
     )
   } else {
-    let mut i = 0
-    while i < content_items.length() {
-      view_items.push(content_items[i])
-      i += 1
-    }
+    view_items.append(content_items)
   }
 
   view_items
@@ -669,11 +649,8 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let text_gap = 10.0
   let default_label_color = "#54555a"
   let font_size = 12.0
-  let mut i = 0
-  while i < opt.visual_map.length() {
-    let vm = opt.visual_map[i]
+  for vm in opt.visual_map {
     if !vm.show {
-      i += 1
       continue
     }
     if vm_is_piecewise(vm) {
@@ -695,7 +672,7 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
       let mut total_w = 0.0
       let mut total_h = 0.0
       let mut j = 0
-      while j < view_items.length() {
+      for j, _ in view_items {
         let item = view_items[j]
         if is_horizontal {
           total_w = total_w + item.width
@@ -714,7 +691,6 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
             total_w = item.width
           }
         }
-        j += 1
       }
       let start_x = vm_resolve_start_x(
         vm.left,
@@ -732,9 +708,7 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
       )
       let item_align = vm_resolve_item_align(vm, width, start_x, total_w)
       let mut cursor = 0.0
-      let mut k = 0
-      while k < view_items.length() {
-        let item = view_items[k]
+      for item in view_items {
         let child = vm_render_piecewise_item(
           item, item_align, show_label, label_color, text_font_size, text_font_family,
           text_font_weight, item_w, item_h, text_gap, inactive_color,
@@ -756,7 +730,6 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
           )
           cursor = cursor + item.height + item_gap
         }
-        k += 1
       }
     } else {
       let item_w = vm.item_width.unwrap_or(20.0)
@@ -890,7 +863,6 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
         }
       }
     }
-    i += 1
   }
   elems
 }

@@ -22,12 +22,10 @@ test "scale_interval ticks_small_value" {
 
   assert_eq(ticks.length(), expected_values.length())
 
-  let mut i = 0
-  while i < ticks.length() {
+  for i, _ in ticks {
     assert_true(approx_eq(ticks[i].value, expected_values[i]))
     assert_eq(ticks[i].label, expected_labels[i])
     assert_true(!ticks[i].label.contains("e"))
-    i += 1
   }
 }
 
@@ -39,15 +37,13 @@ test "scale_interval cases" {
     (LinearScale::new(-3711126.9907707, -3711126.990770699, 0.0, 100.0), 5),
   ]
 
-  let mut i = 0
-  while i < cases.length() {
-    let (scale, split_number) = cases[i]
+  for case in cases {
+    let (scale, split_number) = case
     let ticks = scale.ticks(split_number)
     assert_true(ticks.length() > 0)
     assert_true(ticks[0].value <= ticks[ticks.length() - 1].value)
     assert_true(ticks[0].label != "")
     assert_true(ticks[ticks.length() - 1].label != "")
-    i += 1
   }
 }
 

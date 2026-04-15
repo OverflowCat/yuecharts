@@ -98,10 +98,9 @@ pub impl ScaleLike for LinearScaleAdapter with ticks(self, count) {
   let source_ticks = self.source.ticks(count)
   let result : Array[ScaleTick] = []
   let mut i = 0
-  while i < source_ticks.length() {
+  for i, _ in source_ticks {
     let tick = source_ticks[i]
     result.push({ value: tick.value, label: tick.label })
-    i += 1
   }
   result
 }
@@ -128,10 +127,9 @@ pub impl ScaleLike for OrdinalScaleAdapter with ticks(self, _count) {
   let source_ticks = self.source.ticks()
   let result : Array[ScaleTick] = []
   let mut i = 0
-  while i < source_ticks.length() {
+  for i, _ in source_ticks {
     let tick = source_ticks[i]
     result.push({ value: tick.value, label: tick.label })
-    i += 1
   }
   result
 }

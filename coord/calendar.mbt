@@ -522,12 +522,11 @@ fn is_all_digits(value : String) -> Bool {
     return false
   }
   let mut i = 0
-  while i < value.length() {
+  for i, _ in value {
     let c = value[i]
     if c < '0' || c > '9' {
       return false
     }
-    i += 1
   }
   true
 }
@@ -546,12 +545,11 @@ fn split_date_parts(value : String) -> Array[String] {
   let parts : Array[String] = []
   let mut start = 0
   let mut i = 0
-  while i < value.length() {
+  for i, _ in value {
     if value[i] == '-' {
       parts.push(value[start:i].to_string())
       start = i + 1
     }
-    i += 1
   }
   parts.push(value[start:value.length()].to_string())
   parts

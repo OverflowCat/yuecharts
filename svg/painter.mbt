@@ -91,8 +91,7 @@ fn css_style_key(properties : Array[CssProperty], with_hover : Bool) -> String {
   } else {
     buf.write_string("plain|")
   }
-  let mut i = 0
-  while i < properties.length() {
+  for i, _ in properties {
     if i > 0 {
       buf.write_char(';')
     }
@@ -100,7 +99,6 @@ fn css_style_key(properties : Array[CssProperty], with_hover : Bool) -> String {
     buf.write_string(property.name)
     buf.write_char('=')
     buf.write_string(property.value)
-    i += 1
   }
   buf.to_string()
 }
@@ -108,13 +106,11 @@ fn css_style_key(properties : Array[CssProperty], with_hover : Bool) -> String {
 ///|
 fn css_join_classes(class_names : Array[String]) -> String {
   let buf = StringBuilder::new()
-  let mut i = 0
-  while i < class_names.length() {
+  for i, _ in class_names {
     if i > 0 {
       buf.write_char(' ')
     }
     buf.write_string(class_names[i])
-    i += 1
   }
   buf.to_string()
 }
@@ -126,13 +122,11 @@ fn css_cached_class_name(
   with_hover : Bool,
 ) -> String {
   let style_key = css_style_key(properties, with_hover)
-  let mut i = 0
-  while i < scope.val.css_style_cache.length() {
+  for i, _ in scope.val.css_style_cache {
     let entry = scope.val.css_style_cache[i]
     if entry.style_key == style_key {
       return entry.class_name
     }
-    i += 1
   }
   let class_name = "\{scope.val.zr_id}-cls-\{scope.val.next_class_id}"
   scope.val.css_style_cache.push({ style_key, class_name })
@@ -153,12 +147,10 @@ fn current_state_contains(
   current_states : Array[String],
   target : String,
 ) -> Bool {
-  let mut i = 0
-  while i < current_states.length() {
+  for i, _ in current_states {
     if current_states[i] == target {
       return true
     }
-    i += 1
   }
   false
 }
@@ -281,13 +273,10 @@ fn resolve_gradient_spec(
   if stops.length() == 0 {
     return None
   }
-  let mut j = 0
-  while j < scope.val.gradient_defs.length() {
-    let existing = scope.val.gradient_defs[j]
+  for existing in scope.val.gradient_defs {
     if existing.spec == color_str {
       return Some(existing.id)
     }
-    j += 1
   }
   let id = "\{scope.val.zr_id}-g\{scope.val.next_gradient_id}"
   scope.val = { ..scope.val, next_gradient_id: scope.val.next_gradient_id + 1 }
@@ -1013,22 +1002,17 @@ fn css_nodes_to_string(css_nodes : Array[CssNode]) -> String {
   }
   let buf = StringBuilder::new()
   buf.write_string("<![CDATA[\n")
-  let mut node_index = 0
-  while node_index < css_nodes.length() {
+  for node_index, _ in css_nodes {
     let node = css_nodes[node_index]
     buf.write_string(node.selector)
     buf.write_string(" {\n")
-    let mut property_index = 0
-    while property_index < node.properties.length() {
-      let property = node.properties[property_index]
+    for property in node.properties {
       buf.write_string(property.name)
       buf.write_char(':')
       buf.write_string(property.value)
       buf.write_string(";\n")
-      property_index += 1
     }
     buf.write_string("}\n")
-    node_index += 1
   }
   buf.write_string("]]>")
   buf.to_string()

@@ -202,25 +202,22 @@ fn view_build_sankey(
 pub fn View::build(opt : @option.ChartOption) -> Array[View] {
   let views : Array[View] = []
   let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let series = opt.series[i]
     if series.series_type == @option.SeriesType::Sankey &&
       series.coordinate_system == Some("view") {
       views.push(view_build_sankey(series, i, opt))
     }
-    i += 1
   }
   views
 }
 
 ///|
 pub fn View::find_for_series(views : Array[View], series_index : Int) -> View? {
-  let mut i = 0
-  while i < views.length() {
-    if views[i].series_index == series_index {
-      return Some(views[i])
+  for view in views {
+    if view.series_index == series_index {
+      return Some(view)
     }
-    i += 1
   }
   None
 }

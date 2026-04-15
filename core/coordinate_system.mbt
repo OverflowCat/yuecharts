@@ -65,19 +65,15 @@ pub fn CoordinateSystemManager::get(
   self : CoordinateSystemManager,
   type_name : String,
 ) -> &CoordinateSystemCreatorLike? {
-  let mut i = 0
-  while i < self.normal_creators.length() {
-    if self.normal_creators[i].type_name() == type_name {
-      return Some(self.normal_creators[i])
+  for x in self.normal_creators {
+    if x.type_name() == type_name {
+      return Some(x)
     }
-    i += 1
   }
-  i = 0
-  while i < self.non_series_box_creators.length() {
-    if self.non_series_box_creators[i].type_name() == type_name {
-      return Some(self.non_series_box_creators[i])
+  for x in self.non_series_box_creators {
+    if x.type_name() == type_name {
+      return Some(x)
     }
-    i += 1
   }
   None
 }
@@ -89,10 +85,8 @@ fn coordinate_system_run_creators(
   state : CoordinateSystemState,
 ) -> CoordinateSystemState {
   let mut next_state = state
-  let mut i = 0
-  while i < creators.length() {
-    next_state = creators[i].create(opt, next_state)
-    i += 1
+  for x in creators {
+    next_state = x.create(opt, next_state)
   }
   next_state
 }

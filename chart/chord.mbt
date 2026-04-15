@@ -130,12 +130,11 @@ fn chord_node_key(item : @option.DataItem, index : Int) -> String {
 ///|
 fn chord_find_node_index(lookup : Array[(String, Int)], key : String) -> Int? {
   let mut i = 0
-  while i < lookup.length() {
+  for i, _ in lookup {
     let (candidate, index) = lookup[i]
     if candidate == key {
       return Some(index)
     }
-    i += 1
   }
   None
 }
@@ -330,9 +329,7 @@ fn chord_build_graph(
 ) -> (Array[ChordNode], Array[ChordEdgeLayout]) {
   let nodes : Array[ChordNode] = []
   let lookup : Array[(String, Int)] = []
-  let mut i = 0
-  while i < series.data.length() {
-    let item = series.data[i]
+  for i, item in series.data {
     if chord_is_node_selected(opt, item) {
       let key = chord_node_key(item, i)
       let name = item.name.unwrap_or(key)
@@ -347,12 +344,11 @@ fn chord_build_graph(
       })
       lookup.push((key, index))
     }
-    i += 1
   }
 
   let edges : Array[ChordEdgeLayout] = []
   let mut edge_index = 0
-  while edge_index < series.link_data.length() {
+  for edge_index, _ in series.link_data {
     let item = series.link_data[edge_index]
     match (item.source, item.target) {
       (Some(source), Some(target)) =>
@@ -376,7 +372,6 @@ fn chord_build_graph(
         }
       _ => ()
     }
-    edge_index += 1
   }
   (nodes, edges)
 }
@@ -426,9 +421,8 @@ fn chord_layout(
     node_data_sum += chord_data_value(node.item)
   }
   let mut ei = 0
-  while ei < edges.length() {
+  for ei, _ in edges {
     edge_data_sum += chord_data_value(edges[ei].item)
-    ei += 1
   }
   let all_zero = node_data_sum == 0.0 && edge_data_sum == 0.0
 
@@ -458,7 +452,7 @@ fn chord_layout(
   }
 
   let mut node_value_sum = 0.0
-  for i = 0; i < nodes.length(); i = i + 1 {
+  for i, _ in nodes {
     let explicit_value = chord_data_value(nodes[i].item)
     if explicit_value == explicit_value {
       node_values[i] = chord_max(explicit_value, node_values[i])
@@ -501,7 +495,7 @@ fn chord_layout(
   let mut total_surplus = 0.0
   let mut total_surplus_span = 0.0
   let mut i = 0
-  while i < nodes.length() {
+  for i, _ in nodes {
     let span_angle = unit_angle * node_values[i] * dir
     let abs_span_angle = chord_abs(span_angle)
     if abs_span_angle < min_angle {
@@ -512,7 +506,6 @@ fn chord_layout(
     }
     nodes[i].angle = span_angle
     nodes[i].ratio = 1.0
-    i += 1
   }
 
   let mut surplus_as_much_as_possible = false
@@ -631,7 +624,7 @@ fn chord_render_labels(
   r : Double,
 ) -> Unit {
   let mut i = 0
-  while i < nodes.length() {
+  for i, _ in nodes {
     let node = nodes[i]
     if chord_label_show(series, node) && node.name != "" {
       let position = chord_label_position(series, node)
@@ -674,7 +667,6 @@ fn chord_render_labels(
         ),
       )
     }
-    i += 1
   }
 }
 
@@ -684,21 +676,17 @@ pub fn render_chords(
   _coord : @coord.Cartesian2D,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
-  while si < opt.series.length() {
-    let series = opt.series[si]
+  for si, series in opt.series {
     match series.series_type {
       @option.SeriesType::Chord => {
         let series_elems = render_chord_series(opt, series, si)
         let mut i = 0
-        while i < series_elems.length() {
+        for i, _ in series_elems {
           elems.push(series_elems[i])
-          i += 1
         }
       }
       _ => ()
     }
-    si += 1
   }
   elems
 }
@@ -724,15 +712,14 @@ pub fn render_chord_series(
 
   let node_colors : Array[String] = []
   let mut i = 0
-  while i < nodes.length() {
+  for i, _ in nodes {
     node_colors.push(chord_node_fill_color(series, nodes[i], series_index + i))
-    i += 1
   }
 
   let edge_opacity = series.line_style_opacity.unwrap_or(0.2)
   let edge_width = series.line_style_width.unwrap_or(0.0)
   let mut ei = 0
-  while ei < edges.length() {
+  for ei, _ in edges {
     let edge = edges[ei]
     let fill_color = chord_edge_fill_color(series, edge, node_colors)
     let d = chord_edge_path(edge, cx, cy, r0, clockwise)
@@ -745,7 +732,6 @@ pub fn render_chord_series(
     } else {
       elems.push(@graphic.Element::path_filled(d, fill_color, edge_opacity))
     }
-    ei += 1
   }
 
   i = 0

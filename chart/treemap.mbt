@@ -141,7 +141,7 @@ fn layout_squarify(
   let mut init_i = 0
   while init_i < values.length() {
     rects.push({ x: rect.x, y: rect.y, width: 0.0, height: 0.0 })
-    init_i = init_i + 1
+    init_i += 1
   }
   let ratio = 1.61803398875
   let mut remaining = rect
@@ -472,15 +472,13 @@ fn render_treemap_children(
   let areas : Array[Double] = []
   let total_area = rect.width * rect.height
   let mut value_sum = 0.0
-  let mut i = 0
-  while i < sorted.length() {
-    value_sum = value_sum + treemap_complete_tree_value(sorted[i])
-    i += 1
+  for x in sorted {
+    value_sum += treemap_complete_tree_value(x)
   }
   if value_sum <= 0.0 {
     return
   }
-  i = 0
+  let mut i = 0
   while i < sorted.length() {
     areas.push(treemap_complete_tree_value(sorted[i]) / value_sum * total_area)
     i += 1
@@ -667,12 +665,8 @@ pub fn render_treemaps(
       opt.width,
       opt.height,
     )
-    let mut i = 0
-    while i < series_elems.length() {
-      elems.push(series_elems[i])
-      i += 1
-    }
-    color_idx = color_idx + 1
+    elems.append(series_elems)
+    color_idx += 1
   }
   elems
 }

@@ -40,11 +40,9 @@ fn apply_placeholders(
   keys : Array[(String, String)],
 ) -> String {
   let mut result = template
-  let mut i = 0
-  while i < keys.length() {
+  for i, _ in keys {
     let (key, value) = keys[i]
     result = replace_all(result, key, value)
-    i += 1
   }
   result
 }
@@ -59,9 +57,8 @@ fn data_value_labels(
     @option.Vec(arr) => {
       let labels : Array[String] = []
       let mut i = 0
-      while i < arr.length() {
+      for i, _ in arr {
         labels.push(arr[i].to_string())
-        i += 1
       }
       labels.join(middle_separator)
     }

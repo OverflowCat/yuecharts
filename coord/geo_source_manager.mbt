@@ -33,14 +33,8 @@ let global_geo_source_manager : GeoSourceManager = GeoSourceManager::{
 pub fn GeoSourceManager::from_option(
   opt : @option.ChartOption,
 ) -> GeoSourceManager {
-  let resources : Array[GeoSourceResource] = []
-  let mut i = 0
-  while i < global_geo_source_manager.resources.length() {
-    resources.push(global_geo_source_manager.resources[i])
-    i += 1
-  }
-  let mut j = 0
-  while j < opt.map_registry.length() {
+  let resources = global_geo_source_manager.resources
+  for j, _ in opt.map_registry {
     let entry = opt.map_registry[j]
     match entry.svg {
       Some(svg) =>
@@ -58,7 +52,6 @@ pub fn GeoSourceManager::from_option(
           None => ()
         }
     }
-    j += 1
   }
   { resources, }
 }

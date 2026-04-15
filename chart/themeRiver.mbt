@@ -76,9 +76,8 @@ fn theme_river_get_layers(
     return []
   }
   let mut li = 0
-  while li < grouped.length() {
+  for li, _ in grouped {
     theme_river_sort_layer_by_time(grouped[li], single)
-    li += 1
   }
   let point_count = theme_river_common_point_count(grouped)
   if point_count == 0 {
@@ -208,23 +207,21 @@ fn theme_river_group_rows_by_name(
 ) -> Array[TRLayerData] {
   let grouped : Array[TRLayerData] = []
   let mut i = 0
-  while i < rows.length() {
+  for i, _ in rows {
     let row = rows[i]
     let mut found = -1
     let mut j = 0
-    while j < grouped.length() {
+    for j, _ in grouped {
       if grouped[j].name == row.name {
         found = j
         break
       }
-      j += 1
     }
     if found == -1 {
       grouped.push({ name: row.name, data_list: [row] })
     } else {
       grouped[found].data_list.push(row)
     }
-    i += 1
   }
   grouped
 }
@@ -234,14 +231,13 @@ fn theme_river_group_rows_by_name(
 fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
   let filtered : Array[TRDataRow] = []
   let mut i = 0
-  while i < series.data.length() {
+  for i, _ in series.data {
     let item = series.data[i]
     match (item.value, item.name) {
       (@option.DataValue::DateValue(time, value), Some(name)) =>
         filtered.push({ time, value, name })
       _ => ()
     }
-    i += 1
   }
   let time_keys : Array[String] = []
   i = 0
@@ -254,25 +250,22 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
   }
   let layers = theme_river_group_rows_by_name(filtered)
   let mut k = 0
-  while k < layers.length() {
+  for k, _ in layers {
     let layer_name = layers[k].name
     let mut t = 0
-    while t < time_keys.length() {
+    for t, _ in time_keys {
       let time = time_keys[t]
       if !theme_river_layer_has_time(layers[k], time) {
         layers[k].data_list.push({ time, value: 0.0, name: layer_name })
       }
-      t += 1
     }
-    k += 1
   }
   let result : Array[TRDataRow] = []
   k = 0
   while k < layers.length() {
     let mut j = 0
-    while j < layers[k].data_list.length() {
+    for j, _ in layers[k].data_list {
       result.push(layers[k].data_list[j])
-      j += 1
     }
     k += 1
   }
@@ -282,11 +275,10 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
 ///|
 fn theme_river_contains_string(arr : Array[String], value : String) -> Bool {
   let mut i = 0
-  while i < arr.length() {
+  for i, _ in arr {
     if arr[i] == value {
       return true
     }
-    i += 1
   }
   false
 }
@@ -294,11 +286,10 @@ fn theme_river_contains_string(arr : Array[String], value : String) -> Bool {
 ///|
 fn theme_river_layer_has_time(layer : TRLayerData, time : String) -> Bool {
   let mut i = 0
-  while i < layer.data_list.length() {
+  for i, _ in layer.data_list {
     if layer.data_list[i].time == time {
       return true
     }
-    i += 1
   }
   false
 }
@@ -484,9 +475,8 @@ pub fn render_theme_rivers(
   let elems : Array[@graphic.Element] = []
   let mut si = 0
   let mut color_offset = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       ThemeRiver => ()
       _ => {
@@ -497,9 +487,8 @@ pub fn render_theme_rivers(
     let layers = theme_river_get_layers(series, single, color_offset)
     // Render each layer as a filled polygon
     let mut li = 0
-    while li < layers.length() {
+    for li, _ in layers {
       let layer = layers[li]
-      li += 1
       let path_data = theme_river_layer_path(layer)
       if path_data == "" {
         continue

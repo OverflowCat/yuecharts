@@ -67,13 +67,12 @@ fn TreeNode::update_depth_and_height(self : TreeNode, depth : Int) -> Unit {
   self.depth = depth
   let mut max_child_height = 0
   let mut i = 0
-  while i < self.children.length() {
+  for i, _ in self.children {
     let child = self.children[i]
     child.update_depth_and_height(depth + 1)
     if child.height > max_child_height {
       max_child_height = child.height
     }
-    i += 1
   }
   self.height = max_child_height + 1
 }
@@ -130,11 +129,10 @@ fn tree_build_hierarchy(
   let node = TreeNode::new(name, item)
   all_nodes.push(node)
   let mut i = 0
-  while i < item.children.length() {
+  for i, _ in item.children {
     let child = tree_build_hierarchy(item.children[i], all_nodes)
     child.parent_node = Some(node)
     node.children.push(child)
-    i += 1
   }
   node
 }
@@ -151,9 +149,8 @@ fn tree_each_after(root : TreeNode, callback : (TreeNode) -> Unit) -> Unit {
     next.push(node)
     if node.is_expand {
       let mut i = 0
-      while i < node.children.length() {
+      for i, _ in node.children {
         nodes.push(node.children[i])
-        i += 1
       }
     }
   }
@@ -476,9 +473,8 @@ fn tree_set_expand_state(
       max_depth = node.depth
     }
     let mut i = 0
-    while i < node.children.length() {
+    for i, _ in node.children {
       nodes.push(node.children[i])
-      i += 1
     }
   }
   let expand_depth = if expand_and_collapse && initial_depth >= 0 {
@@ -495,9 +491,8 @@ fn tree_set_expand_state(
       None => node.depth <= expand_depth
     }
     let mut i = 0
-    while i < node.children.length() {
+    for i, _ in node.children {
       nodes2.push(node.children[i])
-      i += 1
     }
   }
 }
@@ -1200,9 +1195,8 @@ pub fn render_trees(
   let elems : Array[@graphic.Element] = []
   let mut color_idx = 0
   let mut si = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       Tree => ()
       _ => {
@@ -1217,9 +1211,8 @@ pub fn render_trees(
       opt.height,
     )
     let mut i = 0
-    while i < series_elems.length() {
+    for i, _ in series_elems {
       elems.push(series_elems[i])
-      i += 1
     }
     color_idx += 1
   }
@@ -1274,9 +1267,8 @@ fn render_tree_series(
     tree_each_before(real_root, fn(node) {
       if node.is_expand {
         let mut ci = 0
-        while ci < node.children.length() {
+        for ci, _ in node.children {
           let child = node.children[ci]
-          ci += 1
           let line_style = tree_resolve_line_style(series, child)
           let path_d = if layout == "radial" {
             let cx = lx + lw / 2.0
@@ -1320,10 +1312,9 @@ fn render_tree_series(
         let line_style = tree_resolve_line_style(series, node)
         let child_points : Array[(Double, Double)] = []
         let mut ci = 0
-        while ci < node.children.length() {
+        for ci, _ in node.children {
           let c = node.children[ci]
           child_points.push((c.layout_x, c.layout_y))
-          ci += 1
         }
         let path_d = tree_get_edge_shape_polyline(
           orient,

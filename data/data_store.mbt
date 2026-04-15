@@ -58,11 +58,5 @@ pub fn DataStore::map_dimension_numeric_values(
   self : DataStore,
   dim_index : Int,
 ) -> Array[Double?] {
-  let result : Array[Double?] = []
-  let mut i = 0
-  while i < self.source.data.length() {
-    result.push(data_store_dimension_value(self.source.data[i], dim_index))
-    i += 1
-  }
-  result
+  self.source.data.map(item => data_store_dimension_value(item, dim_index))
 }

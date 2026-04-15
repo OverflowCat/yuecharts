@@ -20,7 +20,7 @@ fn geo_visual_map_for_series(
   series_index : Int,
 ) -> @option.VisualMapOption? {
   let mut i = 0
-  while i < opt.visual_map.length() {
+  for i, _ in opt.visual_map {
     let visual_map = opt.visual_map[i]
     // None means "apply to all series"; Some(n) means only series n
     let matches = visual_map.series_index.map_or(true, idx => {
@@ -29,7 +29,6 @@ fn geo_visual_map_for_series(
     if matches {
       return Some(visual_map)
     }
-    i += 1
   }
   None
 }
@@ -318,7 +317,7 @@ pub fn render_scatters(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut si = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
     match series.series_type {
       Scatter => {
@@ -335,7 +334,6 @@ pub fn render_scatters(
       }
       _ => ()
     }
-    si += 1
   }
   elems
 }

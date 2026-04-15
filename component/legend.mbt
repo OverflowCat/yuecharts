@@ -72,7 +72,7 @@ fn legend_data_item_color(
 ///|
 fn legend_find_data_color(opt : @option.ChartOption, name : String) -> String {
   let mut si = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
     match series.series_type {
       @option.SeriesType::Pie
@@ -80,12 +80,11 @@ fn legend_find_data_color(opt : @option.ChartOption, name : String) -> String {
       | @option.SeriesType::Sunburst
       | @option.SeriesType::Chord => {
         let mut di = 0
-        while di < series.data.length() {
+        for di, _ in series.data {
           let item = series.data[di]
           if item.name.unwrap_or("") == name {
             return legend_data_item_color(series, item, si, di)
           }
-          di += 1
         }
       }
       _ =>
@@ -93,7 +92,6 @@ fn legend_find_data_color(opt : @option.ChartOption, name : String) -> String {
           return series.color.unwrap_or(@visual.palette_color(si))
         }
     }
-    si += 1
   }
   @visual.palette_color(0)
 }
@@ -106,7 +104,7 @@ fn append_data_legend_items(
   series_index : Int,
 ) -> Unit {
   let mut i = 0
-  while i < series.data.length() {
+  for i, _ in series.data {
     let item = series.data[i]
     let name = item.name.unwrap_or("")
     if name != "" && !legend_has_name(items, name) {
@@ -114,7 +112,6 @@ fn append_data_legend_items(
       let selected = @option.LegendOption::is_selected(lg, name)
       items.push((color, name, selected))
     }
-    i += 1
   }
 }
 
@@ -157,7 +154,7 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
             _ => ()
           }
       }
-      ci = ci + 1
+      ci += 1
     }
   }
   if items.length() == 0 {
@@ -172,14 +169,12 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
   if orient == "vertical" {
     let item_gap = 10.0
     let mut max_name_w = 0.0
-    let mut wi = 0
-    while wi < items.length() {
+    for wi, _ in items {
       let (_, name, _) = items[wi]
       let name_w = name.length().to_double() * char_w
       if name_w > max_name_w {
         max_name_w = name_w
       }
-      wi += 1
     }
     let total_h = if items.length() > 0 {
       items.length().to_double() * item_h +
@@ -205,8 +200,7 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
       let bottom_px = legend_parse_pos(lg.bottom, 15.0)
       opt.height - bottom_px - padding - total_h
     }
-    let mut ii = 0
-    while ii < items.length() {
+    for ii, _ in items {
       let (color, name, selected) = items[ii]
       let icon_color = if selected { color } else { "#d7dbe3" }
       let text_color = if selected { "#54555a" } else { "#a0a4ab" }
@@ -226,7 +220,6 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
           text_color,
         ),
       )
-      ii += 1
     }
   } else {
     let item_gap = 8.0
@@ -234,7 +227,6 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
     let mut wi = 0
     while wi < items.length() {
       let (_, name, _) = items[wi]
-      wi = wi + 1
       total_w = total_w +
         item_w +
         icon_text_gap +
@@ -242,6 +234,7 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
       if wi < items.length() {
         total_w = total_w + item_gap
       }
+      wi += 1
     }
     let start_x = match lg.left {
       "center" => (opt.width - total_w) * 0.5
@@ -268,7 +261,6 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
     let mut ii = 0
     while ii < items.length() {
       let (color, name, selected) = items[ii]
-      ii = ii + 1
       let icon_color = if selected { color } else { "#d7dbe3" }
       let text_color = if selected { "#54555a" } else { "#a0a4ab" }
       elems.push(
@@ -289,6 +281,7 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
         icon_text_gap +
         name.length().to_double() * char_w +
         item_gap
+      ii += 1
     }
   }
   elems

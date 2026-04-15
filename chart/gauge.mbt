@@ -194,9 +194,8 @@ pub fn render_gauges(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut si = 0
   let mut color_idx = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       @option.Gauge => ()
       _ => {
@@ -211,9 +210,8 @@ pub fn render_gauges(opt : @option.ChartOption) -> Array[@graphic.Element] {
       opt.height,
     )
     let mut i = 0
-    while i < gauge_elems.length() {
+    for i, _ in gauge_elems {
       elems.push(gauge_elems[i])
-      i += 1
     }
     color_idx = color_idx + 1
   }

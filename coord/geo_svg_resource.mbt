@@ -93,13 +93,11 @@ fn geo_svg_make_attr(name : String, value : String) -> GeoSvgAttr {
 
 ///|
 fn geo_svg_attr_value(node : GeoSvgNode, name : String) -> String? {
-  let mut i = 0
-  while i < node.attrs.length() {
+  for i, _ in node.attrs {
     let attr = node.attrs[i]
     if attr.name == name {
       return Some(attr.value)
     }
-    i += 1
   }
   None
 }
@@ -399,18 +397,14 @@ fn geo_svg_collect_regions_into(
       None => !in_named_region && geometries.length() > 0
     }
     if should_emit {
-      let region_name = match named {
-        Some(name) => name
-        None => ""
-      }
-      let style = match geo_svg_shape_style(node) {
-        Some(style) => style
-        None =>
-          match geo_svg_first_style(node) {
-            Some(style) => style
-            None => { fill: None, stroke_color: None, stroke_width: None }
-          }
-      }
+      let region_name = named.unwrap_or("")
+      let style = geo_svg_shape_style(node).unwrap_or(
+        geo_svg_first_style(node).unwrap_or({
+          fill: None,
+          stroke_color: None,
+          stroke_width: None,
+        }),
+      )
       out.push(geo_svg_make_region(region_name, geometries, style))
       []
     } else {

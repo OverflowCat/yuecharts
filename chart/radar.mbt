@@ -89,9 +89,8 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   // Render each radar component background, then each series
   let mut ri = 0
-  while ri < opt.radar.length() {
+  for ri, _ in opt.radar {
     let radar_opt = opt.radar[ri]
-    ri += 1
     let bg_elems = render_radar_background(radar_opt, opt.width, opt.height)
     elems.append(bg_elems)
   }
@@ -99,7 +98,7 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
   // <=> echarts/src/component/visualMap/VisualMapModel.ts seriesIndex handling
   let mut vm_opt : @option.VisualMapOption? = None
   let mut vmi = 0
-  while vmi < opt.visual_map.length() {
+  for vmi, _ in opt.visual_map {
     let v = opt.visual_map[vmi]
     match v.series_index {
       None => {
@@ -108,7 +107,6 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
       }
       _ => ()
     }
-    vmi += 1
   }
   // Auto-compute min/max from all radar series data at vm.dimension
   // <=> echarts/src/component/visualMap/VisualMapModel.ts _resetTarget
@@ -118,18 +116,12 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
       let mut mn = 0.0
       let mut mx = 0.0
       let mut found = false
-      let mut s2 = 0
-      while s2 < opt.series.length() {
-        let s = opt.series[s2]
-        s2 += 1
+      for s in opt.series {
         match s.series_type {
           Radar => ()
           _ => continue
         }
-        let mut di = 0
-        while di < s.data.length() {
-          let item = s.data[di]
-          di += 1
+        for item in s.data {
           match data_value_dimension(item.value, vm.dimension) {
             Some(v2) => {
               if !found || v2 < mn {
@@ -152,11 +144,9 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
     }
   }
   // Render each radar series
-  let mut si = 0
   let mut color_idx = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     match series.series_type {
       Radar => ()
       _ => {
@@ -342,7 +332,7 @@ pub fn render_radar_series(
 
   // For each data item — each gets its own palette color (series_index + data_index)
   let mut di = 0
-  while di < series.data.length() {
+  for di, _ in series.data {
     let item = series.data[di]
     // Resolve item color: visualMap > series.color > palette
     // <=> echarts/src/chart/radar/RadarView.ts data.getItemVisual(idx, 'style').fill
@@ -380,7 +370,6 @@ pub fn render_radar_series(
     let color = @graphic.Color::from_string(data_color_str).unwrap_or(
       @graphic.black,
     )
-    di += 1
     let values = match item.value {
       Vec(arr) => arr
       _ => continue

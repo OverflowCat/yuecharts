@@ -223,12 +223,11 @@ fn XmlText::write_to_buffer(
 ///|
 fn XmlNode::children_inline(children : Array[XmlNode]) -> Bool {
   let mut i = 0
-  while i < children.length() {
+  for i, _ in children {
     match children[i] {
       Text(_) => ()
       _ => return false
     }
-    i += 1
   }
   true
 }
@@ -258,7 +257,7 @@ fn XmlNode::write_to_string(
       if pretty && !inline_children {
         buf.write_char('\n')
         let mut i = 0
-        while i < element.children.length() {
+        for i, _ in element.children {
           buf.write_xml_indent(depth + 1, indent_unit)
           element.children[i].write_to_string(
             buf,
@@ -267,7 +266,6 @@ fn XmlNode::write_to_string(
             depth + 1,
           )
           buf.write_char('\n')
-          i += 1
         }
         buf.write_xml_indent(depth, indent_unit)
       } else {
@@ -307,8 +305,7 @@ fn XmlNode::write_to_buffer(
       let inline_children = XmlNode::children_inline(element.children)
       if pretty && !inline_children {
         buf.write_xml_literal("\n", utf16le)
-        let mut i = 0
-        while i < element.children.length() {
+        for i, _ in element.children {
           buf.write_xml_indent(depth + 1, indent_unit, utf16le)
           element.children[i].write_to_buffer(
             buf,
@@ -318,7 +315,6 @@ fn XmlNode::write_to_buffer(
             utf16le,
           )
           buf.write_xml_literal("\n", utf16le)
-          i += 1
         }
         buf.write_xml_indent(depth, indent_unit, utf16le)
       } else {

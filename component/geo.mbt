@@ -11,12 +11,11 @@ fn geo_region_option_by_name(
   name : String,
 ) -> @option.GeoRegionOption? {
   let mut i = 0
-  while i < geo_opt.regions.length() {
+  for i, _ in geo_opt.regions {
     let region_opt = geo_opt.regions[i]
     if region_opt.name == name {
       return Some(region_opt)
     }
-    i += 1
   }
   None
 }
@@ -228,7 +227,7 @@ fn render_geo_region_outline(
 fn geo_rings_path_d(rings : Array[Array[@graphic.Point]]) -> String {
   let buf = StringBuilder::new()
   let mut ring_index = 0
-  while ring_index < rings.length() {
+  for ring_index, _ in rings {
     let points = rings[ring_index]
     if points.length() > 0 {
       buf.write_string("M ")
@@ -241,7 +240,6 @@ fn geo_rings_path_d(rings : Array[Array[@graphic.Point]]) -> String {
       }
       buf.write_string(" Z")
     }
-    ring_index += 1
   }
   buf.to_string()
 }
@@ -262,7 +260,7 @@ pub fn render_geo_component(
     @option.GeoOption::default()
   }
   let mut region_index = 0
-  while region_index < geo.regions.length() {
+  for region_index, _ in geo.regions {
     let region = geo.regions[region_index]
     let region_opt = geo_region_option_by_name(geo_opt, region.name)
     let polygons = region.screen_polygon_rings(geo)
@@ -274,7 +272,7 @@ pub fn render_geo_component(
     let emphasis_style = geo_region_state_style(geo_opt, region_opt, "emphasis")
     let select_style = geo_region_state_style(geo_opt, region_opt, "select")
     let mut polygon_index = 0
-    while polygon_index < polygons.length() {
+    for polygon_index, _ in polygons {
       elems.push(
         render_geo_region_outline(
           polygons[polygon_index],
@@ -287,7 +285,6 @@ pub fn render_geo_component(
           select_style,
         ),
       )
-      polygon_index += 1
     }
     if geo_region_label_show(geo_opt, region_opt) {
       let center = region.screen_center(geo)
@@ -316,7 +313,6 @@ pub fn render_geo_component(
       }
       elems.push(label)
     }
-    region_index += 1
   }
   elems
 }

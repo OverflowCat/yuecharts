@@ -51,8 +51,7 @@ pub struct Geo {
 
 ///|
 fn geo_exclusive_map_series(opt : @option.ChartOption) -> @option.SeriesOption? {
-  let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let series = opt.series[i]
     if series.series_type == @option.SeriesType::Map &&
       series.coordinate_system.unwrap_or("geo") == "geo" {
@@ -61,7 +60,6 @@ fn geo_exclusive_map_series(opt : @option.ChartOption) -> @option.SeriesOption? 
         None => ()
       }
     }
-    i += 1
   }
   None
 }
@@ -208,12 +206,10 @@ fn Geo::base_point_to_data(
 
 ///|
 pub fn Geo::region_by_name(self : Geo, name : String) -> GeoRegion? {
-  let mut i = 0
-  while i < self.regions.length() {
+  for i, _ in self.regions {
     if self.regions[i].name == name {
       return Some(self.regions[i])
     }
-    i += 1
   }
   None
 }
@@ -224,8 +220,7 @@ pub fn GeoRegion::screen_polygon_exteriors(
   geo : Geo,
 ) -> Array[Array[@graphic.Point]] {
   let result : Array[Array[@graphic.Point]] = []
-  let mut i = 0
-  while i < self.geometries.length() {
+  for i, _ in self.geometries {
     match self.geometries[i] {
       Polygon(polygon) =>
         result.push(
@@ -233,7 +228,6 @@ pub fn GeoRegion::screen_polygon_exteriors(
         )
       _ => ()
     }
-    i += 1
   }
   result
 }
@@ -244,25 +238,22 @@ pub fn GeoRegion::screen_polygon_rings(
   geo : Geo,
 ) -> Array[Array[Array[@graphic.Point]]] {
   let result : Array[Array[Array[@graphic.Point]]] = []
-  let mut i = 0
-  while i < self.geometries.length() {
+  for i, _ in self.geometries {
     match self.geometries[i] {
       Polygon(polygon) => {
         let rings : Array[Array[@graphic.Point]] = [
           polygon.exterior.map(fn(pt) { geo.data_to_point(pt.x, pt.y) }),
         ]
         let mut j = 0
-        while j < polygon.interiors.length() {
+        for j, _ in polygon.interiors {
           rings.push(
             polygon.interiors[j].map(fn(pt) { geo.data_to_point(pt.x, pt.y) }),
           )
-          j += 1
         }
         result.push(rings)
       }
       _ => ()
     }
-    i += 1
   }
   result
 }
@@ -304,8 +295,7 @@ fn build_geo_from_loaded(
   let mut min_y = 0.0
   let mut max_y = 0.0
   let mut first = true
-  let mut i = 0
-  while i < regions.length() {
+  for i, _ in regions {
     let bbox = regions[i].data_bbox
     if first {
       min_x = bbox.x
@@ -327,7 +317,6 @@ fn build_geo_from_loaded(
         max_y = bbox.y + bbox.height
       }
     }
-    i += 1
   }
   let raw_bounds = geo_effective_bounds(
     geo_opt.bounding_coords,
@@ -515,13 +504,11 @@ fn geo_special_area_by_name(
   special_areas : Array[@option.MapSpecialAreaOption],
   name : String,
 ) -> @option.MapSpecialAreaOption? {
-  let mut i = 0
-  while i < special_areas.length() {
+  for i, _ in special_areas {
     let area = special_areas[i]
     if area.name == name {
       return Some(area)
     }
-    i += 1
   }
   None
 }
@@ -609,13 +596,11 @@ fn geo_name_map_alias(
   name : String,
   name_map : Array[@option.GeoNameMapEntry],
 ) -> String {
-  let mut i = 0
-  while i < name_map.length() {
+  for i, _ in name_map {
     let entry = name_map[i]
     if entry.from_name == name {
       return entry.to_name
     }
-    i += 1
   }
   name
 }
@@ -876,8 +861,7 @@ fn decode_multi_polygon(
   match j_field(geometry, "encodeOffsets") {
     Some(Array(offset_groups)) => {
       let result : Array[GeoGeometry] = []
-      let mut i = 0
-      while i < polygons.length() {
+      for i, _ in polygons {
         let polygon = polygons[i]
         let decoded = match polygon {
           Array(rings) =>
@@ -888,11 +872,9 @@ fn decode_multi_polygon(
           _ => []
         }
         let mut j = 0
-        while j < decoded.length() {
+        for j, _ in decoded {
           result.push(decoded[j])
-          j += 1
         }
-        i += 1
       }
       result
     }
@@ -907,8 +889,7 @@ fn decode_rings(
   encode_scale : Double,
 ) -> Array[GeoGeometry] {
   let result : Array[GeoGeometry] = []
-  let mut i = 0
-  while i < rings.length() {
+  for i, _ in rings {
     let ring = rings[i]
     let decoded = match ring {
       String(encoded) =>
@@ -922,7 +903,6 @@ fn decode_rings(
     if decoded.length() > 0 {
       result.push(Polygon({ exterior: decoded, interiors: [] }))
     }
-    i += 1
   }
   result
 }
@@ -985,20 +965,17 @@ fn parse_polygon_rings(rings : Array[Json]) -> Array[GeoGeometry] {
 ///|
 fn parse_multi_polygon(polygons : Array[Json]) -> Array[GeoGeometry] {
   let result : Array[GeoGeometry] = []
-  let mut i = 0
-  while i < polygons.length() {
+  for i, _ in polygons {
     match polygons[i] {
       Array(rings) => {
         let parsed = parse_polygon_rings(rings)
         let mut j = 0
-        while j < parsed.length() {
+        for j, _ in parsed {
           result.push(parsed[j])
-          j += 1
         }
       }
       _ => ()
     }
-    i += 1
   }
   result
 }
@@ -1011,13 +988,11 @@ fn parse_line_string_geometry(coordinates : Array[Json]) -> Array[GeoGeometry] {
 ///|
 fn parse_multi_line_string_geometry(lines : Array[Json]) -> Array[GeoGeometry] {
   let points : Array[Array[@graphic.Point]] = []
-  let mut i = 0
-  while i < lines.length() {
+  for i, _ in lines {
     match lines[i] {
       Array(line_points) => points.push(parse_point_array(line_points))
       _ => ()
     }
-    i += 1
   }
   if points.length() == 0 {
     []
@@ -1029,8 +1004,7 @@ fn parse_multi_line_string_geometry(lines : Array[Json]) -> Array[GeoGeometry] {
 ///|
 fn parse_point_array(points : Array[Json]) -> Array[@graphic.Point] {
   let result : Array[@graphic.Point] = []
-  let mut i = 0
-  while i < points.length() {
+  for i, _ in points {
     match points[i] {
       Array(pair) =>
         if pair.length() >= 2 {
@@ -1043,7 +1017,6 @@ fn parse_point_array(points : Array[Json]) -> Array[@graphic.Point] {
         }
       _ => ()
     }
-    i += 1
   }
   result
 }
@@ -1055,13 +1028,11 @@ fn geo_geometries_bbox(geometries : Array[GeoGeometry]) -> @graphic.BBox {
   let mut min_y = 0.0
   let mut max_y = 0.0
   let mut first = true
-  let mut i = 0
-  while i < geometries.length() {
+  for i, _ in geometries {
     match geometries[i] {
       Polygon(polygon) => {
         let points = polygon.exterior
-        let mut j = 0
-        while j < points.length() {
+        for j, _ in points {
           let pt = points[j]
           if first {
             min_x = pt.x
@@ -1083,15 +1054,12 @@ fn geo_geometries_bbox(geometries : Array[GeoGeometry]) -> @graphic.BBox {
               max_y = pt.y
             }
           }
-          j += 1
         }
       }
       LineString(lines) => {
-        let mut j = 0
-        while j < lines.points.length() {
+        for j, _ in lines.points {
           let points = lines.points[j]
-          let mut k = 0
-          while k < points.length() {
+          for k, _ in points {
             let pt = points[k]
             if first {
               min_x = pt.x
@@ -1113,13 +1081,10 @@ fn geo_geometries_bbox(geometries : Array[GeoGeometry]) -> @graphic.BBox {
                 max_y = pt.y
               }
             }
-            k += 1
           }
-          j += 1
         }
       }
     }
-    i += 1
   }
   @graphic.BBox::new(min_x, min_y, max_x - min_x, max_y - min_y)
 }
@@ -1131,8 +1096,7 @@ fn geo_geometries_center(
 ) -> @graphic.Point {
   let mut largest_polygon : GeoPolygonGeometry? = None
   let mut largest_size = 0
-  let mut i = 0
-  while i < geometries.length() {
+  for i, _ in geometries {
     match geometries[i] {
       Polygon(polygon) =>
         if polygon.exterior.length() > largest_size {
@@ -1141,7 +1105,6 @@ fn geo_geometries_center(
         }
       _ => ()
     }
-    i += 1
   }
   match largest_polygon {
     Some(polygon) => polygon_centroid(polygon.exterior)

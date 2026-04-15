@@ -196,9 +196,8 @@ pub fn render_graphs(
   let elems : Array[@graphic.Element] = []
   let mut color_idx = 0
   let mut si = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     if series.series_type != @option.SeriesType::Graph {
       color_idx += 1
       continue

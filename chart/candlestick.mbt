@@ -116,9 +116,8 @@ pub fn render_candlesticks(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut si = 0
-  while si < opt.series.length() {
+  for si, _ in opt.series {
     let series = opt.series[si]
-    si += 1
     if series.series_type != Candlestick {
       continue
     }

@@ -276,14 +276,7 @@ fn bar_series_cartesian_category_axis_index(
 
 ///|
 fn bar_find_string_index(arr : Array[String], key : String) -> Int {
-  let mut i = 0
-  while i < arr.length() {
-    if arr[i] == key {
-      return i
-    }
-    i += 1
-  }
-  -1
+  arr.search_by(s => s == key).unwrap_or(-1)
 }
 
 ///|
@@ -316,14 +309,7 @@ fn bar_find_category_stack_layout_index(
   stacks : Array[BarCategoryStackLayout],
   stack_id : String,
 ) -> Int {
-  let mut i = 0
-  while i < stacks.length() {
-    if stacks[i].stack_id == stack_id {
-      return i
-    }
-    i += 1
-  }
-  -1
+  stacks.search_by(s => s.stack_id == stack_id).unwrap_or(-1)
 }
 
 ///|

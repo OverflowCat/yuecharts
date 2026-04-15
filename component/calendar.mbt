@@ -226,12 +226,11 @@ fn get_line_points_of_one_week(
   }
   let points : Array[@graphic.Point] = []
   let mut k = 0
-  while k < slots.length() {
+  for k, _ in slots {
     let point = slots[k]
     if point.x == point.x && point.y == point.y {
       points.push(point)
     }
-    k += 1
   }
   points
 }
@@ -246,10 +245,9 @@ fn formatter_label(
     Some(value) if value != "" => {
       let mut result = value
       let mut i = 0
-      while i < params.length() {
+      for i, _ in params {
         let (key, val) = params[i]
         result = result.replace(old="{" + key + "}", new=val)
-        i += 1
       }
       result
     }

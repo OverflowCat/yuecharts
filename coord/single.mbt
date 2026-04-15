@@ -185,13 +185,12 @@ pub fn Single::build(opt : @option.ChartOption) -> Single? {
   let mut first_val = true
   let collected_labels : Array[String] = []
   let collected_time_labels : Array[String] = []
-  let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let s = opt.series[i]
     if s.series_type == @option.SeriesType::ThemeRiver {
       let items = single_series_items(s)
       let mut j = 0
-      while j < items.length() {
+      for j, _ in items {
         let item = items[j]
         match item.value {
           @option.DataValue::DateValue(date_str, _) => {
@@ -228,10 +227,8 @@ pub fn Single::build(opt : @option.ChartOption) -> Single? {
           }
           _ => ()
         }
-        j += 1
       }
     }
-    i += 1
   }
   // Apply explicit min/max overrides from option
   match ax.min {
@@ -306,14 +303,7 @@ pub fn Single::build(opt : @option.ChartOption) -> Single? {
 
 ///|
 fn array_contains_string(arr : Array[String], value : String) -> Bool {
-  let mut i = 0
-  while i < arr.length() {
-    if arr[i] == value {
-      return true
-    }
-    i += 1
-  }
-  false
+  arr.contains(value)
 }
 
 ///|
@@ -357,12 +347,10 @@ pub fn sort_date_strings(arr : Array[String]) -> Unit {
 fn Single::val_to_num(self : Single, val_str : String) -> Double {
   match self.axis_type {
     @option.AxisType::Category => {
-      let mut i = 0
-      while i < self.labels.length() {
-        if self.labels[i] == val_str {
+      for i, x in self.labels {
+        if x == val_str {
           return i.to_double()
         }
-        i += 1
       }
       0.0
     }
@@ -535,24 +523,22 @@ pub fn Single::collect_time_values(
   opt : @option.ChartOption,
 ) -> Array[Double] {
   let vals : Array[Double] = []
-  let mut i = 0
-  while i < opt.series.length() {
+  for i, _ in opt.series {
     let s = opt.series[i]
     if s.series_type == @option.SeriesType::ThemeRiver {
       let items = single_series_items(s)
       let mut j = 0
-      while j < items.length() {
+      for j, _ in items {
         match items[j].value {
           @option.DataValue::DateValue(d, _) => {
             let v = self.val_to_num(d)
             let mut found = false
             let mut k = 0
-            while k < vals.length() {
+            for k, _ in vals {
               if vals[k] == v {
                 found = true
                 break
               }
-              k += 1
             }
             if !found {
               vals.push(v)
@@ -560,10 +546,8 @@ pub fn Single::collect_time_values(
           }
           _ => ()
         }
-        j += 1
       }
     }
-    i += 1
   }
   // Sort ascending
   sort_doubles_inplace(vals)
@@ -612,23 +596,19 @@ pub fn Single::axis_ticks(self : Single, count : Int) -> Array[SingleTick] {
   if self.labels.length() > 0 {
     // Category/explicit label mode: one tick per label
     let result : Array[SingleTick] = []
-    let mut i = 0
-    while i < self.labels.length() {
+    for i, _ in self.labels {
       result.push({ value: i.to_double(), label: self.labels[i] })
-      i += 1
     }
     return result
   }
   if self.axis_type == @option.AxisType::Time && self.time_labels.length() > 0 {
     let result : Array[SingleTick] = []
-    let mut i = 0
-    while i < self.time_labels.length() {
+    for i, _ in self.time_labels {
       let raw = self.time_labels[i]
       result.push({
         value: self.val_to_num(raw),
         label: format_time_tick_label(raw),
       })
-      i += 1
     }
     return result
   }

@@ -292,13 +292,11 @@ fn matrix_resolve_coord_value(
   match value {
     Locator(idx) => if idx >= 0 && idx < length { Some(idx) } else { None }
     Name(name) => {
-      let mut i = 0
-      while i < name_map.length() {
+      for i, _ in name_map {
         let (candidate, idx) = name_map[i]
         if candidate == name {
           return Some(idx)
         }
-        i += 1
       }
       None
     }
@@ -309,13 +307,11 @@ fn matrix_resolve_coord_value(
 ///|
 fn matrix_name_to_index(cells : Array[MatrixCell]) -> Array[(String, Int)] {
   let out : Array[(String, Int)] = []
-  let mut i = 0
-  while i < cells.length() {
+  for i, _ in cells {
     match cells[i].value {
       Some(value) => out.push((value, i))
       None => ()
     }
-    i += 1
   }
   out
 }
@@ -383,12 +379,10 @@ fn matrix_dimension_roots(
   }
   let nodes : Array[MatrixTreeNode] = []
   let mut first_leaf = 0
-  let mut i = 0
-  while i < raw.length() {
+  for i, _ in raw {
     let node = matrix_make_tree_node(raw[i], first_leaf)
     first_leaf += node.leaf_span
     nodes.push(node)
-    i += 1
   }
   nodes
 }
@@ -422,16 +416,14 @@ fn matrix_make_tree_node(
   } else {
     let mut span = 0
     let mut max_depth = 0
-    let mut i = 0
     let mut child_first_leaf = first_leaf
-    while i < option.children.length() {
+    for i, _ in option.children {
       let child = matrix_make_tree_node(option.children[i], child_first_leaf)
       span += child.leaf_span
       child_first_leaf += child.leaf_span
       if child.depth > max_depth {
         max_depth = child.depth
       }
-      i += 1
     }
     { option, leaf_span: span, depth: max_depth + 1, first_leaf }
   }
@@ -440,12 +432,10 @@ fn matrix_make_tree_node(
 ///|
 fn matrix_tree_depth(nodes : Array[MatrixTreeNode]) -> Int {
   let mut depth = 0
-  let mut i = 0
-  while i < nodes.length() {
+  for i, _ in nodes {
     if nodes[i].depth > depth {
       depth = nodes[i].depth
     }
-    i += 1
   }
   depth
 }
@@ -453,10 +443,8 @@ fn matrix_tree_depth(nodes : Array[MatrixTreeNode]) -> Int {
 ///|
 fn matrix_sum_doubles(values : Array[Double]) -> Double {
   let mut sum = 0.0
-  let mut i = 0
-  while i < values.length() {
+  for i, _ in values {
     sum += values[i]
-    i += 1
   }
   sum
 }
@@ -467,10 +455,8 @@ fn matrix_collect_leaves(
   option : @option.MatrixDimensionOption,
 ) -> Array[@option.MatrixDimensionCellOption] {
   let out : Array[@option.MatrixDimensionCellOption] = []
-  let mut i = 0
-  while i < nodes.length() {
+  for i, _ in nodes {
     matrix_collect_leaves_from_node(nodes[i], option, out)
-    i += 1
   }
   out
 }
@@ -495,14 +481,12 @@ fn matrix_collect_leaves_from_node(
     })
     return
   }
-  let mut i = 0
-  while i < node.option.children.length() {
+  for i, _ in node.option.children {
     matrix_collect_leaves_from_node(
       matrix_make_tree_node(node.option.children[i], 0),
       option,
       out,
     )
-    i += 1
   }
 }
 
@@ -549,8 +533,7 @@ fn matrix_layout_dimension_units(
     level += 1
   }
 
-  let mut i = 0
-  while i < leaves.length() {
+  for i, _ in leaves {
     let size = match leaves[i].size {
       Some(spec) => matrix_resolve_size(spec, total)
       None => -1.0
@@ -561,7 +544,6 @@ fn matrix_layout_dimension_units(
     } else {
       unspecified += 1
     }
-    i += 1
   }
 
   let auto_size = if unspecified > 0 {
@@ -577,7 +559,7 @@ fn matrix_layout_dimension_units(
     }
     level += 1
   }
-  i = 0
+  let mut i = 0
   while i < leaf_sizes.length() {
     if leaf_sizes[i] < 0.0 {
       leaf_sizes[i] = if auto_size > 0.0 { auto_size } else { 0.0 }
@@ -595,8 +577,7 @@ fn matrix_build_x_leaf_cells(
 ) -> Array[MatrixCell] {
   let out : Array[MatrixCell] = []
   let mut x = body_rect.x
-  let mut i = 0
-  while i < leaves.length() {
+  for i, _ in leaves {
     let item_style = leaves[i].item_style.unwrap_or(
       @option.MatrixItemStyleOption::default(),
     )
@@ -614,7 +595,6 @@ fn matrix_build_x_leaf_cells(
       span_y: 1,
     })
     x += width
-    i += 1
   }
   out
 }
@@ -627,8 +607,7 @@ fn matrix_build_y_leaf_cells(
 ) -> Array[MatrixCell] {
   let out : Array[MatrixCell] = []
   let mut y = body_rect.y
-  let mut i = 0
-  while i < leaves.length() {
+  for i, _ in leaves {
     let item_style = leaves[i].item_style.unwrap_or(
       @option.MatrixItemStyleOption::default(),
     )
@@ -646,7 +625,6 @@ fn matrix_build_y_leaf_cells(
       span_y: 1,
     })
     y += height
-    i += 1
   }
   out
 }
@@ -661,8 +639,7 @@ fn matrix_build_x_header_cells(
   level_sizes : Array[Double],
 ) -> Array[MatrixCell] {
   let out : Array[MatrixCell] = []
-  let mut i = 0
-  while i < nodes.length() {
+  for i, _ in nodes {
     matrix_append_x_header_cells(
       out,
       nodes[i],
@@ -673,7 +650,6 @@ fn matrix_build_x_header_cells(
       y_header_width,
       level_sizes,
     )
-    i += 1
   }
   out
 }
@@ -716,8 +692,7 @@ fn matrix_append_x_header_cells(
     span_x: node.leaf_span,
     span_y: 1,
   })
-  let mut i = 0
-  while i < node.option.children.length() {
+  for i, _ in node.option.children {
     matrix_append_x_header_cells(
       out,
       matrix_make_tree_node(
@@ -731,7 +706,6 @@ fn matrix_append_x_header_cells(
       y_header_width,
       level_sizes,
     )
-    i += 1
   }
 }
 
@@ -745,8 +719,7 @@ fn matrix_build_y_header_cells(
   level_sizes : Array[Double],
 ) -> Array[MatrixCell] {
   let out : Array[MatrixCell] = []
-  let mut i = 0
-  while i < nodes.length() {
+  for i, _ in nodes {
     matrix_append_y_header_cells(
       out,
       nodes[i],
@@ -757,7 +730,6 @@ fn matrix_build_y_header_cells(
       x_header_height,
       level_sizes,
     )
-    i += 1
   }
   out
 }
@@ -800,8 +772,7 @@ fn matrix_append_y_header_cells(
     span_x: 1,
     span_y: node.leaf_span,
   })
-  let mut i = 0
-  while i < node.option.children.length() {
+  for i, _ in node.option.children {
     matrix_append_y_header_cells(
       out,
       matrix_make_tree_node(
@@ -815,7 +786,6 @@ fn matrix_append_y_header_cells(
       x_header_height,
       level_sizes,
     )
-    i += 1
   }
 }
 
@@ -839,10 +809,8 @@ fn matrix_raw_leaf_span(cell : @option.MatrixDimensionCellOption) -> Int {
     1
   } else {
     let mut sum = 0
-    let mut i = 0
-    while i < cell.children.length() {
+    for i, _ in cell.children {
       sum += matrix_raw_leaf_span(cell.children[i])
-      i += 1
     }
     sum
   }
@@ -866,10 +834,8 @@ fn matrix_build_body_cells(
   y_leaf_cells : Array[MatrixCell],
 ) -> MatrixBuiltArea {
   let defaults : Array[MatrixCell] = []
-  let mut y = 0
-  while y < y_leaf_cells.length() {
-    let mut x = 0
-    while x < x_leaf_cells.length() {
+  for y, _ in y_leaf_cells {
+    for x, _ in x_leaf_cells {
       defaults.push({
         bbox: @graphic.BBox::new(
           x_leaf_cells[x].bbox.x,
@@ -886,9 +852,7 @@ fn matrix_build_body_cells(
         span_x: 1,
         span_y: 1,
       })
-      x += 1
     }
-    y += 1
   }
   matrix_apply_sparse_cells(
     defaults,
@@ -922,10 +886,10 @@ fn matrix_build_corner_cells(
   let defaults : Array[MatrixCell] = []
   let mut yi = 0
   let mut y = rect.y
-  while yi < x_level_sizes.length() {
+  for yi, _ in x_level_sizes {
     let mut xi = 0
     let mut x = rect.x
-    while xi < y_level_sizes.length() {
+    for xi, _ in y_level_sizes {
       defaults.push({
         bbox: @graphic.BBox::new(x, y, y_level_sizes[xi], x_level_sizes[yi]),
         value: None,
@@ -938,10 +902,8 @@ fn matrix_build_corner_cells(
         span_y: 1,
       })
       x += y_level_sizes[xi]
-      xi += 1
     }
     y += x_level_sizes[yi]
-    yi += 1
   }
   matrix_apply_sparse_cells(
     defaults,
@@ -979,15 +941,13 @@ fn matrix_apply_sparse_cells(
   let unit_cell_map : Array[(String, MatrixCell)] = []
   let merge_ranges : Array[MatrixLocatorRange] = []
   let covered : Array[(String, Int)] = []
-  let mut i = 0
-  while i < visible.length() {
+  for i, _ in visible {
     let cell = visible[i]
     let key = matrix_locator_key(cell.index, cell.level)
     cell_map.push((key, cell))
     unit_cell_map.push((key, cell))
-    i += 1
   }
-  i = 0
+  let mut i = 0
   while i < data.length() {
     let parsed = matrix_parse_body_option_range(
       data[i],
@@ -1102,26 +1062,22 @@ fn matrix_set_cell_map(
   key : String,
   cell : MatrixCell,
 ) -> Unit {
-  let mut i = 0
-  while i < cell_map.length() {
+  for i, _ in cell_map {
     let (existing, _) = cell_map[i]
     if existing == key {
       cell_map[i] = (key, cell)
       return
     }
-    i += 1
   }
   cell_map.push((key, cell))
 }
 
 ///|
 fn matrix_mark_covered(covered : Array[(String, Int)], key : String) -> Unit {
-  let mut i = 0
-  while i < covered.length() {
+  for i, _ in covered {
     if covered[i].0 == key {
       return
     }
-    i += 1
   }
   covered.push((key, 1))
 }
@@ -1259,17 +1215,14 @@ fn matrix_find_axis_name_range(
   leaf_cells : Array[MatrixCell],
   header_cells : Array[MatrixCell],
 ) -> MatrixCoordResolved? {
-  let mut i = 0
-  while i < header_cells.length() {
-    let cell = header_cells[i]
+  for cell in header_cells {
     match cell.value {
       Some(value) if value == name =>
         return Some({ start: cell.index, end: cell.index + cell.span - 1 })
       _ => ()
     }
-    i += 1
   }
-  i = 0
+  let mut i = 0
   while i < leaf_cells.length() {
     let cell = leaf_cells[i]
     match cell.value {
@@ -1291,8 +1244,7 @@ fn matrix_expand_range_by_existing_merges(
   let mut expanded = true
   while expanded {
     expanded = false
-    let mut i = 0
-    while i < merge_ranges.length() {
+    for i, _ in merge_ranges {
       let other = merge_ranges[i]
       if matrix_ranges_intersect(out, other) {
         let next = {
@@ -1325,7 +1277,6 @@ fn matrix_expand_range_by_existing_merges(
           expanded = true
         }
       }
-      i += 1
     }
   }
   out
@@ -1391,13 +1342,11 @@ fn matrix_find_cell_by_locator(
   y : Int,
 ) -> MatrixCell? {
   let key = matrix_locator_key(x, y)
-  let mut i = 0
-  while i < cell_map.length() {
+  for i, _ in cell_map {
     let (candidate, cell) = cell_map[i]
     if candidate == key {
       return Some(cell)
     }
-    i += 1
   }
   None
 }

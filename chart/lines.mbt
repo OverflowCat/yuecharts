@@ -358,8 +358,7 @@ fn lines_chart_points(
   match raw_coords {
     Some(coords_arr) => {
       let points : Array[@graphic.Point] = []
-      let mut i = 0
-      while i < coords_arr.length() {
+      for i, _ in coords_arr {
         match
           lines_chart_coord_to_point(
             series,
@@ -372,7 +371,6 @@ fn lines_chart_points(
           Some(point) => points.push(point)
           None => ()
         }
-        i += 1
       }
       points
     }
@@ -797,9 +795,7 @@ pub fn render_lines_chart_series(
   geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
   let line_elems : Array[@graphic.Element] = []
-  let mut di = 0
-  while di < series.data.length() {
-    let item = series.data[di]
+  for item in series.data {
     let points = lines_chart_points(series, item, coord, polar~, geo~)
     let color = lines_chart_item_color(item, series, series_index)
     let width = lines_chart_item_width(item, series)
@@ -869,7 +865,6 @@ pub fn render_lines_chart_series(
         }
       }
     }
-    di += 1
   }
   if line_elems.length() == 0 {
     []
@@ -902,15 +897,12 @@ pub fn render_lines_chart(
   geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
-  while si < opt.series.length() {
-    let series = opt.series[si]
+  for si, series in opt.series {
     match series.series_type {
       Lines =>
         elems.append(render_lines_chart_series(series, si, coord, polar~, geo~))
       _ => ()
     }
-    si += 1
   }
   elems
 }

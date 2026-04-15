@@ -12,7 +12,7 @@ let palette_1 = "#b6d634" // series index 1
 
 ///|
 test "version reports current release" {
-  assert_eq(@yuecharts.version(), "0.4.14")
+  assert_eq(@yuecharts.version(), "0.4.15")
 }
 
 ///|
