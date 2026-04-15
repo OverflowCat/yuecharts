@@ -162,12 +162,8 @@ fn active_fill_value(
   meta : @graphic.DisplayableMeta,
   normal_fill : String?,
 ) -> String? {
-  match active_display_style(meta) {
-    Some(style) =>
-      match style.fill {
-        Some(fill) => Some(fill)
-        None => normal_fill
-      }
+  match active_display_style(meta).bind(style => style.fill) {
+    Some(fill) => Some(fill)
     None => normal_fill
   }
 }
@@ -177,12 +173,8 @@ fn active_stroke_value(
   meta : @graphic.DisplayableMeta,
   normal_stroke : String?,
 ) -> String? {
-  match active_display_style(meta) {
-    Some(style) =>
-      match style.stroke {
-        Some(stroke) => Some(stroke)
-        None => normal_stroke
-      }
+  match active_display_style(meta).bind(style => style.stroke) {
+    Some(stroke) => Some(stroke)
     None => normal_stroke
   }
 }
@@ -192,14 +184,15 @@ fn active_line_width_value(
   meta : @graphic.DisplayableMeta,
   normal_line_width : Double?,
 ) -> Double? {
-  match active_display_style(meta) {
-    Some(style) =>
-      match style.line_width {
-        Some(line_width) => Some(line_width)
-        None => normal_line_width
-      }
+  match active_display_style(meta).bind(style => style.line_width) {
+    Some(line_width) => Some(line_width)
     None => normal_line_width
   }
+}
+
+///|
+fn lift_color_or_self(color : String) -> String {
+  @graphic.Color::lift_color_string(color).unwrap_or(color)
 }
 
 ///|
@@ -272,58 +265,21 @@ fn emphasis_fill_value(
   meta : @graphic.DisplayableMeta,
   normal_fill : String?,
 ) -> String? {
-  match meta.states.emphasis {
-    Some(style) =>
-      match style.fill {
-        Some(fill) => Some(fill)
-        None => {
-          let from_fill = if current_state_contains(
-              meta.current_states,
-              "select",
-            ) {
-            match meta.states.select {
-              Some(select_style) =>
-                match select_style.fill {
-                  Some(fill) => Some(fill)
-                  None => normal_fill
-                }
-              None => normal_fill
-            }
-          } else {
-            normal_fill
-          }
-          match from_fill {
-            Some(fill) =>
-              match @graphic.Color::lift_color_string(fill) {
-                Some(lifted_fill) => Some(lifted_fill)
-                None => Some(fill)
-              }
-            None => None
-          }
-        }
-      }
-    None => {
-      let from_fill = if current_state_contains(meta.current_states, "select") {
-        match meta.states.select {
-          Some(select_style) =>
-            match select_style.fill {
-              Some(fill) => Some(fill)
-              None => normal_fill
-            }
+  let from_fill = if current_state_contains(meta.current_states, "select") {
+    match meta.states.select {
+      Some(select_style) =>
+        match select_style.fill {
+          Some(fill) => Some(fill)
           None => normal_fill
         }
-      } else {
-        normal_fill
-      }
-      match from_fill {
-        Some(fill) =>
-          match @graphic.Color::lift_color_string(fill) {
-            Some(lifted_fill) => Some(lifted_fill)
-            None => Some(fill)
-          }
-        None => None
-      }
+      None => normal_fill
     }
+  } else {
+    normal_fill
+  }
+  match meta.states.emphasis.bind(style => style.fill) {
+    Some(fill) => Some(lift_color_or_self(fill))
+    None => from_fill.map(fill => lift_color_or_self(fill))
   }
 }
 

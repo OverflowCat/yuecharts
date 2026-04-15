@@ -306,42 +306,20 @@ fn bar_series_stack_id(
 
 ///|
 fn bar_fill_color(series : @option.SeriesOption, series_index : Int) -> String {
-  match series.geo_item_style {
-    Some(style) =>
-      match style.color {
-        Some(color) => color
-        None =>
-          match series.item_style {
-            Some(color) => color
-            None =>
-              match series.color {
-                Some(color) => color
-                None => @visual.palette_color(series_index)
-              }
-          }
-      }
-    None =>
-      match series.item_style {
-        Some(color) => color
-        None =>
-          match series.color {
-            Some(color) => color
-            None => @visual.palette_color(series_index)
-          }
-      }
-  }
+  series.geo_item_style
+  .bind(style => style.color)
+  .unwrap_or(
+    series.item_style.unwrap_or(
+      series.color.unwrap_or(@visual.palette_color(series_index)),
+    ),
+  )
 }
 
 ///|
 fn bar_fill_opacity(series : @option.SeriesOption) -> Double {
-  match series.item_opacity {
-    Some(opacity) => opacity
-    None =>
-      match series.geo_item_style {
-        Some(style) => style.opacity.unwrap_or(1.0)
-        None => 1.0
-      }
-  }
+  series.item_opacity.unwrap_or(
+    series.geo_item_style.bind(style => style.opacity).unwrap_or(1.0),
+  )
 }
 
 ///|
@@ -367,38 +345,17 @@ fn bar_resolve_data_style(
     .bind(style => style.border_width)
     .unwrap_or(0.0)
   let item_style = item.item_style
-  let fill_color = match item_style {
-    Some(style) =>
-      match style.color {
-        Some(color) => color
-        None => series_fill
-      }
-    None => series_fill
-  }
-  let opacity = match item_style {
-    Some(style) =>
-      match style.opacity {
-        Some(opacity) => opacity
-        None => series_opacity
-      }
-    None => series_opacity
-  }
-  let border_color = match item_style {
-    Some(style) =>
-      match style.border_color {
-        Some(color) => Some(color)
-        None => series_border_color
-      }
+  let fill_color = item_style.bind(style => style.color).unwrap_or(series_fill)
+  let opacity = item_style
+    .bind(style => style.opacity)
+    .unwrap_or(series_opacity)
+  let border_color = match item_style.bind(style => style.border_color) {
+    Some(color) => Some(color)
     None => series_border_color
   }
-  let border_width = match item_style {
-    Some(style) =>
-      match style.border_width {
-        Some(width) => width
-        None => series_border_width
-      }
-    None => series_border_width
-  }
+  let border_width = item_style
+    .bind(style => style.border_width)
+    .unwrap_or(series_border_width)
   { fill_color, opacity, border_color, border_width }
 }
 
@@ -407,18 +364,12 @@ fn bar_resolve_background_style(
   series : @option.SeriesOption,
 ) -> BarResolvedStyle {
   let default_fill = "rgba(180, 180, 180, 0.2)"
-  let background_style = match series.background_style {
-    Some(style) => style
-    None => @option.GeoItemStylePatchOption::default()
-  }
-  let fill_color = match background_style.color {
-    Some(color) => color
-    None =>
-      match background_style.area_color {
-        Some(color) => color
-        None => default_fill
-      }
-  }
+  let background_style = series.background_style.unwrap_or(
+    @option.GeoItemStylePatchOption::default(),
+  )
+  let fill_color = background_style.color.unwrap_or(
+    background_style.area_color.unwrap_or(default_fill),
+  )
   {
     fill_color,
     opacity: background_style.opacity.unwrap_or(1.0),
@@ -1174,10 +1125,7 @@ pub fn render_bars(
     bar_column_keys_by_axis.push([])
     xi_init += 1
   }
-  let polar_layout = match polar {
-    Some(p) => Some(bar_cal_radial_layout(opt.series, p))
-    None => None
-  }
+  let polar_layout = polar.map(p => bar_cal_radial_layout(opt.series, p))
   let cartesian_stack_states : Array[BarCartesianStackState] = []
   let mut count_i = 0
   while count_i < opt.series.length() {

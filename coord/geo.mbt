@@ -80,27 +80,20 @@ pub fn Geo::build(opt : @option.ChartOption) -> Geo? {
     )
     return source_manager
       .load(geo_opt.map, geo_opt.name_map, name_property)
-      .map_or(None, loaded => {
-        build_geo_from_loaded(opt, geo_opt, loaded, resource_type)
-      })
+      .bind(loaded => build_geo_from_loaded(opt, geo_opt, loaded, resource_type))
   }
-  match geo_exclusive_map_series(opt) {
-    Some(series) => {
-      let map_name = series.map_name.unwrap_or("")
-      let geo_opt = geo_option_from_series(series, map_name)
-      let source_manager = GeoSourceManager::from_option(opt)
-      let name_property = geo_opt.name_property.unwrap_or("name")
-      let resource_type = geo_resource_type(
-        source_manager.get_geo_resource(map_name),
-      )
-      source_manager
-      .load(map_name, geo_opt.name_map, name_property)
-      .map_or(None, loaded => {
-        build_geo_from_loaded(opt, geo_opt, loaded, resource_type)
-      })
-    }
-    None => None
-  }
+  geo_exclusive_map_series(opt).bind(series => {
+    let map_name = series.map_name.unwrap_or("")
+    let geo_opt = geo_option_from_series(series, map_name)
+    let source_manager = GeoSourceManager::from_option(opt)
+    let name_property = geo_opt.name_property.unwrap_or("name")
+    let resource_type = geo_resource_type(
+      source_manager.get_geo_resource(map_name),
+    )
+    source_manager
+    .load(map_name, geo_opt.name_map, name_property)
+    .bind(loaded => build_geo_from_loaded(opt, geo_opt, loaded, resource_type))
+  })
 }
 
 ///|
@@ -122,9 +115,7 @@ pub fn Geo::build_for_map_series(
   )
   source_manager
   .load(map_name, geo_opt.name_map, name_property)
-  .map_or(None, loaded => {
-    build_geo_from_loaded(opt, geo_opt, loaded, resource_type)
-  })
+  .bind(loaded => build_geo_from_loaded(opt, geo_opt, loaded, resource_type))
 }
 
 ///|

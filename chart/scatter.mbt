@@ -23,10 +23,9 @@ fn geo_visual_map_for_series(
   while i < opt.visual_map.length() {
     let visual_map = opt.visual_map[i]
     // None means "apply to all series"; Some(n) means only series n
-    let matches = match visual_map.series_index {
-      None => true
-      Some(idx) => idx == series_index
-    }
+    let matches = visual_map.series_index.map_or(true, idx => {
+      idx == series_index
+    })
     if matches {
       return Some(visual_map)
     }
@@ -55,17 +54,14 @@ fn geo_visual_map_ratio(
   visual_map : @option.VisualMapOption,
   item : @option.DataItem,
 ) -> Double? {
-  match data_value_dimension(item.value, visual_map.dimension) {
-    Some(value) => {
-      let span = visual_map.max - visual_map.min
-      if span == 0.0 {
-        Some(0.0)
-      } else {
-        Some(clamp01((value - visual_map.min) / span))
-      }
+  data_value_dimension(item.value, visual_map.dimension).bind(value => {
+    let span = visual_map.max - visual_map.min
+    if span == 0.0 {
+      Some(0.0)
+    } else {
+      Some(clamp01((value - visual_map.min) / span))
     }
-    None => None
-  }
+  })
 }
 
 ///|
@@ -99,17 +95,17 @@ fn geo_visual_map_symbol_size(
 ) -> Double {
   match geo_visual_map_for_series(opt, series_index) {
     Some(visual_map) =>
-      match geo_visual_map_ratio(visual_map, item) {
-        Some(ratio) =>
-          if visual_map.in_range.symbol_size.length() >= 2 {
-            let min_size = visual_map.in_range.symbol_size[0]
-            let max_size = visual_map.in_range.symbol_size[1]
-            min_size + (max_size - min_size) * ratio
-          } else {
-            default_size
-          }
-        None => default_size
-      }
+      geo_visual_map_ratio(visual_map, item)
+      .map(ratio => {
+        if visual_map.in_range.symbol_size.length() >= 2 {
+          let min_size = visual_map.in_range.symbol_size[0]
+          let max_size = visual_map.in_range.symbol_size[1]
+          min_size + (max_size - min_size) * ratio
+        } else {
+          default_size
+        }
+      })
+      .unwrap_or(default_size)
     None => default_size
   }
 }
@@ -120,14 +116,11 @@ fn geo_visual_map_color(
   series_index : Int,
   item : @option.DataItem,
 ) -> String? {
-  match geo_visual_map_for_series(opt, series_index) {
-    Some(visual_map) =>
-      match geo_visual_map_ratio(visual_map, item) {
-        Some(ratio) => color_stops_color(visual_map.in_range.color, ratio)
-        None => None
-      }
-    None => None
-  }
+  geo_visual_map_for_series(opt, series_index).bind(visual_map => {
+    geo_visual_map_ratio(visual_map, item).bind(ratio => {
+      color_stops_color(visual_map.in_range.color, ratio)
+    })
+  })
 }
 
 ///|

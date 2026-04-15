@@ -124,14 +124,7 @@ fn chord_data_value(item : @option.DataItem) -> Double {
 
 ///|
 fn chord_node_key(item : @option.DataItem, index : Int) -> String {
-  match item.id {
-    Some(id) => id
-    None =>
-      match item.name {
-        Some(name) => name
-        None => index.to_string()
-      }
-  }
+  item.id.unwrap_or(item.name.unwrap_or(index.to_string()))
 }
 
 ///|
@@ -153,22 +146,9 @@ fn chord_node_fill_color(
   node : ChordNode,
   color_index : Int,
 ) -> String {
-  match node.item.item_style {
-    Some(style) =>
-      match style.color {
-        Some(color) => color
-        None =>
-          match series.item_style {
-            Some(color) => color
-            None => @visual.palette_color(color_index)
-          }
-      }
-    None =>
-      match series.item_style {
-        Some(color) => color
-        None => @visual.palette_color(color_index)
-      }
-  }
+  node.item.item_style
+  .bind(style => style.color)
+  .unwrap_or(series.item_style.unwrap_or(@visual.palette_color(color_index)))
 }
 
 ///|
@@ -176,21 +156,9 @@ fn chord_node_border_color(
   series : @option.SeriesOption,
   node : ChordNode,
 ) -> String? {
-  match node.item.item_style {
-    Some(style) =>
-      match style.border_color {
-        Some(color) => Some(color)
-        None =>
-          match series.geo_item_style {
-            Some(series_style) => series_style.border_color
-            None => None
-          }
-      }
-    None =>
-      match series.geo_item_style {
-        Some(series_style) => series_style.border_color
-        None => None
-      }
+  match node.item.item_style.bind(style => style.border_color) {
+    Some(color) => Some(color)
+    None => series.geo_item_style.bind(style => style.border_color)
   }
 }
 
@@ -199,30 +167,18 @@ fn chord_node_border_width(
   series : @option.SeriesOption,
   node : ChordNode,
 ) -> Double {
-  match node.item.item_style {
-    Some(style) =>
-      match style.border_width {
-        Some(width) => width
-        None =>
-          match series.geo_item_style {
-            Some(series_style) => series_style.border_width.unwrap_or(0.0)
-            None => 0.0
-          }
-      }
-    None =>
-      match series.geo_item_style {
-        Some(series_style) => series_style.border_width.unwrap_or(0.0)
-        None => 0.0
-      }
-  }
+  node.item.item_style
+  .bind(style => style.border_width)
+  .unwrap_or(
+    series.geo_item_style.bind(style => style.border_width).unwrap_or(0.0),
+  )
 }
 
 ///|
 fn chord_label_show(series : @option.SeriesOption, node : ChordNode) -> Bool {
-  match node.item.label {
-    Some(label) => label.show.unwrap_or(series.label.map_or(false, l => l.show))
-    None => series.label.map_or(false, l => l.show)
-  }
+  node.item.label
+  .bind(label => label.show)
+  .unwrap_or(series.label.map(l => l.show).unwrap_or(false))
 }
 
 ///|
@@ -230,15 +186,9 @@ fn chord_label_position(
   series : @option.SeriesOption,
   node : ChordNode,
 ) -> String {
-  match node.item.label {
-    Some(label) =>
-      match label.position {
-        Some(position) => position
-        None =>
-          series.label.map_or("outside", l => l.position.unwrap_or("outside"))
-      }
-    None => series.label.map_or("outside", l => l.position.unwrap_or("outside"))
-  }
+  node.item.label
+  .bind(label => label.position)
+  .unwrap_or(series.label.bind(l => l.position).unwrap_or("outside"))
 }
 
 ///|
@@ -246,14 +196,9 @@ fn chord_label_distance(
   series : @option.SeriesOption,
   node : ChordNode,
 ) -> Double {
-  match node.item.label {
-    Some(label) =>
-      match label.distance {
-        Some(distance) => distance
-        None => series.label.map_or(5.0, l => l.distance.unwrap_or(5.0))
-      }
-    None => series.label.map_or(5.0, l => l.distance.unwrap_or(5.0))
-  }
+  node.item.label
+  .bind(label => label.distance)
+  .unwrap_or(series.label.bind(l => l.distance).unwrap_or(5.0))
 }
 
 ///|
@@ -263,14 +208,9 @@ fn chord_label_color(
   position : String,
 ) -> String {
   let fallback = if position == "inside" { "#ffffff" } else { "#54555a" }
-  match node.item.label {
-    Some(label) =>
-      match label.color {
-        Some(color) => color
-        None => series.label.map_or(fallback, l => l.color)
-      }
-    None => series.label.map_or(fallback, l => l.color)
-  }
+  node.item.label
+  .bind(label => label.color)
+  .unwrap_or(series.label.map(l => l.color).unwrap_or(fallback))
 }
 
 ///|
@@ -278,16 +218,9 @@ fn chord_label_weight(
   series : @option.SeriesOption,
   node : ChordNode,
 ) -> String {
-  match node.item.label {
-    Some(label) =>
-      match label.font_weight {
-        Some(weight) => weight
-        None =>
-          series.label.map_or("normal", l => l.font_weight.unwrap_or("normal"))
-      }
-    None =>
-      series.label.map_or("normal", l => l.font_weight.unwrap_or("normal"))
-  }
+  node.item.label
+  .bind(label => label.font_weight)
+  .unwrap_or(series.label.bind(l => l.font_weight).unwrap_or("normal"))
 }
 
 ///|

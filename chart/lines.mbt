@@ -79,18 +79,12 @@ fn lines_chart_item_line_style(item : @option.DataItem) -> Json? {
 
 ///|
 fn lines_chart_item_symbol_pair(item : @option.DataItem) -> Array[String]? {
-  match item.raw_item {
-    Some(raw) => lines_chart_json_string_pair_opt(raw, "symbol")
-    None => None
-  }
+  item.raw_item.bind(raw => lines_chart_json_string_pair_opt(raw, "symbol"))
 }
 
 ///|
 fn lines_chart_item_symbol_size_pair(item : @option.DataItem) -> Array[Double]? {
-  match item.raw_item {
-    Some(raw) => lines_chart_json_number_pair_opt(raw, "symbolSize")
-    None => None
-  }
+  item.raw_item.bind(raw => lines_chart_json_number_pair_opt(raw, "symbolSize"))
 }
 
 ///|
@@ -102,14 +96,9 @@ fn lines_chart_item_color(
   let base_color = series.line_style_color.unwrap_or(
     series.color.unwrap_or(@visual.palette_color(series_index)),
   )
-  match lines_chart_item_line_style(item) {
-    Some(line_style) =>
-      match lines_chart_json_string_opt(line_style, "color") {
-        Some(color) => color
-        None => base_color
-      }
-    None => base_color
-  }
+  lines_chart_item_line_style(item)
+  .bind(line_style => lines_chart_json_string_opt(line_style, "color"))
+  .unwrap_or(base_color)
 }
 
 ///|
@@ -118,14 +107,9 @@ fn lines_chart_item_width(
   series : @option.SeriesOption,
 ) -> Double {
   let base_width = series.line_style_width.unwrap_or(1.0)
-  match lines_chart_item_line_style(item) {
-    Some(line_style) =>
-      match lines_chart_json_number_opt(line_style, "width") {
-        Some(width) => width
-        None => base_width
-      }
-    None => base_width
-  }
+  lines_chart_item_line_style(item)
+  .bind(line_style => lines_chart_json_number_opt(line_style, "width"))
+  .unwrap_or(base_width)
 }
 
 ///|
@@ -134,14 +118,9 @@ fn lines_chart_item_opacity(
   series : @option.SeriesOption,
 ) -> Double {
   let base_opacity = series.line_style_opacity.unwrap_or(0.5)
-  match lines_chart_item_line_style(item) {
-    Some(line_style) =>
-      match lines_chart_json_number_opt(line_style, "opacity") {
-        Some(opacity) => opacity
-        None => base_opacity
-      }
-    None => base_opacity
-  }
+  lines_chart_item_line_style(item)
+  .bind(line_style => lines_chart_json_number_opt(line_style, "opacity"))
+  .unwrap_or(base_opacity)
 }
 
 ///|
@@ -150,14 +129,9 @@ fn lines_chart_item_curveness(
   series : @option.SeriesOption,
 ) -> Double {
   let base_curveness = series.line_style_curveness.unwrap_or(0.0)
-  match lines_chart_item_line_style(item) {
-    Some(line_style) =>
-      match lines_chart_json_number_opt(line_style, "curveness") {
-        Some(curveness) => curveness
-        None => base_curveness
-      }
-    None => base_curveness
-  }
+  lines_chart_item_line_style(item)
+  .bind(line_style => lines_chart_json_number_opt(line_style, "curveness"))
+  .unwrap_or(base_curveness)
 }
 
 ///|
@@ -222,10 +196,9 @@ fn lines_chart_label_show(
   item : @option.DataItem,
   series : @option.SeriesOption,
 ) -> Bool {
-  match item.label {
-    Some(label) => label.show.unwrap_or(series.label.map_or(false, l => l.show))
-    None => series.label.map_or(false, l => l.show)
-  }
+  item.label
+  .bind(label => label.show)
+  .unwrap_or(series.label.map(label => label.show).unwrap_or(false))
 }
 
 ///|
@@ -233,14 +206,9 @@ fn lines_chart_label_position(
   item : @option.DataItem,
   series : @option.SeriesOption,
 ) -> String {
-  match item.label {
-    Some(label) =>
-      match label.position {
-        Some(position) => position
-        None => series.label.map_or("end", l => l.position.unwrap_or("end"))
-      }
-    None => series.label.map_or("end", l => l.position.unwrap_or("end"))
-  }
+  item.label
+  .bind(label => label.position)
+  .unwrap_or(series.label.bind(l => l.position).unwrap_or("end"))
 }
 
 ///|
@@ -248,14 +216,9 @@ fn lines_chart_label_distance(
   item : @option.DataItem,
   series : @option.SeriesOption,
 ) -> Double {
-  match item.label {
-    Some(label) =>
-      match label.distance {
-        Some(distance) => distance
-        None => series.label.map_or(5.0, l => l.distance.unwrap_or(5.0))
-      }
-    None => series.label.map_or(5.0, l => l.distance.unwrap_or(5.0))
-  }
+  item.label
+  .bind(label => label.distance)
+  .unwrap_or(series.label.bind(l => l.distance).unwrap_or(5.0))
 }
 
 ///|
@@ -263,16 +226,9 @@ fn lines_chart_label_weight(
   item : @option.DataItem,
   series : @option.SeriesOption,
 ) -> String {
-  match item.label {
-    Some(label) =>
-      match label.font_weight {
-        Some(weight) => weight
-        None =>
-          series.label.map_or("normal", l => l.font_weight.unwrap_or("normal"))
-      }
-    None =>
-      series.label.map_or("normal", l => l.font_weight.unwrap_or("normal"))
-  }
+  item.label
+  .bind(label => label.font_weight)
+  .unwrap_or(series.label.bind(l => l.font_weight).unwrap_or("normal"))
 }
 
 ///|
@@ -280,15 +236,15 @@ fn lines_chart_series_label_color(
   series : @option.SeriesOption,
   fallback : String,
 ) -> String {
-  match series.label {
-    Some(label) =>
-      if label.color != @option.GeoLabelOption::default().color {
-        label.color
-      } else {
-        fallback
-      }
-    None => fallback
-  }
+  series.label
+  .map(label => {
+    if label.color != @option.GeoLabelOption::default().color {
+      label.color
+    } else {
+      fallback
+    }
+  })
+  .unwrap_or(fallback)
 }
 
 ///|
@@ -297,14 +253,9 @@ fn lines_chart_label_color(
   series : @option.SeriesOption,
   fallback : String,
 ) -> String {
-  match item.label {
-    Some(label) =>
-      match label.color {
-        Some(color) => color
-        None => lines_chart_series_label_color(series, fallback)
-      }
-    None => lines_chart_series_label_color(series, fallback)
-  }
+  item.label
+  .bind(label => label.color)
+  .unwrap_or(lines_chart_series_label_color(series, fallback))
 }
 
 ///|
@@ -576,138 +527,133 @@ fn lines_chart_label_element(
     !lines_chart_label_show(item, series) {
     return None
   }
-  match lines_chart_label_text(item) {
-    Some(text) => {
-      let from_pos = points[0]
-      let to_pos = points[points.length() - 1]
-      let (dir_dx, dir_dy) = lines_chart_normalized_direction(
-        to_pos.x - from_pos.x,
-        to_pos.y - from_pos.y,
-      )
-      let (raw_tangent_x, raw_tangent_y, center_point) = match control {
-        Some(cp) => {
-          let midpoint = lines_chart_curve_point_at(from_pos, cp, to_pos, 0.5)
-          let (tx, ty) = lines_chart_curve_tangent_at(from_pos, cp, to_pos, 0.5)
-          (tx, ty, midpoint)
-        }
-        None =>
-          (
-            to_pos.x - from_pos.x,
-            to_pos.y - from_pos.y,
-            lines_chart_midpoint(from_pos, to_pos),
-          )
+  lines_chart_label_text(item).bind(text => {
+    let from_pos = points[0]
+    let to_pos = points[points.length() - 1]
+    let (dir_dx, dir_dy) = lines_chart_normalized_direction(
+      to_pos.x - from_pos.x,
+      to_pos.y - from_pos.y,
+    )
+    let (raw_tangent_x, raw_tangent_y, center_point) = match control {
+      Some(cp) => {
+        let midpoint = lines_chart_curve_point_at(from_pos, cp, to_pos, 0.5)
+        let (tx, ty) = lines_chart_curve_tangent_at(from_pos, cp, to_pos, 0.5)
+        (tx, ty, midpoint)
       }
-      let (tangent_x, tangent_y) = lines_chart_normalized_direction(
-        raw_tangent_x, raw_tangent_y,
-      )
-      let position = lines_chart_label_position(item, series)
-      let distance = lines_chart_label_distance(item, series)
-      let distance_x = distance
-      let distance_y = distance
-      let dir = if tangent_x < 0.0 { -1.0 } else { 1.0 }
-      let mut x = center_point.x
-      let mut y = center_point.y
-      let mut align = "center"
-      let mut vertical_align = "middle"
-      let mut rotation = 0.0
-      if position != "start" && position != "end" {
-        rotation = -@math.atan2(tangent_y, tangent_x)
-        if to_pos.x < from_pos.x {
-          rotation = @math.PI + rotation
-        }
-      }
-      let dy = match position {
-        "insideStartTop" | "insideMiddleTop" | "insideEndTop" | "middle" => {
-          vertical_align = "bottom"
-          -distance_y
-        }
-        "insideStartBottom" | "insideMiddleBottom" | "insideEndBottom" => {
-          vertical_align = "top"
-          distance_y
-        }
-        _ => 0.0
-      }
-      match position {
-        "end" => {
-          x = dir_dx * distance_x + to_pos.x
-          y = dir_dy * distance_y + to_pos.y
-          align = if dir_dx > 0.8 {
-            "left"
-          } else if dir_dx < -0.8 {
-            "right"
-          } else {
-            "center"
-          }
-          vertical_align = if dir_dy > 0.8 {
-            "top"
-          } else if dir_dy < -0.8 {
-            "bottom"
-          } else {
-            "middle"
-          }
-        }
-        "start" => {
-          x = -dir_dx * distance_x + from_pos.x
-          y = -dir_dy * distance_y + from_pos.y
-          align = if dir_dx > 0.8 {
-            "right"
-          } else if dir_dx < -0.8 {
-            "left"
-          } else {
-            "center"
-          }
-          vertical_align = if dir_dy > 0.8 {
-            "bottom"
-          } else if dir_dy < -0.8 {
-            "top"
-          } else {
-            "middle"
-          }
-        }
-        "insideStartTop" | "insideStart" | "insideStartBottom" => {
-          x = distance_x * dir + from_pos.x
-          y = from_pos.y + dy
-          align = if tangent_x < 0.0 { "right" } else { "left" }
-        }
-        "insideMiddleTop" | "insideMiddle" | "insideMiddleBottom" | "middle" => {
-          x = center_point.x
-          y = center_point.y + dy
-          align = "center"
-        }
-        "insideEndTop" | "insideEnd" | "insideEndBottom" => {
-          x = -distance_x * dir + to_pos.x
-          y = to_pos.y + dy
-          align = if tangent_x >= 0.0 { "right" } else { "left" }
-        }
-        _ => {
-          x = center_point.x
-          y = center_point.y + dy
-          align = "center"
-        }
-      }
-      let text_elem = @graphic.Element::text_custom(
-        0.0,
-        0.0,
-        text,
-        lines_chart_text_anchor(align),
-        lines_chart_text_baseline(vertical_align),
-        lines_chart_label_color(item, series, color),
-        12.0,
-        "sans-serif",
-        lines_chart_label_weight(item, series),
-      )
-      Some(
-        @graphic.Element::group_transformed_opacity(
-          [text_elem],
-          @graphic.Matrix::translate(x, y).then(
-            @graphic.Matrix::rotate(rotation),
-          ),
-          opacity,
-        ),
-      )
+      None =>
+        (
+          to_pos.x - from_pos.x,
+          to_pos.y - from_pos.y,
+          lines_chart_midpoint(from_pos, to_pos),
+        )
     }
-    None => None
-  }
+    let (tangent_x, tangent_y) = lines_chart_normalized_direction(
+      raw_tangent_x, raw_tangent_y,
+    )
+    let position = lines_chart_label_position(item, series)
+    let distance = lines_chart_label_distance(item, series)
+    let distance_x = distance
+    let distance_y = distance
+    let dir = if tangent_x < 0.0 { -1.0 } else { 1.0 }
+    let mut x = center_point.x
+    let mut y = center_point.y
+    let mut align = "center"
+    let mut vertical_align = "middle"
+    let mut rotation = 0.0
+    if position != "start" && position != "end" {
+      rotation = -@math.atan2(tangent_y, tangent_x)
+      if to_pos.x < from_pos.x {
+        rotation = @math.PI + rotation
+      }
+    }
+    let dy = match position {
+      "insideStartTop" | "insideMiddleTop" | "insideEndTop" | "middle" => {
+        vertical_align = "bottom"
+        -distance_y
+      }
+      "insideStartBottom" | "insideMiddleBottom" | "insideEndBottom" => {
+        vertical_align = "top"
+        distance_y
+      }
+      _ => 0.0
+    }
+    match position {
+      "end" => {
+        x = dir_dx * distance_x + to_pos.x
+        y = dir_dy * distance_y + to_pos.y
+        align = if dir_dx > 0.8 {
+          "left"
+        } else if dir_dx < -0.8 {
+          "right"
+        } else {
+          "center"
+        }
+        vertical_align = if dir_dy > 0.8 {
+          "top"
+        } else if dir_dy < -0.8 {
+          "bottom"
+        } else {
+          "middle"
+        }
+      }
+      "start" => {
+        x = -dir_dx * distance_x + from_pos.x
+        y = -dir_dy * distance_y + from_pos.y
+        align = if dir_dx > 0.8 {
+          "right"
+        } else if dir_dx < -0.8 {
+          "left"
+        } else {
+          "center"
+        }
+        vertical_align = if dir_dy > 0.8 {
+          "bottom"
+        } else if dir_dy < -0.8 {
+          "top"
+        } else {
+          "middle"
+        }
+      }
+      "insideStartTop" | "insideStart" | "insideStartBottom" => {
+        x = distance_x * dir + from_pos.x
+        y = from_pos.y + dy
+        align = if tangent_x < 0.0 { "right" } else { "left" }
+      }
+      "insideMiddleTop" | "insideMiddle" | "insideMiddleBottom" | "middle" => {
+        x = center_point.x
+        y = center_point.y + dy
+        align = "center"
+      }
+      "insideEndTop" | "insideEnd" | "insideEndBottom" => {
+        x = -distance_x * dir + to_pos.x
+        y = to_pos.y + dy
+        align = if tangent_x >= 0.0 { "right" } else { "left" }
+      }
+      _ => {
+        x = center_point.x
+        y = center_point.y + dy
+        align = "center"
+      }
+    }
+    let text_elem = @graphic.Element::text_custom(
+      0.0,
+      0.0,
+      text,
+      lines_chart_text_anchor(align),
+      lines_chart_text_baseline(vertical_align),
+      lines_chart_label_color(item, series, color),
+      12.0,
+      "sans-serif",
+      lines_chart_label_weight(item, series),
+    )
+    Some(
+      @graphic.Element::group_transformed_opacity(
+        [text_elem],
+        @graphic.Matrix::translate(x, y).then(@graphic.Matrix::rotate(rotation)),
+        opacity,
+      ),
+    )
+  })
 }
 
 ///|

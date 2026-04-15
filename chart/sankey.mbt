@@ -1019,15 +1019,11 @@ fn sankey_node_border_color(
   node : SankeyNode,
   level : @option.SankeyLevelOption?,
 ) -> String? {
-  let level_color = level.map_or(None, level_value => {
-    level_value.item_style.map_or(None, style => style.border_color)
+  let level_color = level.bind(level_value => {
+    level_value.item_style.bind(style => style.border_color)
   })
-  match node.item.item_style {
-    Some(style) =>
-      match style.border_color {
-        Some(color) => Some(color)
-        None => level_color
-      }
+  match node.item.item_style.bind(style => style.border_color) {
+    Some(color) => Some(color)
     None => level_color
   }
 }
@@ -1037,14 +1033,12 @@ fn sankey_node_border_width(
   node : SankeyNode,
   level : @option.SankeyLevelOption?,
 ) -> Double {
-  let level_width = level.map_or(0.0, level_value => {
-    level_value.item_style.map_or(0.0, style => {
-      style.border_width.unwrap_or(0.0)
+  let level_width = level
+    .bind(level_value => {
+      level_value.item_style.bind(style => style.border_width)
     })
-  })
-  node.item.item_style.map_or(level_width, style => {
-    style.border_width.unwrap_or(level_width)
-  })
+    .unwrap_or(0.0)
+  node.item.item_style.bind(style => style.border_width).unwrap_or(level_width)
 }
 
 ///|
@@ -1052,7 +1046,8 @@ fn sankey_apply_label_patch(
   style : SankeyResolvedLabelStyle,
   patch : @option.GeoLabelPatchOption?,
 ) -> SankeyResolvedLabelStyle {
-  patch.map_or(style, p => {
+  patch
+  .map(p => {
     show: p.show.unwrap_or(style.show),
     color: p.color.unwrap_or(style.color),
     position: p.position.unwrap_or(style.position),
@@ -1061,6 +1056,7 @@ fn sankey_apply_label_patch(
     font_family: p.font_family.unwrap_or(style.font_family),
     font_weight: p.font_weight.unwrap_or(style.font_weight),
   })
+  .unwrap_or(style)
 }
 
 ///|
@@ -1081,7 +1077,7 @@ fn sankey_resolve_label_style(
   }
   let level_style = sankey_apply_label_patch(
     initial,
-    level.map_or(None, value => value.label),
+    level.bind(value => value.label),
   )
   sankey_apply_label_patch(level_style, node.item.label)
 }
@@ -1094,7 +1090,7 @@ fn sankey_edge_style_value(
   default_value : String,
 ) -> String {
   let base = fallback.unwrap_or(default_value)
-  level.map_or(base, value => level_selector(value).unwrap_or(base))
+  level.bind(value => level_selector(value)).unwrap_or(base)
 }
 
 ///|

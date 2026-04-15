@@ -519,16 +519,12 @@ fn map_region_state_style(
         None => map_region_state_item_style(series.states, state_name)
       }
   }
-  match style {
-    Some(style) =>
-      Some({
-        fill: style.area_color,
-        stroke: style.border_color,
-        line_width: style.border_width,
-        stroke_no_scale: false,
-      })
-    None => None
-  }
+  style.map(style => {
+    fill: style.area_color,
+    stroke: style.border_color,
+    line_width: style.border_width,
+    stroke_no_scale: false,
+  })
 }
 
 ///|
@@ -568,12 +564,8 @@ fn map_label_state_style(
   item : @option.DataItem?,
   state_name : String,
 ) -> @graphic.DisplayStateStyle? {
-  let label = match
+  match
     item.bind(data_item => map_region_state_label(data_item.states, state_name)) {
-    Some(label) => Some(label)
-    None => map_region_state_label(series.states, state_name)
-  }
-  match label {
     Some(label) =>
       Some({
         fill: label.color,
@@ -581,7 +573,13 @@ fn map_label_state_style(
         line_width: None,
         stroke_no_scale: false,
       })
-    None => None
+    None =>
+      map_region_state_label(series.states, state_name).map(label => {
+        fill: label.color,
+        stroke: None,
+        line_width: None,
+        stroke_no_scale: false,
+      })
   }
 }
 
@@ -592,10 +590,7 @@ fn map_item_is_selected(item : @option.DataItem?) -> Bool {
 
 ///|
 fn map_has_legend(opt : @option.ChartOption) -> Bool {
-  match opt.legend {
-    Some(_) => true
-    None => false
-  }
+  opt.legend.map(_ => true).unwrap_or(false)
 }
 
 ///|
