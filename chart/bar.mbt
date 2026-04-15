@@ -223,9 +223,54 @@ fn bar_series_cartesian_key(
   series : @option.SeriesOption,
   series_order : Int,
 ) -> String {
+  bar_series_cartesian_key_for_axis(series, series_order, series.x_axis_index)
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:getSeriesStackId
+fn bar_series_cartesian_key_for_axis(
+  series : @option.SeriesOption,
+  series_order : Int,
+  category_axis_index : Int,
+) -> String {
   match series.stack {
-    Some(stack) => "\{series.x_axis_index}::stack::\{stack}"
-    None => "\{series.x_axis_index}::series::\{series_order}"
+    Some(stack) => "\{category_axis_index}::stack::\{stack}"
+    None => "\{category_axis_index}::series::\{series_order}"
+  }
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:makeColumnLayout
+fn bar_series_cartesian_is_horizontal(
+  series : @option.SeriesOption,
+  coord : @coord.Cartesian2D,
+) -> Bool {
+  if series.x_axis_index < coord.x_scales.length() &&
+    series.y_axis_index < coord.y_scales.length() {
+    match coord.x_scales[series.x_axis_index] {
+      Ordinal(_) => false
+      Linear(_) =>
+        match coord.y_scales[series.y_axis_index] {
+          Ordinal(_) => true
+          Linear(_) => false
+          BreakLinear(_) => false
+        }
+    }
+  } else {
+    false
+  }
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:makeColumnLayout
+fn bar_series_cartesian_category_axis_index(
+  series : @option.SeriesOption,
+  coord : @coord.Cartesian2D,
+) -> Int {
+  if bar_series_cartesian_is_horizontal(series, coord) {
+    series.y_axis_index
+  } else {
+    series.x_axis_index
   }
 }
 
@@ -541,6 +586,112 @@ fn bar_make_category_layout(
 }
 
 ///|
+/// <=> echarts/src/layout/barGrid.ts:makeColumnLayout
+fn bar_make_category_layout_y(
+  series_list : Array[@option.SeriesOption],
+  coord : @coord.Cartesian2D,
+) -> Array[BarCategoryAxisLayout] {
+  let layouts : Array[BarCategoryAxisLayout] = []
+  let mut yi = 0
+  while yi < coord.y_scales.length() {
+    match coord.y_scales[yi] {
+      Ordinal(s) =>
+        layouts.push(bar_category_axis_layout_default(yi, s.band_width()))
+      Linear(_) => layouts.push(bar_category_axis_layout_default(yi, 0.0))
+      BreakLinear(_) => layouts.push(bar_category_axis_layout_default(yi, 0.0))
+    }
+    yi += 1
+  }
+  let mut si = 0
+  while si < series_list.length() {
+    let series = series_list[si]
+    si += 1
+    if series.series_type != Bar || series.coordinate_system == Some("polar") {
+      continue
+    }
+    let y_idx = if series.y_axis_index < layouts.length() {
+      series.y_axis_index
+    } else {
+      0
+    }
+    if y_idx < 0 || y_idx >= coord.y_scales.length() {
+      continue
+    }
+    match coord.y_scales[y_idx] {
+      Ordinal(_) => {
+        let axis_layout = layouts[y_idx]
+        let stack_id = bar_category_series_stack_id(series, si - 1)
+        let stack_index = bar_find_category_stack_layout_index(
+          axis_layout.stacks,
+          stack_id,
+        )
+        if stack_index < 0 {
+          axis_layout.auto_width_count += 1
+          axis_layout.stacks.push({
+            stack_id,
+            width: 0.0,
+            max_width: 0.0,
+            min_width: None,
+            offset: 0.0,
+          })
+        }
+        let stack_index = bar_find_category_stack_layout_index(
+          axis_layout.stacks,
+          stack_id,
+        )
+        if stack_index >= 0 {
+          if series.bar_width != None &&
+            axis_layout.stacks[stack_index].width == 0.0 {
+            let bar_width = bar_parse_percent_like(
+              series.bar_width.unwrap_or("0"),
+              axis_layout.band_width,
+            )
+            if bar_width > 0.0 {
+              let used_width = if bar_width < axis_layout.remained_width {
+                bar_width
+              } else {
+                axis_layout.remained_width
+              }
+              axis_layout.stacks[stack_index].width = used_width
+              axis_layout.remained_width -= used_width
+            }
+          }
+          if series.bar_max_width != None {
+            axis_layout.stacks[stack_index].max_width = bar_parse_percent_like(
+              series.bar_max_width.unwrap_or("0"),
+              axis_layout.band_width,
+            )
+          }
+          if series.bar_min_width != None {
+            axis_layout.stacks[stack_index].min_width = Some(
+              bar_parse_percent_like(
+                series.bar_min_width.unwrap_or("0"),
+                axis_layout.band_width,
+              ),
+            )
+          }
+        }
+        if series.bar_gap != None {
+          axis_layout.gap = series.bar_gap.unwrap_or(axis_layout.gap)
+        }
+        if series.bar_category_gap != None {
+          axis_layout.category_gap = series.bar_category_gap
+        }
+        layouts[y_idx] = axis_layout
+      }
+      Linear(_) => ()
+      BreakLinear(_) => ()
+    }
+  }
+  let mut yi2 = 0
+  while yi2 < layouts.length() {
+    layouts[yi2] = bar_finalize_category_axis_layout(layouts[yi2])
+    yi2 += 1
+  }
+  layouts
+}
+
+///|
 priv struct PolarBarStackLayout {
   stack_id : String
   mut width : Double
@@ -745,6 +896,9 @@ fn bar_render_series_cartesian_large_impl(
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
   let base_y = coord.bbox.y + coord.bbox.height
+  let is_horizontal = false
+  let category_axis_index = series.x_axis_index
+  let cartesian_stack_states : Array[BarCartesianStackState] = []
   if x_idx >= coord.x_scales.length() {
     return elems
   }
@@ -882,54 +1036,249 @@ fn bar_render_series_cartesian_large_impl(
         elems.push(@graphic.Element::group_clipped(children, coord.bbox))
       }
     }
-    Linear(s) => {
-      let nd = series.data.length()
-      let render_nd = if nd > bar_large_render_limit() {
-        bar_large_render_limit()
-      } else {
-        nd
-      }
-      let bar_w = 10.0
-      let bar_fill = bar_fill_color(series, series_index)
-      let bar_opacity = bar_fill_opacity(series)
-      let fg_buf = StringBuilder::new()
-      let mut di = 0
-      while di < render_nd {
-        let item = series.data[di]
-        di += 1
-        let (x_val, y_val) = match item.value {
-          Num(n) => (di.to_double(), n)
-          Vec(arr) =>
-            if arr.length() > 1 {
-              (arr[0], arr[1])
-            } else if arr.length() > 0 {
-              (di.to_double(), arr[0])
+    Linear(s) =>
+      if is_horizontal {
+        match coord.y_scales[y_idx] {
+          Ordinal(sy) => {
+            let nd = series.data.length()
+            let render_nd = if nd > bar_large_render_limit() {
+              bar_large_render_limit()
             } else {
-              (di.to_double(), 0.0)
+              nd
             }
-          DateValue(_, n) => (di.to_double(), n)
-          Null => (di.to_double(), 0.0)
+            let band_width = sy.band_width()
+            let n = if total_bars > 0 { total_bars } else { 1 }
+            let cat_gap_pct = if 35 - n * 4 > 15 {
+              (35 - n * 4).to_double()
+            } else {
+              15.0
+            }
+            let category_gap = band_width * cat_gap_pct / 100.0
+            let gap_percent = if series.bar_gap != None {
+              bar_parse_percent_like(series.bar_gap.unwrap_or("10%"), 1.0)
+            } else {
+              0.1
+            }
+            let auto_width = if n > 0 {
+              ((band_width - category_gap) /
+              (n.to_double() + (n - 1).to_double() * gap_percent)).max(0.0)
+            } else {
+              0.0
+            }
+            let bar_h = if auto_width < 0.5 { 0.5 } else { auto_width }
+            let total_span = if n > 0 {
+              bar_h * n.to_double() + bar_h * gap_percent * (n - 1).to_double()
+            } else {
+              bar_h
+            }
+            let base_x = coord.num_x(x_idx, 0.0)
+            let bar_fill = bar_fill_color(series, series_index)
+            let bar_opacity = bar_fill_opacity(series)
+            let mut di = 0
+            while di < render_nd {
+              let item = series.data[di]
+              di += 1
+              let cat_px = if di - 1 < sy.categories.length() {
+                sy.band_center(di - 1)
+              } else {
+                coord.bbox.y
+              }
+              let render_bar_h = match stack_layout {
+                Some(layout) => layout.width
+                None => bar_h
+              }
+              let bar_y = match stack_layout {
+                Some(layout) => cat_px + layout.offset
+                None =>
+                  cat_px -
+                  total_span / 2.0 +
+                  bar_index.to_double() * bar_h * (1.0 + gap_percent)
+              }
+              if draw_background && series.show_background {
+                elems.push(
+                  bar_render_path(
+                    bar_rect_path(
+                      coord.bbox.x,
+                      bar_y,
+                      coord.bbox.width,
+                      render_bar_h,
+                    ),
+                    bar_resolve_background_style(series),
+                  ).with_silent(true),
+                )
+              }
+              if !draw_bars {
+                continue
+              }
+              let style = bar_resolve_data_style(series, item, series_index)
+              let value = bar_item_value(item)
+              let stacked = series.stack != None
+              let stack_state_index = if stacked {
+                let stack_key = bar_series_cartesian_key_for_axis(
+                  series, series_order, category_axis_index,
+                )
+                let existing = bar_find_cartesian_stack_state_index(
+                  cartesian_stack_states, stack_key,
+                )
+                if existing >= 0 {
+                  existing
+                } else {
+                  cartesian_stack_states.push({
+                    stack_id: stack_key,
+                    coords: [],
+                  })
+                  cartesian_stack_states.length() - 1
+                }
+              } else {
+                -1
+              }
+              let mut base_value = 0.0
+              if stack_state_index >= 0 {
+                while cartesian_stack_states[stack_state_index].coords.length() <=
+                      di - 1 {
+                  cartesian_stack_states[stack_state_index].coords.push({
+                    p: 0.0,
+                    n: 0.0,
+                  })
+                }
+                let stack_coord = cartesian_stack_states[stack_state_index].coords[di -
+                  1]
+                base_value = if value >= 0.0 {
+                  stack_coord.p
+                } else {
+                  stack_coord.n
+                }
+              }
+              let top_value = base_value + value
+              let top_x = coord.num_x(x_idx, top_value)
+              let base_coord = coord.num_x(x_idx, base_value)
+              let bar_w = top_x - base_coord
+              if stack_state_index >= 0 {
+                let stack_coord = cartesian_stack_states[stack_state_index].coords[di -
+                  1]
+                cartesian_stack_states[stack_state_index].coords[di - 1] = {
+                  p: if value >= 0.0 {
+                    top_value
+                  } else {
+                    stack_coord.p
+                  },
+                  n: if value < 0.0 {
+                    top_value
+                  } else {
+                    stack_coord.n
+                  },
+                }
+              }
+              elems.push(
+                bar_render_path(
+                  bar_rect_path(base_coord, bar_y, bar_w, render_bar_h),
+                  style,
+                )
+                .with_ecmeta_attr("series_index", series_order.to_string())
+                .with_ecmeta_attr("data_index", (di - 1).to_string())
+                .with_ecmeta_attr("ssr_type", "chart"),
+              )
+            }
+          }
+          Linear(_) | BreakLinear(_) => {
+            let nd = series.data.length()
+            let render_nd = if nd > bar_large_render_limit() {
+              bar_large_render_limit()
+            } else {
+              nd
+            }
+            let bar_w = 10.0
+            let bar_fill = bar_fill_color(series, series_index)
+            let bar_opacity = bar_fill_opacity(series)
+            let fg_buf = StringBuilder::new()
+            let mut di = 0
+            while di < render_nd {
+              let item = series.data[di]
+              di += 1
+              let (x_val, y_val) = match item.value {
+                Num(n) => (di.to_double(), n)
+                Vec(arr) =>
+                  if arr.length() > 1 {
+                    (arr[0], arr[1])
+                  } else if arr.length() > 0 {
+                    (di.to_double(), arr[0])
+                  } else {
+                    (di.to_double(), 0.0)
+                  }
+                DateValue(_, n) => (di.to_double(), n)
+                Null => (di.to_double(), 0.0)
+              }
+              let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5
+              if !draw_bars {
+                continue
+              }
+              let top_y = coord.num_y(y_idx, y_val)
+              let base_y = coord.bbox.y + coord.bbox.height
+              let bar_h = top_y - base_y
+              bar_append_rect_path(fg_buf, bar_x, base_y, bar_w, bar_h)
+            }
+            if draw_bars {
+              let children : Array[@graphic.Element] = [
+                bar_render_path(fg_buf.to_string(), {
+                  fill_color: bar_fill,
+                  opacity: bar_opacity,
+                  border_color: None,
+                  border_width: 0.0,
+                }).with_ecmeta_attr("series_index", series_order.to_string()),
+              ]
+              elems.push(@graphic.Element::group_clipped(children, coord.bbox))
+            }
+          }
         }
-        let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5
-        if !draw_bars {
-          continue
+      } else {
+        let nd = series.data.length()
+        let render_nd = if nd > bar_large_render_limit() {
+          bar_large_render_limit()
+        } else {
+          nd
         }
-        let top_y = coord.num_y(y_idx, y_val)
-        let bar_h = top_y - base_y
-        bar_append_rect_path(fg_buf, bar_x, base_y, bar_w, bar_h)
+        let bar_w = 10.0
+        let bar_fill = bar_fill_color(series, series_index)
+        let bar_opacity = bar_fill_opacity(series)
+        let fg_buf = StringBuilder::new()
+        let mut di = 0
+        while di < render_nd {
+          let item = series.data[di]
+          di += 1
+          let (x_val, y_val) = match item.value {
+            Num(n) => (di.to_double(), n)
+            Vec(arr) =>
+              if arr.length() > 1 {
+                (arr[0], arr[1])
+              } else if arr.length() > 0 {
+                (di.to_double(), arr[0])
+              } else {
+                (di.to_double(), 0.0)
+              }
+            DateValue(_, n) => (di.to_double(), n)
+            Null => (di.to_double(), 0.0)
+          }
+          let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5
+          if !draw_bars {
+            continue
+          }
+          let top_y = coord.num_y(y_idx, y_val)
+          let base_y = coord.bbox.y + coord.bbox.height
+          let bar_h = top_y - base_y
+          bar_append_rect_path(fg_buf, bar_x, base_y, bar_w, bar_h)
+        }
+        if draw_bars {
+          let children : Array[@graphic.Element] = [
+            bar_render_path(fg_buf.to_string(), {
+              fill_color: bar_fill,
+              opacity: bar_opacity,
+              border_color: None,
+              border_width: 0.0,
+            }).with_ecmeta_attr("series_index", series_order.to_string()),
+          ]
+          elems.push(@graphic.Element::group_clipped(children, coord.bbox))
+        }
       }
-      if draw_bars {
-        let children : Array[@graphic.Element] = [
-          bar_render_path(fg_buf.to_string(), {
-            fill_color: bar_fill,
-            opacity: bar_opacity,
-            border_color: None,
-            border_width: 0.0,
-          }).with_ecmeta_attr("series_index", series_order.to_string()),
-        ]
-        elems.push(@graphic.Element::group_clipped(children, coord.bbox))
-      }
-    }
   }
   elems
 }
@@ -1243,6 +1592,7 @@ fn bar_render_series_polar_impl(
 }
 
 ///|
+/// <=> echarts/src/chart/bar/BarView.ts:_renderNormal
 fn bar_render_series_cartesian_impl(
   series : @option.SeriesOption,
   series_index : Int,
@@ -1250,6 +1600,8 @@ fn bar_render_series_cartesian_impl(
   coord : @coord.Cartesian2D,
   bar_index : Int,
   total_bars : Int,
+  category_axis_index : Int,
+  is_horizontal : Bool,
   stack_layout : BarCategoryStackLayout?,
   draw_background : Bool,
   draw_bars : Bool,
@@ -1312,7 +1664,9 @@ fn bar_render_series_cartesian_impl(
         let value = bar_item_value(item)
         let stacked = series.stack != None
         let stack_state_index = if stacked {
-          let stack_key = bar_series_cartesian_key(series, series_order)
+          let stack_key = bar_series_cartesian_key_for_axis(
+            series, series_order, category_axis_index,
+          )
           let existing = bar_find_cartesian_stack_state_index(
             cartesian_stack_states, stack_key,
           )
@@ -1369,54 +1723,201 @@ fn bar_render_series_cartesian_impl(
         )
       }
     }
-    Linear(s) => {
-      let nd = series.data.length()
-      let bar_w = 10.0
-      let mut di = 0
-      while di < nd {
-        let item = series.data[di]
-        di += 1
-        let (x_val, y_val) = match item.value {
-          Num(n) => (di.to_double(), n)
-          Vec(arr) =>
-            if arr.length() > 1 {
-              (arr[0], arr[1])
-            } else if arr.length() > 0 {
-              (di.to_double(), arr[0])
+    Linear(s) =>
+      if is_horizontal {
+        match coord.y_scales[y_idx] {
+          Ordinal(sy) => {
+            let nd = series.data.length()
+            let bar_w = 10.0
+            let render_nd = if nd > bar_large_render_limit() {
+              bar_large_render_limit()
             } else {
-              (di.to_double(), 0.0)
+              nd
             }
-          DateValue(_, n) => (di.to_double(), n)
-          Null => (di.to_double(), 0.0)
+            let band_width = sy.band_width()
+            let n = if total_bars > 0 { total_bars } else { 1 }
+            let cat_gap_pct = if 35 - n * 4 > 15 {
+              (35 - n * 4).to_double()
+            } else {
+              15.0
+            }
+            let category_gap = band_width * cat_gap_pct / 100.0
+            let gap_percent = if series.bar_gap != None {
+              bar_parse_percent_like(series.bar_gap.unwrap_or("10%"), 1.0)
+            } else {
+              0.1
+            }
+            let auto_width = if n > 0 {
+              ((band_width - category_gap) /
+              (n.to_double() + (n - 1).to_double() * gap_percent)).max(0.0)
+            } else {
+              0.0
+            }
+            let bar_h = if auto_width < 0.5 { 0.5 } else { auto_width }
+            let total_span = if n > 0 {
+              bar_h * n.to_double() + bar_h * gap_percent * (n - 1).to_double()
+            } else {
+              bar_h
+            }
+            let base_x = coord.num_x(x_idx, 0.0)
+            let mut di = 0
+            while di < render_nd {
+              let item = series.data[di]
+              di += 1
+              let cat_px = if di - 1 < sy.categories.length() {
+                sy.band_center(di - 1)
+              } else {
+                coord.bbox.y
+              }
+              let render_bar_h = match stack_layout {
+                Some(layout) => layout.width
+                None => bar_h
+              }
+              let bar_y = match stack_layout {
+                Some(layout) => cat_px + layout.offset
+                None =>
+                  cat_px -
+                  total_span / 2.0 +
+                  bar_index.to_double() * bar_h * (1.0 + gap_percent)
+              }
+              if draw_background && series.show_background {
+                elems.push(
+                  bar_render_path(
+                    bar_rect_path(
+                      coord.bbox.x,
+                      bar_y,
+                      coord.bbox.width,
+                      render_bar_h,
+                    ),
+                    bar_resolve_background_style(series),
+                  ).with_silent(true),
+                )
+              }
+              if !draw_bars {
+                continue
+              }
+              let style = bar_resolve_data_style(series, item, series_index)
+              let value = bar_item_value(item)
+              let stacked = series.stack != None
+              let stack_state_index = if stacked {
+                let stack_key = bar_series_cartesian_key_for_axis(
+                  series, series_order, category_axis_index,
+                )
+                let existing = bar_find_cartesian_stack_state_index(
+                  cartesian_stack_states, stack_key,
+                )
+                if existing >= 0 {
+                  existing
+                } else {
+                  cartesian_stack_states.push({
+                    stack_id: stack_key,
+                    coords: [],
+                  })
+                  cartesian_stack_states.length() - 1
+                }
+              } else {
+                -1
+              }
+              let mut base_value = 0.0
+              if stack_state_index >= 0 {
+                while cartesian_stack_states[stack_state_index].coords.length() <=
+                      di - 1 {
+                  cartesian_stack_states[stack_state_index].coords.push({
+                    p: 0.0,
+                    n: 0.0,
+                  })
+                }
+                let stack_coord = cartesian_stack_states[stack_state_index].coords[di -
+                  1]
+                base_value = if value >= 0.0 {
+                  stack_coord.p
+                } else {
+                  stack_coord.n
+                }
+              }
+              let top_value = base_value + value
+              let top_x = coord.num_x(x_idx, top_value)
+              let base_coord = coord.num_x(x_idx, base_value)
+              let bar_w = top_x - base_coord
+              if stack_state_index >= 0 {
+                let stack_coord = cartesian_stack_states[stack_state_index].coords[di -
+                  1]
+                cartesian_stack_states[stack_state_index].coords[di - 1] = {
+                  p: if value >= 0.0 {
+                    top_value
+                  } else {
+                    stack_coord.p
+                  },
+                  n: if value < 0.0 {
+                    top_value
+                  } else {
+                    stack_coord.n
+                  },
+                }
+              }
+              elems.push(
+                bar_render_path(
+                  bar_rect_path(base_coord, bar_y, bar_w, render_bar_h),
+                  style,
+                )
+                .with_ecmeta_attr("series_index", series_order.to_string())
+                .with_ecmeta_attr("data_index", (di - 1).to_string())
+                .with_ecmeta_attr("ssr_type", "chart"),
+              )
+            }
+          }
+          _ => ()
         }
-        let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5
-        if draw_background && series.show_background {
+      } else {
+        let nd = series.data.length()
+        let bar_w = 10.0
+        let mut di = 0
+        while di < nd {
+          let item = series.data[di]
+          di += 1
+          let (x_val, y_val) = match item.value {
+            Num(n) => (di.to_double(), n)
+            Vec(arr) =>
+              if arr.length() > 1 {
+                (arr[0], arr[1])
+              } else if arr.length() > 0 {
+                (di.to_double(), arr[0])
+              } else {
+                (di.to_double(), 0.0)
+              }
+            DateValue(_, n) => (di.to_double(), n)
+            Null => (di.to_double(), 0.0)
+          }
+          let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5
+          if draw_background && series.show_background {
+            elems.push(
+              bar_render_path(
+                bar_rect_path(bar_x, coord.bbox.y, bar_w, coord.bbox.height),
+                bar_resolve_background_style(series),
+              ).with_silent(true),
+            )
+          }
+          if !draw_bars {
+            continue
+          }
+          let style = bar_resolve_data_style(series, item, series_index)
+          let top_y = coord.num_y(y_idx, y_val)
+          let bar_h = top_y - base_y
           elems.push(
-            bar_render_path(
-              bar_rect_path(bar_x, coord.bbox.y, bar_w, coord.bbox.height),
-              bar_resolve_background_style(series),
-            ).with_silent(true),
+            bar_render_path(bar_rect_path(bar_x, base_y, bar_w, bar_h), style)
+            .with_ecmeta_attr("series_index", series_order.to_string())
+            .with_ecmeta_attr("data_index", (di - 1).to_string())
+            .with_ecmeta_attr("ssr_type", "chart"),
           )
         }
-        if !draw_bars {
-          continue
-        }
-        let style = bar_resolve_data_style(series, item, series_index)
-        let top_y = coord.num_y(y_idx, y_val)
-        let bar_h = top_y - base_y
-        elems.push(
-          bar_render_path(bar_rect_path(bar_x, base_y, bar_w, bar_h), style)
-          .with_ecmeta_attr("series_index", series_order.to_string())
-          .with_ecmeta_attr("data_index", (di - 1).to_string())
-          .with_ecmeta_attr("ssr_type", "chart"),
-        )
       }
-    }
   }
   elems
 }
 
 ///|
+/// <=> echarts/src/chart/bar/BarView.ts:render
+/// <=> echarts/src/layout/barGrid.ts:layout
 pub fn render_bar_series_cartesian(
   series : @option.SeriesOption,
   series_index : Int,
@@ -1425,6 +1926,10 @@ pub fn render_bar_series_cartesian(
   total_bars : Int,
 ) -> Array[@graphic.Element] {
   let cartesian_stack_states : Array[BarCartesianStackState] = []
+  let is_horizontal = bar_series_cartesian_is_horizontal(series, coord)
+  let category_axis_index = bar_series_cartesian_category_axis_index(
+    series, coord,
+  )
   if bar_series_is_large(series) {
     bar_render_series_cartesian_large_impl(
       series,
@@ -1445,6 +1950,8 @@ pub fn render_bar_series_cartesian(
       coord,
       bar_index,
       total_bars,
+      category_axis_index,
+      is_horizontal,
       None,
       true,
       true,
@@ -1454,6 +1961,8 @@ pub fn render_bar_series_cartesian(
 }
 
 ///|
+/// <=> echarts/src/chart/bar/BarView.ts:render
+/// <=> echarts/src/layout/barGrid.ts:layout
 pub fn render_bars(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
@@ -1462,12 +1971,20 @@ pub fn render_bars(
   let background_elems : Array[@graphic.Element] = []
   let foreground_elems : Array[@graphic.Element] = []
   let max_xi = opt.x_axis.length()
-  let category_layouts = bar_make_category_layout(opt.series, coord)
-  let bar_column_keys_by_axis : Array[Array[String]] = []
+  let max_yi = opt.y_axis.length()
+  let x_category_layouts = bar_make_category_layout(opt.series, coord)
+  let y_category_layouts = bar_make_category_layout_y(opt.series, coord)
+  let bar_column_keys_by_x_axis : Array[Array[String]] = []
   let mut xi_init = 0
   while xi_init <= max_xi {
-    bar_column_keys_by_axis.push([])
+    bar_column_keys_by_x_axis.push([])
     xi_init += 1
+  }
+  let bar_column_keys_by_y_axis : Array[Array[String]] = []
+  let mut yi_init = 0
+  while yi_init <= max_yi {
+    bar_column_keys_by_y_axis.push([])
+    yi_init += 1
   }
   let polar_layout = polar.map(p => bar_cal_radial_layout(opt.series, p))
   let cartesian_stack_states : Array[BarCartesianStackState] = []
@@ -1478,10 +1995,34 @@ pub fn render_bars(
     match s.series_type {
       Bar =>
         if s.coordinate_system != Some("polar") {
-          let xi = if s.x_axis_index < max_xi { s.x_axis_index } else { 0 }
-          let key = bar_series_cartesian_key(s, count_i - 1)
-          if bar_find_string_index(bar_column_keys_by_axis[xi], key) < 0 {
-            bar_column_keys_by_axis[xi].push(key)
+          let is_horizontal = bar_series_cartesian_is_horizontal(s, coord)
+          let axis_index = if is_horizontal {
+            if s.y_axis_index < max_yi {
+              s.y_axis_index
+            } else {
+              0
+            }
+          } else if s.x_axis_index < max_xi {
+            s.x_axis_index
+          } else {
+            0
+          }
+          let key = bar_series_cartesian_key_for_axis(
+            s,
+            count_i - 1,
+            axis_index,
+          )
+          if is_horizontal {
+            if bar_find_string_index(bar_column_keys_by_y_axis[axis_index], key) <
+              0 {
+              bar_column_keys_by_y_axis[axis_index].push(key)
+            }
+          } else if bar_find_string_index(
+              bar_column_keys_by_x_axis[axis_index],
+              key,
+            ) <
+            0 {
+            bar_column_keys_by_x_axis[axis_index].push(key)
           }
         }
       _ => ()
@@ -1518,20 +2059,37 @@ pub fn render_bars(
         _ => ()
       }
     } else {
-      let xi = if series.x_axis_index < max_xi {
+      let is_horizontal = bar_series_cartesian_is_horizontal(series, coord)
+      let axis_index = if is_horizontal {
+        if series.y_axis_index < max_yi {
+          series.y_axis_index
+        } else {
+          0
+        }
+      } else if series.x_axis_index < max_xi {
         series.x_axis_index
       } else {
         0
       }
+      let category_layouts = if is_horizontal {
+        y_category_layouts
+      } else {
+        x_category_layouts
+      }
       let stack_layout = bar_category_layout_get_stack(
         category_layouts,
-        xi,
+        axis_index,
         series,
         sr_bg - 1,
       )
-      let key = bar_series_cartesian_key(series, sr_bg - 1)
-      let rank = bar_find_string_index(bar_column_keys_by_axis[xi], key)
-      let total = bar_column_keys_by_axis[xi].length()
+      let key = bar_series_cartesian_key_for_axis(series, sr_bg - 1, axis_index)
+      let keys_by_axis = if is_horizontal {
+        bar_column_keys_by_y_axis
+      } else {
+        bar_column_keys_by_x_axis
+      }
+      let rank = bar_find_string_index(keys_by_axis[axis_index], key)
+      let total = keys_by_axis[axis_index].length()
       let series_elems = if bar_series_is_large(series) {
         bar_render_series_cartesian_large_impl(
           series,
@@ -1552,6 +2110,8 @@ pub fn render_bars(
           coord,
           rank,
           total,
+          axis_index,
+          is_horizontal,
           stack_layout,
           true,
           false,
@@ -1594,20 +2154,37 @@ pub fn render_bars(
         _ => ()
       }
     } else {
-      let xi = if series.x_axis_index < max_xi {
+      let is_horizontal = bar_series_cartesian_is_horizontal(series, coord)
+      let axis_index = if is_horizontal {
+        if series.y_axis_index < max_yi {
+          series.y_axis_index
+        } else {
+          0
+        }
+      } else if series.x_axis_index < max_xi {
         series.x_axis_index
       } else {
         0
       }
+      let category_layouts = if is_horizontal {
+        y_category_layouts
+      } else {
+        x_category_layouts
+      }
       let stack_layout = bar_category_layout_get_stack(
         category_layouts,
-        xi,
+        axis_index,
         series,
         sr - 1,
       )
-      let key = bar_series_cartesian_key(series, sr - 1)
-      let rank = bar_find_string_index(bar_column_keys_by_axis[xi], key)
-      let total = bar_column_keys_by_axis[xi].length()
+      let key = bar_series_cartesian_key_for_axis(series, sr - 1, axis_index)
+      let keys_by_axis = if is_horizontal {
+        bar_column_keys_by_y_axis
+      } else {
+        bar_column_keys_by_x_axis
+      }
+      let rank = bar_find_string_index(keys_by_axis[axis_index], key)
+      let total = keys_by_axis[axis_index].length()
       let series_elems = if bar_series_is_large(series) {
         bar_render_series_cartesian_large_impl(
           series,
@@ -1628,6 +2205,8 @@ pub fn render_bars(
           coord,
           rank,
           total,
+          axis_index,
+          is_horizontal,
           stack_layout,
           false,
           true,

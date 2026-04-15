@@ -544,7 +544,42 @@ pub fn BreakLinearScale::new(
 
 ///|
 fn BreakLinearScale::update(self : BreakLinearScale) -> Unit {
-  update_gap_real(self.breaks, self.inner.nice_min, self.inner.nice_max)
+  // Step 1: compute gap_real from the RAW data extent (inner.min, inner.max).
+  // Using nice_min/nice_max here would over-inflate gap_real and skew the step.
+  // <=> echarts/src/scale/breakImpl.ts updateAxisBreakGapReal called with scaleExtent
+  update_gap_real(self.breaks, self.inner.min, self.inner.max)
+  // Step 2: compute elapsed span from the raw extent.
+  // This is what ECharts calls `_getExtentSpanWithBreaks()`:
+  //   elapsedExtent[1] - elapsedExtent[0]
+  // <=> echarts/src/scale/Interval.ts calcNiceTicks: span = this._getExtentSpanWithBreaks()
+  let elapsed_lo = elapse(self.breaks, self.inner.min)
+  let elapsed_hi = elapse(self.breaks, self.inner.max)
+  let elapsed_span = elapsed_hi - elapsed_lo
+  // Step 3: compute a nice step from the elapsed span (same thresholds as LinearScale::nice),
+  //         then re-extend inner.nice_min/nice_max to multiples of that step.
+  // <=> echarts/src/scale/helper.ts intervalScaleNiceTicks (spanWithBreaks version)
+  if elapsed_span > 0.0 {
+    let rough_step = elapsed_span / 5.0
+    let power = f64_pow10(@math.log10(rough_step).floor().to_int())
+    let normalized = rough_step / power
+    let nice_step = (if normalized < 1.5 {
+        1.0
+      } else if normalized < 2.5 {
+        2.0
+      } else if normalized < 4.0 {
+        3.0
+      } else if normalized < 7.0 {
+        5.0
+      } else {
+        10.0
+      }) *
+      power
+    // Apply the break-aware step to the RAW data min/max (not the overly-rounded nice values).
+    self.inner.nice_min = (self.inner.min / nice_step).floor() * nice_step
+    self.inner.nice_max = (self.inner.max / nice_step).ceil() * nice_step
+    // Step 4: recompute gap_real with the corrected nice extent.
+    update_gap_real(self.breaks, self.inner.nice_min, self.inner.nice_max)
+  }
   self.elapsed_min = elapse(self.breaks, self.inner.nice_min)
   self.elapsed_max = elapse(self.breaks, self.inner.nice_max)
 }
@@ -572,7 +607,29 @@ pub fn BreakLinearScale::ticks(
   self : BreakLinearScale,
   count : Int,
 ) -> Array[Tick] {
-  let step = self.inner.step(count)
+  // Compute step from ELAPSED span (as ECharts does via _getExtentSpanWithBreaks).
+  // This gives a small interval that makes sense for the non-break data density.
+  // <=> echarts/src/scale/helper.ts intervalScaleNiceTicks (spanWithBreaks version)
+  let elapsed_span = self.elapsed_max - self.elapsed_min
+  let step = if elapsed_span > 0.0 {
+    let rough_step = elapsed_span / count.to_double()
+    let power = f64_pow10(@math.log10(rough_step).floor().to_int())
+    let normalized = rough_step / power
+    (if normalized < 1.5 {
+      1.0
+    } else if normalized < 2.5 {
+      2.0
+    } else if normalized < 4.0 {
+      3.0
+    } else if normalized < 7.0 {
+      5.0
+    } else {
+      10.0
+    }) *
+    power
+  } else {
+    1.0
+  }
   let result : Array[Tick] = []
   let mut value = self.inner.nice_min
   let limit = self.inner.nice_max + step * 0.0001
