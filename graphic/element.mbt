@@ -5,7 +5,7 @@
 ///|
 /// Style applied to strokes (lines, borders).
 pub struct StrokeStyle {
-  color : Color
+  color : String
   width : Double
   dash : Array[Double]
   line_cap : String // "butt" | "round" | "square"
@@ -14,18 +14,24 @@ pub struct StrokeStyle {
 
 ///|
 pub impl Default for StrokeStyle with default() {
-  { color: black, width: 1.0, dash: [], line_cap: "butt", line_join: "miter" }
+  {
+    color: black.to_svg(),
+    width: 1.0,
+    dash: [],
+    line_cap: "butt",
+    line_join: "miter",
+  }
 }
 
 ///|
 /// Style applied to filled shapes.
 pub struct FillStyle {
-  color : Color
+  color : String
 }
 
 ///|
 pub impl Default for FillStyle with default() {
-  { color: black }
+  { color: black.to_svg() }
 }
 
 ///|
@@ -607,8 +613,13 @@ pub fn Element::line_colored(
   color_str : String,
   width : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
-  let stroke = { color, width, dash: [], line_cap: "butt", line_join: "miter" }
+  let stroke = {
+    color: color_str,
+    width,
+    dash: [],
+    line_cap: "butt",
+    line_join: "miter",
+  }
   Line({
     x1,
     y1,
@@ -632,8 +643,13 @@ pub fn Element::line_colored_dashed(
   dash : Array[Double],
   opacity : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
-  let stroke = { color, width, dash, line_cap: "butt", line_join: "miter" }
+  let stroke = {
+    color: color_str,
+    width,
+    dash,
+    line_cap: "butt",
+    line_join: "miter",
+  }
   Line({ x1, y1, x2, y2, stroke, opacity, meta: DisplayableMeta::default() })
 }
 
@@ -647,11 +663,16 @@ pub fn Element::text_colored(
   baseline : TextBaseline,
   color_str : String,
 ) -> Element {
-  let fill = Color::from_string(color_str).unwrap_or(black)
   let data = TextData::new(x, y, content)
     .with_anchor(anchor)
     .with_baseline(baseline)
-  Text({ ..data, style: { ..data.style, fill, } })
+  Text({
+    ..data,
+    style: {
+      ..data.style,
+      fill: Color::from_string(color_str).unwrap_or(black),
+    },
+  })
 }
 
 ///|
@@ -665,9 +686,8 @@ pub fn Element::text_title(
   anchor : TextAnchor,
   color_str : String,
 ) -> Element {
-  let fill = Color::from_string(color_str).unwrap_or(black)
   let style = {
-    fill,
+    fill: Color::from_string(color_str).unwrap_or(black),
     font_size: 18.0,
     font_family: "sans-serif",
     font_weight: "bold",
@@ -721,12 +741,11 @@ pub fn Element::rect_colored(
   h : Double,
   color_str : String,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Rect({
     bbox: BBox::new(x, y, w, h),
     rx: 0.0,
     ry: 0.0,
-    fill: Some({ color, }),
+    fill: Some({ color: color_str }),
     stroke: None,
     opacity: 1.0,
     meta: DisplayableMeta::default(),
@@ -742,12 +761,11 @@ pub fn Element::rect_colored_opacity(
   color_str : String,
   opacity : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Rect({
     bbox: BBox::new(x, y, w, h),
     rx: 0.0,
     ry: 0.0,
-    fill: Some({ color, }),
+    fill: Some({ color: color_str }),
     stroke: None,
     opacity,
     meta: DisplayableMeta::default(),
@@ -765,15 +783,13 @@ pub fn Element::rect_border(
   stroke_str : String,
   stroke_width : Double,
 ) -> Element {
-  let fill_color = Color::from_string(fill_str).unwrap_or(black)
-  let stroke_color = Color::from_string(stroke_str).unwrap_or(black)
   Rect({
     bbox: BBox::new(x, y, w, h),
     rx: 0.0,
     ry: 0.0,
-    fill: Some({ color: fill_color }),
+    fill: Some({ color: fill_str }),
     stroke: Some({
-      color: stroke_color,
+      color: stroke_str,
       width: stroke_width,
       dash: [],
       line_cap: "butt",
@@ -790,13 +806,12 @@ pub fn Element::polyline_stroked(
   points : Array[Point],
   color_str : String,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = {
-    color,
+    color: color_str,
     width: 2.0,
     dash: [],
-    line_cap: "round",
-    line_join: "round",
+    line_cap: "butt",
+    line_join: "bevel",
   }
   Polyline({
     points,
@@ -813,9 +828,8 @@ pub fn Element::polyline_leader(
   points : Array[Point],
   color_str : String,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = {
-    color,
+    color: color_str,
     width: 1.0,
     dash: [],
     line_cap: "butt",
@@ -838,12 +852,11 @@ pub fn Element::circle_colored(
   r : Double,
   color_str : String,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Circle({
     cx,
     cy,
     r,
-    fill: Some({ color, }),
+    fill: Some({ color: color_str }),
     stroke: None,
     opacity: 1.0,
     meta: DisplayableMeta::default(),
@@ -859,12 +872,11 @@ pub fn Element::circle_colored_opacity(
   color_str : String,
   opacity : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Circle({
     cx,
     cy,
     r,
-    fill: Some({ color, }),
+    fill: Some({ color: color_str }),
     stroke: None,
     opacity,
     meta: DisplayableMeta::default(),
@@ -881,9 +893,8 @@ pub fn Element::rect_outlined(
   color_str : String,
   stroke_width : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = {
-    color,
+    color: color_str,
     width: stroke_width,
     dash: [],
     line_cap: "butt",
@@ -908,9 +919,8 @@ pub fn Element::circle_stroked(
   r : Double,
   color_str : String,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = {
-    color,
+    color: color_str,
     width: 1.0,
     dash: [],
     line_cap: "butt",
@@ -937,15 +947,13 @@ pub fn Element::circle_fill_stroke(
   stroke_str : String,
   stroke_width : Double,
 ) -> Element {
-  let fill_color = Color::from_string(fill_str).unwrap_or(black)
-  let stroke_color = Color::from_string(stroke_str).unwrap_or(black)
   Circle({
     cx,
     cy,
     r,
-    fill: Some({ color: fill_color }),
+    fill: Some({ color: fill_str }),
     stroke: Some({
-      color: stroke_color,
+      color: stroke_str,
       width: stroke_width,
       dash: [],
       line_cap: "butt",
@@ -959,9 +967,8 @@ pub fn Element::circle_fill_stroke(
 ///|
 /// Path stroked with a CSS/hex color string.
 pub fn Element::path_stroked(d : String, color_str : String) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   let stroke = {
-    color,
+    color: color_str,
     width: 1.0,
     dash: [],
     line_cap: "butt",
@@ -983,8 +990,13 @@ pub fn Element::path_stroked_round(
   color_str : String,
   width : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
-  let stroke = { color, width, dash: [], line_cap: "round", line_join: "round" }
+  let stroke = {
+    color: color_str,
+    width,
+    dash: [],
+    line_cap: "round",
+    line_join: "round",
+  }
   Path({
     d,
     fill: None,
@@ -1001,10 +1013,9 @@ pub fn Element::path_filled(
   color_str : String,
   opacity : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Path({
     d: d.to_string(), // TODO: use StringView directly in PathData?
-    fill: Some({ color, }),
+    fill: Some({ color: color_str }),
     stroke: None,
     opacity,
     meta: DisplayableMeta::default(),
@@ -1020,13 +1031,11 @@ pub fn Element::path_fill_stroke(
   stroke_width : Double,
   opacity : Double,
 ) -> Element {
-  let fill = Color::from_string(fill_color_str).unwrap_or(black)
-  let stroke_c = Color::from_string(stroke_color_str).unwrap_or(black)
   Path({
     d,
-    fill: Some({ color: fill }),
+    fill: Some({ color: fill_color_str }),
     stroke: Some({
-      color: stroke_c,
+      color: stroke_color_str,
       width: stroke_width,
       dash: [],
       line_cap: "butt",
@@ -1048,7 +1057,7 @@ pub fn Element::polygon_stroked(
     points: pts,
     fill: None,
     stroke: Some({
-      color: stroke_color,
+      color: stroke_color.to_svg(),
       width: stroke_width,
       dash: [],
       line_cap: "butt",
@@ -1070,7 +1079,7 @@ pub fn Element::polygon_stroked_round(
     points: pts,
     fill: None,
     stroke: Some({
-      color: stroke_color,
+      color: stroke_color.to_svg(),
       width: stroke_width,
       dash: [],
       line_cap: "round",
@@ -1092,9 +1101,9 @@ pub fn Element::polygon_fill_stroke(
 ) -> Element {
   Polygon({
     points: pts,
-    fill: Some({ color: fill_color }),
+    fill: Some({ color: fill_color.to_svg() }),
     stroke: Some({
-      color: stroke_color,
+      color: stroke_color.to_svg(),
       width: stroke_width,
       dash: [],
       line_cap: "round",
@@ -1114,7 +1123,7 @@ pub fn Element::polygon_filled(
 ) -> Element {
   Polygon({
     points: pts,
-    fill: Some({ color: fill_color }),
+    fill: Some({ color: fill_color.to_svg() }),
     stroke: None,
     opacity,
     meta: DisplayableMeta::default(),
@@ -1132,15 +1141,13 @@ pub fn Element::rect_fill_stroke(
   stroke_color_str : String,
   stroke_width : Double,
 ) -> Element {
-  let fill = Color::from_string(fill_color_str).unwrap_or(black)
-  let stroke_c = Color::from_string(stroke_color_str).unwrap_or(black)
   Rect({
     bbox: BBox::new(x, y, w, h),
     rx: 0.0,
     ry: 0.0,
-    fill: Some({ color: fill }),
+    fill: Some({ color: fill_color_str }),
     stroke: Some({
-      color: stroke_c,
+      color: stroke_color_str,
       width: stroke_width,
       dash: [],
       line_cap: "butt",
@@ -1163,15 +1170,13 @@ pub fn Element::rect_fill_stroke_opacity(
   stroke_width : Double,
   opacity : Double,
 ) -> Element {
-  let fill = Color::from_string(fill_color_str).unwrap_or(black)
-  let stroke_c = Color::from_string(stroke_color_str).unwrap_or(black)
   Rect({
     bbox: BBox::new(x, y, w, h),
     rx: 0.0,
     ry: 0.0,
-    fill: Some({ color: fill }),
+    fill: Some({ color: fill_color_str }),
     stroke: Some({
-      color: stroke_c,
+      color: stroke_color_str,
       width: stroke_width,
       dash: [],
       line_cap: "butt",
@@ -1191,10 +1196,9 @@ pub fn Element::polyline_custom(
   line_cap : String,
   line_join : String,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Polyline({
     points,
-    stroke: { color, width, dash: [], line_cap, line_join },
+    stroke: { color: color_str, width, dash: [], line_cap, line_join },
     fill: transparent,
     opacity: 1.0,
     meta: DisplayableMeta::default(),
@@ -1214,12 +1218,18 @@ pub fn Element::text_custom(
   font_family : String,
   font_weight : String,
 ) -> Element {
-  let fill = Color::from_string(color_str).unwrap_or(black)
   Text({
     x,
     y,
     content,
-    style: { fill, font_size, font_family, font_weight, anchor, baseline },
+    style: {
+      fill: Color::from_string(color_str).unwrap_or(black),
+      font_size,
+      font_family,
+      font_weight,
+      anchor,
+      baseline,
+    },
     opacity: 1.0,
     meta: DisplayableMeta::default(),
   })
@@ -1235,10 +1245,9 @@ pub fn Element::polyline_custom_opacity(
   line_join : String,
   opacity : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Polyline({
     points,
-    stroke: { color, width, dash: [], line_cap, line_join },
+    stroke: { color: color_str, width, dash: [], line_cap, line_join },
     fill: transparent,
     opacity,
     meta: DisplayableMeta::default(),
@@ -1255,11 +1264,10 @@ pub fn Element::path_stroke_custom(
   line_join : String,
   opacity : Double,
 ) -> Element {
-  let color = Color::from_string(color_str).unwrap_or(black)
   Path({
     d,
     fill: None,
-    stroke: Some({ color, width, dash: [], line_cap, line_join }),
+    stroke: Some({ color: color_str, width, dash: [], line_cap, line_join }),
     opacity,
     meta: DisplayableMeta::default(),
   })

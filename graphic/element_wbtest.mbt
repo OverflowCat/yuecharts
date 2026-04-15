@@ -33,7 +33,7 @@ test "StrokeStyle default fields" {
 test "FillStyle default" {
   let f = FillStyle::default()
   // default fill is black
-  assert_eq(f.color.to_svg(), "#000000")
+  assert_eq(f.color, "#000000")
 }
 
 ///|

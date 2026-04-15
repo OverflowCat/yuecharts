@@ -124,6 +124,17 @@ fn geo_visual_map_color(
 }
 
 ///|
+fn scatter_series_color(
+  series : @option.SeriesOption,
+  series_index : Int,
+) -> String {
+  match series.geo_item_style.bind(style => style.color) {
+    Some(color) => color
+    None => series.color.unwrap_or(@visual.palette_color(series_index))
+  }
+}
+
+///|
 fn scatter_point(
   series : @option.SeriesOption,
   data_index : Int,
@@ -131,9 +142,10 @@ fn scatter_point(
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
   geo? : @coord.Geo? = None,
+  calendar? : @coord.Calendar? = None,
 ) -> @graphic.Point? {
-  match (series.coordinate_system, polar, geo) {
-    (Some("polar"), Some(p), _) =>
+  match (series.coordinate_system, polar, geo, calendar) {
+    (Some("polar"), Some(p), _, _) =>
       match item.value {
         Null => None
         Num(n) =>
@@ -155,7 +167,7 @@ fn scatter_point(
         DateValue(_, n) =>
           Some(p.data_to_point(Num(n), Num(data_index.to_double()), data_index))
       }
-    (Some("geo"), _, Some(g)) =>
+    (Some("geo"), _, Some(g), _) =>
       match item.value {
         Vec(arr) =>
           if arr.length() >= 2 {
@@ -164,6 +176,29 @@ fn scatter_point(
             None
           }
         _ => None
+      }
+    (Some("calendar"), _, _, Some(c)) =>
+      match item.value {
+        DateValue(date, _) => {
+          let point = c.data_to_point(date)
+          if point.x == point.x && point.y == point.y {
+            Some(point)
+          } else {
+            None
+          }
+        }
+        _ =>
+          match item.raw_value_parts {
+            Some([String(date), ..]) => {
+              let point = c.data_to_point(date)
+              if point.x == point.x && point.y == point.y {
+                Some(point)
+              } else {
+                None
+              }
+            }
+            _ => None
+          }
       }
     _ => {
       let x_idx = series.x_axis_index
@@ -241,14 +276,14 @@ pub fn render_scatter_series(
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
   geo? : @coord.Geo? = None,
+  calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
-  let default_color = series.color.unwrap_or(
-    @visual.palette_color(series_index),
-  )
+  let default_color = scatter_series_color(series, series_index)
   series.data
   .iter()
   .mapi(fn(di, item) {
-    if scatter_point(series, di, item, coord, polar~, geo~) is Some(point) {
+    if scatter_point(series, di, item, coord, polar~, geo~, calendar~)
+      is Some(point) {
       let color = geo_visual_map_color(opt, series_index, item).unwrap_or(
         default_color,
       )
@@ -279,6 +314,7 @@ pub fn render_scatters(
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
   geo? : @coord.Geo? = None,
+  calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut si = 0
@@ -293,6 +329,7 @@ pub fn render_scatters(
           coord,
           polar~,
           geo~,
+          calendar~,
         )
         elems.append(series_elems)
       }

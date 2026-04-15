@@ -37,15 +37,14 @@ pub fn render_effect_scatter_series(
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
   geo? : @coord.Geo? = None,
+  calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let default_color = series.color.unwrap_or(
-    @visual.palette_color(series_index),
-  )
+  let default_color = scatter_series_color(series, series_index)
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
-    match scatter_point(series, di, item, coord, polar~, geo~) {
+    match scatter_point(series, di, item, coord, polar~, geo~, calendar~) {
       Some(point) => {
         let color = geo_visual_map_color(opt, series_index, item).unwrap_or(
           default_color,
@@ -80,6 +79,7 @@ pub fn render_effect_scatters(
   coord : @coord.Cartesian2D,
   polar? : @coord.Polar? = None,
   geo? : @coord.Geo? = None,
+  calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut si = 0
@@ -90,7 +90,15 @@ pub fn render_effect_scatters(
       continue
     }
     elems.append(
-      render_effect_scatter_series(opt, series, si, coord, polar~, geo~),
+      render_effect_scatter_series(
+        opt,
+        series,
+        si,
+        coord,
+        polar~,
+        geo~,
+        calendar~,
+      ),
     )
     si += 1
   }

@@ -9,12 +9,110 @@
 // explicit piecewise legend path used by doc examples and regression fixtures.
 
 ///|
-fn vm_parse_pos(s : String) -> Double {
+/// <=> echarts/src/component/visualMap/VisualMapModel.ts (layout value parsing)
+fn vm_parse_pos(s : String, total : Double, fallback : Double) -> Double {
   if s == "" || s == "auto" {
-    0.0
+    fallback
+  } else if s.has_suffix("%") {
+    let pct_str = s[:s.length() - 1]
+    let parsed = try? @string.parse_double(pct_str.to_string())
+    match parsed {
+      Ok(pct) => total * pct / 100.0
+      Err(_) => fallback
+    }
   } else {
     let r = try? @string.parse_double(s)
-    r.unwrap_or(0.0)
+    r.unwrap_or(fallback)
+  }
+}
+
+///|
+/// <=> echarts/src/component/visualMap/VisualMapView.ts:positionGroup
+fn vm_resolve_start_x(
+  left : String?,
+  right : String?,
+  total : Double,
+  content : Double,
+  padding : Double,
+) -> Double {
+  match left {
+    Some(l) =>
+      match l {
+        "left" => padding
+        "center" | "middle" => (total - content) * 0.5
+        "right" => total - content - padding
+        _ => vm_parse_pos(l, total, 0.0) + padding
+      }
+    None =>
+      match right {
+        Some(r) => total - vm_parse_pos(r, total, 0.0) - padding - content
+        None => padding
+      }
+  }
+}
+
+///|
+/// <=> echarts/src/component/visualMap/VisualMapView.ts:positionGroup
+fn vm_resolve_start_y(
+  top : String?,
+  bottom : String?,
+  total : Double,
+  content : Double,
+  padding : Double,
+) -> Double {
+  match top {
+    Some(t) =>
+      match t {
+        "top" => padding
+        "middle" | "center" => (total - content) * 0.5
+        "bottom" => total - content - padding
+        _ => vm_parse_pos(t, total, 0.0) + padding
+      }
+    None =>
+      match bottom {
+        Some(b) => total - vm_parse_pos(b, total, 0.0) - padding - content
+        None => total - padding - content
+      }
+  }
+}
+
+///|
+/// <=> echarts/src/component/visualMap/helper.ts:getItemAlign
+fn vm_resolve_item_align(
+  vm : @option.VisualMapOption,
+  width : Double,
+  start_x : Double,
+  total_w : Double,
+) -> String {
+  match vm.align {
+    "left" => "left"
+    "right" => "right"
+    _ =>
+      if vm.orient == "horizontal" {
+        "left"
+      } else if start_x + total_w * 0.5 < width * 0.5 {
+        "left"
+      } else {
+        "right"
+      }
+  }
+}
+
+///|
+/// <=> echarts/src/component/visualMap/ContinuousView.ts:_renderEndsText
+fn vm_continuous_end_text(
+  vm : @option.VisualMapOption,
+  end_index : Int,
+) -> String {
+  if vm.text.length() == 0 {
+    ""
+  } else {
+    let idx = 1 - end_index
+    if idx >= 0 && idx < vm.text.length() {
+      vm.text[idx]
+    } else {
+      ""
+    }
   }
 }
 
@@ -579,17 +677,6 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
       continue
     }
     if vm_is_piecewise(vm) {
-      let item_align = if vm.orient == "vertical" {
-        match vm.align {
-          "right" => "right"
-          _ => "left"
-        }
-      } else {
-        match vm.align {
-          "right" => "right"
-          _ => "left"
-        }
-      }
       let show_ends = vm.text.length() >= 2
       let show_label = match vm.show_label {
         Some(v) => v
@@ -629,16 +716,21 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
         }
         j += 1
       }
-      let start_x = match (vm.left, vm.right) {
-        (Some(l), _) => vm_parse_pos(l) + padding
-        (None, Some(r)) => width - vm_parse_pos(r) - padding - total_w
-        (None, None) => padding
-      }
-      let start_y = match (vm.top, vm.bottom) {
-        (Some(t), _) => vm_parse_pos(t) + padding
-        (None, Some(b)) => height - vm_parse_pos(b) - padding - total_h
-        (None, None) => height - padding - total_h
-      }
+      let start_x = vm_resolve_start_x(
+        vm.left,
+        vm.right,
+        width,
+        total_w,
+        padding,
+      )
+      let start_y = vm_resolve_start_y(
+        vm.top,
+        vm.bottom,
+        height,
+        total_h,
+        padding,
+      )
+      let item_align = vm_resolve_item_align(vm, width, start_x, total_w)
       let mut cursor = 0.0
       let mut k = 0
       while k < view_items.length() {
@@ -673,15 +765,20 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
       let bar_w = if is_horizontal { item_h } else { item_w }
       let bar_h = if is_horizontal { item_w } else { item_h }
       let colors = vm_primary_colors(vm)
-      let bar_x = match (vm.left, vm.right) {
-        (Some(l), _) => vm_parse_pos(l) + padding
-        (None, Some(r)) => width - vm_parse_pos(r) - padding - bar_w
-        (None, None) => padding
-      }
-      let bar_y = match (vm.top, vm.bottom) {
-        (Some(t), _) => vm_parse_pos(t) + padding + text_gap + font_size
-        (None, Some(b)) => height - vm_parse_pos(b) - padding - bar_h
-        (None, None) => height - padding - bar_h
+      let bar_x = vm_resolve_start_x(vm.left, vm.right, width, bar_w, padding)
+      let bar_y = match vm.top {
+        Some(t) =>
+          match t {
+            "top" => padding + text_gap + font_size
+            "middle" | "center" => (height - bar_h) * 0.5
+            "bottom" => height - padding - bar_h
+            _ => vm_parse_pos(t, height, 0.0) + padding + text_gap + font_size
+          }
+        None =>
+          match vm.bottom {
+            Some(b) => height - vm_parse_pos(b, height, 0.0) - padding - bar_h
+            None => height - padding - bar_h
+          }
       }
       vm_render_gradient_bar(
         elems, colors, bar_x, bar_y, bar_w, bar_h, is_horizontal,
@@ -739,6 +836,58 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
             vm_label_color(vm, default_label_color),
           ),
         )
+      }
+      let top_text = vm_continuous_end_text(vm, 0)
+      if top_text != "" {
+        if is_horizontal {
+          elems.push(
+            @graphic.Element::text_colored(
+              bar_x,
+              bar_y - text_gap - font_size,
+              top_text,
+              @graphic.TextAnchor::Start,
+              @graphic.TextBaseline::Central,
+              vm_label_color(vm, default_label_color),
+            ),
+          )
+        } else {
+          elems.push(
+            @graphic.Element::text_colored(
+              bar_x + bar_w / 2.0,
+              bar_y - text_gap - font_size,
+              top_text,
+              @graphic.TextAnchor::Middle,
+              @graphic.TextBaseline::Central,
+              vm_label_color(vm, default_label_color),
+            ),
+          )
+        }
+      }
+      let bottom_text = vm_continuous_end_text(vm, 1)
+      if bottom_text != "" {
+        if is_horizontal {
+          elems.push(
+            @graphic.Element::text_colored(
+              bar_x + bar_w,
+              bar_y - text_gap - font_size,
+              bottom_text,
+              @graphic.TextAnchor::End,
+              @graphic.TextBaseline::Central,
+              vm_label_color(vm, default_label_color),
+            ),
+          )
+        } else {
+          elems.push(
+            @graphic.Element::text_colored(
+              bar_x + bar_w / 2.0,
+              bar_y + bar_h + text_gap + font_size,
+              bottom_text,
+              @graphic.TextAnchor::Middle,
+              @graphic.TextBaseline::Central,
+              vm_label_color(vm, default_label_color),
+            ),
+          )
+        }
       }
     }
     i += 1

@@ -783,6 +783,7 @@ priv struct BarResolvedStyle {
   opacity : Double
   border_color : String?
   border_width : Double
+  border_radius : Array[Double]? // [tl, tr, br, bl]
 }
 
 ///|
@@ -811,7 +812,11 @@ fn bar_resolve_data_style(
   let border_width = item_style
     .bind(style => style.border_width)
     .unwrap_or(series_border_width)
-  { fill_color, opacity, border_color, border_width }
+  let border_radius = match item_style.bind(style => style.border_radius) {
+    Some(v) => Some(v)
+    None => series.geo_item_style.bind(style => style.border_radius)
+  }
+  { fill_color, opacity, border_color, border_width, border_radius }
 }
 
 ///|
@@ -830,12 +835,105 @@ fn bar_resolve_background_style(
     opacity: background_style.opacity.unwrap_or(1.0),
     border_color: background_style.border_color,
     border_width: background_style.border_width.unwrap_or(0.0),
+    border_radius: None,
   }
 }
 
 ///|
 fn bar_rect_path(x : Double, y : Double, w : Double, h : Double) -> String {
   "M\{bar_r1(x)} \{bar_r1(y)}l\{bar_r1(w)} 0l0 \{bar_r1(h)}l\{bar_r1(-w)} 0Z"
+}
+
+///|
+/// Rounded-rectangle SVG path with per-corner radii, mirroring zrender Rect `r`.
+/// r = [tl, tr, br, bl] applied to the bounding box corners (CSS order).
+/// Works for any sign of w/h by normalising to a positive-dimension bbox first.
+fn bar_rounded_rect_path(
+  x : Double,
+  y : Double,
+  w : Double,
+  h : Double,
+  r : Array[Double],
+) -> String {
+  // Normalise to positive-dimension bounding box
+  let x0 = if w >= 0.0 { x } else { x + w }
+  let y0 = if h >= 0.0 { y } else { y + h }
+  let rw = w.abs()
+  let rh = h.abs()
+  // Expand r shorthand to 4 values (CSS convention)
+  let n = r.length()
+  let r0 = r[0]
+  let r1 = if n > 1 { r[1] } else { r[0] }
+  let r2 = if n > 2 { r[2] } else { r[0] }
+  let r3 = if n > 3 { r[3] } else if n > 1 { r[1] } else { r[0] }
+  // Clamp each radius so corners don't overlap
+  let half_w = rw / 2.0
+  let half_h = rh / 2.0
+  let r_tl = r0.min(half_w).min(half_h)
+  let r_tr = r1.min(half_w).min(half_h)
+  let r_br = r2.min(half_w).min(half_h)
+  let r_bl = r3.min(half_w).min(half_h)
+  if r_tl == 0.0 && r_tr == 0.0 && r_br == 0.0 && r_bl == 0.0 {
+    return bar_rect_path(x, y, w, h)
+  }
+  let x1 = x0 + rw
+  let y1 = y0 + rh
+  let buf = StringBuilder::new()
+  // Start on top edge just right of TL corner, draw clockwise
+  buf.write_string("M\{bar_r1(x0 + r_tl)} \{bar_r1(y0)}")
+  // Top edge → TR corner
+  if r_tr > 0.0 {
+    buf.write_string("L\{bar_r1(x1 - r_tr)} \{bar_r1(y0)}")
+    buf.write_string(
+      "A\{bar_r1(r_tr)} \{bar_r1(r_tr)} 0 0 1 \{bar_r1(x1)} \{bar_r1(y0 + r_tr)}",
+    )
+  } else {
+    buf.write_string("L\{bar_r1(x1)} \{bar_r1(y0)}")
+  }
+  // Right edge → BR corner
+  if r_br > 0.0 {
+    buf.write_string("L\{bar_r1(x1)} \{bar_r1(y1 - r_br)}")
+    buf.write_string(
+      "A\{bar_r1(r_br)} \{bar_r1(r_br)} 0 0 1 \{bar_r1(x1 - r_br)} \{bar_r1(y1)}",
+    )
+  } else {
+    buf.write_string("L\{bar_r1(x1)} \{bar_r1(y1)}")
+  }
+  // Bottom edge → BL corner
+  if r_bl > 0.0 {
+    buf.write_string("L\{bar_r1(x0 + r_bl)} \{bar_r1(y1)}")
+    buf.write_string(
+      "A\{bar_r1(r_bl)} \{bar_r1(r_bl)} 0 0 1 \{bar_r1(x0)} \{bar_r1(y1 - r_bl)}",
+    )
+  } else {
+    buf.write_string("L\{bar_r1(x0)} \{bar_r1(y1)}")
+  }
+  // Left edge → TL corner
+  if r_tl > 0.0 {
+    buf.write_string("L\{bar_r1(x0)} \{bar_r1(y0 + r_tl)}")
+    buf.write_string(
+      "A\{bar_r1(r_tl)} \{bar_r1(r_tl)} 0 0 1 \{bar_r1(x0 + r_tl)} \{bar_r1(y0)}",
+    )
+  } else {
+    buf.write_string("L\{bar_r1(x0)} \{bar_r1(y0)}")
+  }
+  buf.write_string("Z")
+  buf.to_string()
+}
+
+///|
+/// Choose between a plain rect path and a rounded rect path based on style.
+fn bar_style_rect_path(
+  x : Double,
+  y : Double,
+  w : Double,
+  h : Double,
+  border_radius : Array[Double]?,
+) -> String {
+  match border_radius {
+    Some(r) if r.length() > 0 => bar_rounded_rect_path(x, y, w, h, r)
+    _ => bar_rect_path(x, y, w, h)
+  }
 }
 
 ///|
@@ -1005,6 +1103,7 @@ fn bar_render_series_cartesian_large_impl(
               opacity: bar_opacity,
               border_color: None,
               border_width: 0.0,
+              border_radius: None,
             }).with_ecmeta_attr("series_index", series_order.to_string()),
           )
           fg_buf = StringBuilder::new()
@@ -1029,6 +1128,7 @@ fn bar_render_series_cartesian_large_impl(
             opacity: bar_opacity,
             border_color: None,
             border_width: 0.0,
+            border_radius: None,
           }).with_ecmeta_attr("series_index", series_order.to_string()),
         )
       }
@@ -1224,6 +1324,7 @@ fn bar_render_series_cartesian_large_impl(
                   opacity: bar_opacity,
                   border_color: None,
                   border_width: 0.0,
+                  border_radius: None,
                 }).with_ecmeta_attr("series_index", series_order.to_string()),
               ]
               elems.push(@graphic.Element::group_clipped(children, coord.bbox))
@@ -1274,6 +1375,7 @@ fn bar_render_series_cartesian_large_impl(
               opacity: bar_opacity,
               border_color: None,
               border_width: 0.0,
+              border_radius: None,
             }).with_ecmeta_attr("series_index", series_order.to_string()),
           ]
           elems.push(@graphic.Element::group_clipped(children, coord.bbox))
@@ -1695,7 +1797,7 @@ fn bar_render_series_cartesian_impl(
         let top_value = base_value + value
         let top_y = coord.num_y(y_idx, top_value)
         let base_coord = coord.num_y(y_idx, base_value)
-        let bar_h = top_y - base_y
+        let bar_h = top_y - base_coord
         if stack_state_index >= 0 {
           let stack_coord = cartesian_stack_states[stack_state_index].coords[di -
             1]
@@ -1714,7 +1816,13 @@ fn bar_render_series_cartesian_impl(
         }
         elems.push(
           bar_render_path(
-            bar_rect_path(bar_x, base_coord, render_bar_w, bar_h),
+            bar_style_rect_path(
+              bar_x,
+              base_coord,
+              render_bar_w,
+              bar_h,
+              style.border_radius,
+            ),
             style,
           )
           .with_ecmeta_attr("series_index", series_order.to_string())
@@ -1857,7 +1965,13 @@ fn bar_render_series_cartesian_impl(
               }
               elems.push(
                 bar_render_path(
-                  bar_rect_path(base_coord, bar_y, bar_w, render_bar_h),
+                  bar_style_rect_path(
+                    base_coord,
+                    bar_y,
+                    bar_w,
+                    render_bar_h,
+                    style.border_radius,
+                  ),
                   style,
                 )
                 .with_ecmeta_attr("series_index", series_order.to_string())
@@ -1904,7 +2018,16 @@ fn bar_render_series_cartesian_impl(
           let top_y = coord.num_y(y_idx, y_val)
           let bar_h = top_y - base_y
           elems.push(
-            bar_render_path(bar_rect_path(bar_x, base_y, bar_w, bar_h), style)
+            bar_render_path(
+              bar_style_rect_path(
+                bar_x,
+                base_y,
+                bar_w,
+                bar_h,
+                style.border_radius,
+              ),
+              style,
+            )
             .with_ecmeta_attr("series_index", series_order.to_string())
             .with_ecmeta_attr("data_index", (di - 1).to_string())
             .with_ecmeta_attr("ssr_type", "chart"),

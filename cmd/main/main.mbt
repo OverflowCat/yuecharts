@@ -10,15 +10,51 @@ fn main {
 }
 
 ///|
-/// Read all bytes from stdin until EOF, returning the result as a String.
+/// Read all bytes from stdin until EOF, decoding UTF-8 into a Unicode String.
 fn read_stdin() -> String {
   let buf = StringBuilder::new()
   while true {
-    let ch = getchar()
-    if ch == -1 {
+    let b1 = getchar()
+    if b1 == -1 {
       break
     }
-    buf.write_char(ch.unsafe_to_char())
+    if b1 < 0x80 {
+      // single-byte ASCII
+      buf.write_char(b1.unsafe_to_char())
+    } else if b1 >= 0xF0 {
+      // 4-byte UTF-8 sequence
+      let b2 = getchar()
+      let b3 = getchar()
+      let b4 = getchar()
+      if b2 == -1 || b3 == -1 || b4 == -1 {
+        break
+      }
+      let cp = ((b1 & 0x07) << 18) |
+        ((b2 & 0x3F) << 12) |
+        ((b3 & 0x3F) << 6) |
+        (b4 & 0x3F)
+      buf.write_char(cp.unsafe_to_char())
+    } else if b1 >= 0xE0 {
+      // 3-byte UTF-8 sequence (includes CJK)
+      let b2 = getchar()
+      let b3 = getchar()
+      if b2 == -1 || b3 == -1 {
+        break
+      }
+      let cp = ((b1 & 0x0F) << 12) | ((b2 & 0x3F) << 6) | (b3 & 0x3F)
+      buf.write_char(cp.unsafe_to_char())
+    } else if b1 >= 0xC0 {
+      // 2-byte UTF-8 sequence
+      let b2 = getchar()
+      if b2 == -1 {
+        break
+      }
+      let cp = ((b1 & 0x1F) << 6) | (b2 & 0x3F)
+      buf.write_char(cp.unsafe_to_char())
+    } else {
+      // continuation byte without leader (malformed), pass through
+      buf.write_char(b1.unsafe_to_char())
+    }
   }
   buf.to_string()
 }

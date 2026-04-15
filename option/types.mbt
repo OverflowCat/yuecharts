@@ -276,6 +276,7 @@ pub(all) struct GeoItemStylePatchOption {
   border_color : String?
   border_width : Double?
   opacity : Double?
+  border_radius : Array[Double]? // [tl, tr, br, bl] per-corner radii
 }
 
 ///|
@@ -286,6 +287,7 @@ pub impl Default for GeoItemStylePatchOption with default() {
     border_color: None,
     border_width: None,
     opacity: None,
+    border_radius: None,
   }
 }
 
@@ -1020,6 +1022,7 @@ pub fn SeriesOption::default_bar() -> SeriesOption {
       border_color: None,
       border_width: Some(0.0),
       opacity: Some(1.0),
+      border_radius: None,
     }),
   }
 }

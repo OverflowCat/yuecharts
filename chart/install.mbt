@@ -53,7 +53,13 @@ struct ScatterChartView {}
 
 ///|
 pub impl @core.ChartViewLike for ScatterChartView with render(_self, ctx) {
-  render_scatters(ctx.option, ctx.coord, polar=ctx.polar, geo=ctx.geo)
+  render_scatters(
+    ctx.option,
+    ctx.coord,
+    polar=ctx.polar,
+    geo=ctx.geo,
+    calendar=ctx.calendar,
+  )
 }
 
 ///|
@@ -61,7 +67,13 @@ struct EffectScatterChartView {}
 
 ///|
 pub impl @core.ChartViewLike for EffectScatterChartView with render(_self, ctx) {
-  render_effect_scatters(ctx.option, ctx.coord, polar=ctx.polar, geo=ctx.geo)
+  render_effect_scatters(
+    ctx.option,
+    ctx.coord,
+    polar=ctx.polar,
+    geo=ctx.geo,
+    calendar=ctx.calendar,
+  )
 }
 
 ///|
