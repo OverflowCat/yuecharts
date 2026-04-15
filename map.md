@@ -29,71 +29,6 @@ Excluded on purpose:
   - `partial`: the logic is merged into a broader `.mbt` file, or only a subset
     of the TS behavior exists
 
-## 2026-04-03 Polar Radius Axis Note
-
-- `coord/polar.mbt` now covers the current static subset of linear polar tick-to-coordinate mapping from `Polar.ts` / `RadiusAxis.ts`, so rendered tick positions use axis coordinates rather than raw data values.
-- `component/axis.mbt` now covers the current static subset of `RadiusAxisView.ts` / `AxisBuilder.ts` for radius-axis tick and label placement: both are offset along the axis normal (perpendicular to the axis line) instead of by increasing the radius.
-- Related blackbox coverage now includes a polar bar fixture that asserts `radiusAxis` split circles at `r=40/80/120/160` and label offsets at `x=292` for the default top-start axis.
-
-## 2026-04-04 Polar Bar Note
-
-- `chart/bar.mbt` now covers the current static subset of upstream `layout/barPolar.ts` for polar bar width/offset calculation, stack grouping, category-vs-value axis inference, `barMinHeight` / `barMinAngle`, and the radial/tangential sector geometry used by the polar bar fixtures.
-- `chart/bar.mbt` now additionally covers the upstream `roundCap` bar path on tangential polar bars, including the `Sausage`-style end caps and item-level `borderColor` / `borderWidth` / `opacity` handling used by `polar-roundCap.ts`.
-- `chart/bar.mbt` now additionally covers the upstream bar background path on both cartesian and polar bars, including the default `rgba(180, 180, 180, 0.2)` background fill and silent background elements used by `bar-background.ts`.
-- Related comparison fixtures now include `examples/polar-bar.json`, `examples/polar-bar-stack.json`, `examples/polar-bar-real-estate.json`, `examples/polar-roundCap.json`, and `examples/bar-background.json`, each with MoonBit output plus an upstream JS reference SVG.
-- `layout/barPolar.ts => chart/bar.mbt [partial]` remains the right landing spot for the remaining polar bar fidelity work: animation/update flow and SSR-style structural parity.
-
-## 2026-04-05 SVG Attr Normalization Note
-
-- `graphic/color.mbt` now exposes `Color::to_svg_attr()` and `Color::svg_opacity()` so `svg/painter.mbt` can split semi-transparent colors into a base SVG color plus `fill-opacity` / `stroke-opacity`, matching the upstream `zrender/src/svg/mapStyleToAttrs.ts` normalization for `rgba(...)` inputs.
-- `svg/painter.mbt` now uses that split for fill/stroke/text attrs in both the string renderer and the XML-node bridge, and it also emits the current static hover CSS classes plus `pointer-events="visible"` for none-filled / none-stroked displayables.
-- `examples/bar-background.json` now renders background bars as `fill="rgb(180,180,180)" fill-opacity="0.2"` instead of a raw `rgba(...)` fill attr, and the updated `bar.json` / `mixed.json` snapshots now use the current `zr0-cls-*` hover class scheme.
-- The remaining SVG parity gap is now mostly the upstream animation defs / refresh flow and the broader DOM-mode root wrapper details.
-
-## 2026-04-07 Geo RegisterMap Update
-
-- `coord/geo_source_manager.mbt` now keeps a module-level geo resource registry and searches from the end so later registrations override earlier ones, matching the upstream `HashMap.set(...)` behavior in `geoSourceManager.ts`.
-- `yuecharts.mbt` now exposes a static `register_map` / `get_map` pair backed by that registry, so registered GeoJSON resources can feed `Geo::build` without an inline `maps` block.
-- `option/parse.mbt` now accepts both `maps[].geoJSON` and the `geoJson` compatibility alias when building `MapRegistryOption`.
-- `coord/geo.mbt` now also covers the static `geoCreator.ts` layout frame path for `layoutCenter/layoutSize` and `left/top/right/bottom/width/height`, so `Geo::build` can honor the current box-layout subset for both top-level `geo` and exclusive `series.map`.
-- `coord/geo.mbt` now also carries the static `Geo.ts` roam anchor subset (`center` / `zoom`) and applies it in `Geo::data_to_point`, so top-level `geo` and exclusive `series.map` both honor the resolved raw-center roam transform in the static path.
-- `coord/geo.mbt` now also honors `boundingCoords` before roam, matching the upstream `resizeGeo` priority order and keeping `aspectScale` limited to layout aspect computation.
-- `coord/geo.mbt` now threads `nameProperty` through `GeoJSONResource` loading, so custom geoJSON property names now resolve region names like upstream `parseGeoJson.ts` / `MapSeries.ts`.
-- `GeoJSONResource.ts` is now translated into `coord/geo_json_resource.mbt`, and `GeoSVGResource.ts` still exists in a partial static-loading form. The remaining geo gap is mostly projection support and the interactive roam/resize behavior around `geoCreator.ts` / `Geo.ts`.
-
-## 2026-04-08 Map Symbol Layout Update
-
-- `chart/map.mbt` now preserves each map series' `original_data` before `mapDataStatistic` rewrites `data`, matching the upstream `mapDataStatistic.ts` split between raw and aggregated series data.
-- `chart/map.mbt` now also carries the static `mapSymbolLayout.ts` subset that depends on `showLegendSymbol` and `legend` existence: legend-enabled map groups collect symbol offsets from `original_data`, and region labels stay gated by whether a legend symbol already occupies that region.
-- The next map gap is still the fuller `MapDraw.ts` / `GeoView` event, tooltip, and hover wiring plus the remaining projection / SVG resource work.
-
-## 2026-04-09 Runtime / SingleAxis Update
-
-- `core/coordinate_system.mbt` now carries the current static subset of upstream `core/CoordinateSystem.ts` / `coord/CoordinateSystem.ts`: a minimal coordinate-system creator registry split into normal vs non-series-box creators, plus the current `create()` / `get()` dispatch used by the top-level renderer.
-- `layout/install.mbt` now registers built-in `cartesian2d` / `polar` / `parallel` / `geo` / `calendar` / `single` / `view` creators into that runtime registry instead of leaving coordinate-system construction hardcoded in `yuecharts.mbt`.
-- `data/source.mbt`, `data/data_store.mbt`, and `data/series_data.mbt` now cover the current static subset of `Source.ts` / `DataStore.ts` / `SeriesData.ts` for original `series.data` input: raw-item storage, shallow source cloning, numeric dimension extraction, and lightweight `SeriesData::from_series(...)` wrapping.
-
-## 2026-04-09 View / Sankey Update
-
-- `coord/view.mbt` now carries the current static subset of upstream `coord/View.ts` plus the `util/layout.ts#getLayoutRect(...)` box-layout path needed by implemented `view` charts.
-  - Current coverage includes sankey layout-frame resolution, initial `center` / `zoom` roam transform, `data_to_point`, `point_to_data`, `contain_point`, and `get_view_rect_after_roam()`.
-- `layout/install.mbt`, `core/coordinate_system.mbt`, `core/registry.mbt`, and `yuecharts.mbt` now thread `view` coordinate systems through the runtime registry.
-  - `chart/sankey.mbt` now consumes that runtime `view` and projects node / edge / label geometry through it instead of only adding `box.x` / `box.y`.
-- `option/parse.mbt` now preserves chart-type default `series.coordinateSystem` values when the option omits that field, matching the upstream model-default merge path.
-- `coord/single.mbt` now additionally carries the current static subset of `singleAxisHelper.ts` / `prepareCustom.ts`, including layout direction metadata, `dataToPoint` / `pointToData` / `containPoint`, and `prepare_custom()` metadata for the single-axis runtime.
-- `component/axis.mbt` now owns the current static subset of `SingleAxisView.ts`, so single-axis ticks / labels / split lines render through the component layer rather than through `chart/themeRiver.mbt` private helpers.
-
-## 2026-04-02 Tree Note
-
-- `chart/tree.mbt` now covers the current static subset of `TreeSeries.ts` / `TreeView.ts` leaves-parentModel inheritance, per-node `itemStyle` / `label` / `lineStyle` / `symbolSize` overrides, radial label rotation, and `empty*` vs non-`empty*` tree symbol color semantics.
-- Related comparison fixtures now include `examples/tree-leaves.json`, `examples/tree-radial.json`, and `examples/tree-symbols.json`.
-  - `missing`: no real port exists yet
-
-## 2026-04-02 Sankey Note
-
-- `chart/sankey.mbt` now covers the current static subset of `SankeySeries.ts` / `sankeyLayout.ts` / `SankeyView.ts` / `sankeyVisual.ts` for DAG node-edge construction, node value aggregation, breadth/depth layout, horizontal/vertical rendering, `nodeAlign`, series/level node and edge style inheritance, and static labels.
-- Related comparison fixtures now include `examples/sankey.json`, `examples/sankey-vertical.json`, and `examples/sankey-levels.json`.
-
 ## Current yuecharts tree
 
 ```text
@@ -114,10 +49,13 @@ E:\yuecharts
 │   ├── effect_scatter.mbt
 │   ├── funnel.mbt
 │   ├── gauge.mbt
+│   ├── graph.mbt
 │   ├── heatmap.mbt
 │   ├── install.mbt
 │   ├── line.mbt
 │   ├── lines.mbt
+│   ├── map.mbt
+│   ├── parallel.mbt
 │   ├── pictorial_bar.mbt
 │   ├── pie.mbt
 │   ├── radar.mbt
@@ -141,7 +79,8 @@ E:\yuecharts
 │   ├── legend.mbt
 │   ├── matrix.mbt
 │   ├── parallel.mbt
-│   └── title.mbt
+│   ├── title.mbt
+│   └── visual_map.mbt
 ├── core
 │   ├── moon.pkg
 │   ├── coordinate_system.mbt
@@ -158,7 +97,9 @@ E:\yuecharts
 │   ├── calendar.mbt
 │   ├── cartesian.mbt
 │   ├── geo.mbt
+│   ├── geo_json_resource.mbt
 │   ├── geo_source_manager.mbt
+│   ├── geo_svg_resource.mbt
 │   ├── geo_wbtest.mbt
 │   ├── matrix.mbt
 │   ├── parallel.mbt
@@ -179,37 +120,57 @@ E:\yuecharts
 │   ├── moon.pkg
 │   ├── grid.mbt
 │   ├── grid_wbtest.mbt
-│   └── install.mbt
+│   ├── install.mbt
+│   └── polar.mbt
 ├── option
 │   ├── moon.pkg
 │   ├── parse.mbt
-│   └── types.mbt
+│   ├── types.mbt
+│   └── visual_map_wbtest.mbt
 ├── examples
 │   ├── aria-template.json / .svg / .ref.svg
 │   ├── bar.json / .svg / .ref.svg
 │   ├── bar-background.json / .svg / .ref.svg
+│   ├── bar-polar-stack-radial.json
+│   ├── bar-stack-normalization.json
 │   ├── boxplot.json / .svg / .ref.svg
+│   ├── calendar.json / .svg / .ref.svg
+│   ├── calendar-simple.json / .svg / .ref.svg
 │   ├── candlestick.json / .svg / .ref.svg
+│   ├── candlestick-sh.json
 │   ├── chord.json / .svg / .ref.svg
 │   ├── chord-minAngle.json / .svg / .ref.svg
 │   ├── donut.json / .svg
 │   ├── effectscatter.json / .svg / .ref.svg
-│   ├── funnel.json / .svg / .ref.svg
+│   ├── funnel.json / .svg
+│   ├── funnel-align.json
 │   ├── gauge.json / .svg
+│   ├── gauge-multi-title.json
+│   ├── geo-choropleth-scatter.json / .svg
+│   ├── geo-compressed.json
+│   ├── geo-hole.json
+│   ├── geo-lines.json
+│   ├── geo-map-statistic.json
+│   ├── geo-multiline.json
+│   ├── geo-regions-namemap.json
+│   ├── geo-specialareas.json
+│   ├── graph-webkit-dep.json
 │   ├── heatmap.json / .svg / .ref.svg
 │   ├── line.json / .svg / .ref.svg
 │   ├── lines-cartesian.json / .svg / .ref.svg
 │   ├── lines-flat.json / .svg / .ref.svg
+│   ├── lines-labels.json / .svg / .ref.svg
 │   ├── lines-polar.json / .svg / .ref.svg
 │   ├── lines-polar-clip.json / .svg / .ref.svg
-│   ├── lines-labels.json / .svg / .ref.svg
 │   ├── lines-symbols.json / .svg / .ref.svg
+│   ├── map-standalone.json
+│   ├── matrix.json / .svg / .ref.svg
+│   ├── matrix-mbti.json / .svg / .ref.svg
+│   ├── matrix-merge.json
+│   ├── matrix-periodic-table.json
 │   ├── mixed.json / .svg / .ref.svg
 │   ├── multibar.json / .svg
-│   ├── polar-bar.json / .svg / .ref.svg
-│   ├── polar-bar-stack.json / .svg / .ref.svg
-│   ├── polar-bar-real-estate.json / .svg / .ref.svg
-│   ├── polar-roundCap.json / .svg / .ref.svg
+│   ├── parallel.json / .svg / .ref.svg
 │   ├── pictorialbar.json / .svg / .ref.svg
 │   ├── pictorialbar-body-fill.json / .svg / .ref.svg
 │   ├── pictorialbar-clip.json / .svg / .ref.svg
@@ -218,20 +179,35 @@ E:\yuecharts
 │   ├── pictorialbar-path-dup.json / .svg / .ref.svg
 │   ├── pictorialbar-symbolsize.json / .svg / .ref.svg
 │   ├── pie.json / .svg
-│   ├── pie-legend-selected.json
+│   ├── pie-legend-selected.json / .svg
 │   ├── js
 │   │   └── polar-line2.js
+│   ├── polar-bar.json / .svg / .ref.svg
+│   ├── polar-bar-real-estate.json / .svg / .ref.svg
+│   ├── polar-bar-stack.json / .svg / .ref.svg
+│   ├── polar-line.json / .svg / .ref.svg
+│   ├── polar-line2.svg / .ref.svg
 │   ├── polar-line2.jsgen.svg / .jsgen.ref.svg
-│   ├── parallel.json / .svg / .ref.svg
+│   ├── polar-roundCap.json / .svg / .ref.svg
+│   ├── polar-scatter.json / .svg / .ref.svg
 │   ├── radar.json / .svg
+│   ├── radar2.json / .svg / .ref.svg
 │   ├── sankey.json / .svg / .ref.svg
 │   ├── sankey-levels.json / .svg / .ref.svg
 │   ├── sankey-vertical.json / .svg / .ref.svg
-│   ├── scatter-anscombe-quartet.json / .svg / .ref.svg
 │   ├── scatter.json / .svg / .ref.svg
+│   ├── scatter-anscombe-quartet.json / .svg / .ref.svg
 │   ├── sunburst.json / .svg / .echarts.svg
+│   ├── sunburst-visualMap.json
 │   ├── themeRiver-lastfm.json / .svg / .ref.svg
-│   └── treemap.json / .svg / .ref.svg
+│   ├── tree.json / .svg / .ref.svg
+│   ├── tree-leaves.json / .svg / .ref.svg
+│   ├── tree-polyline-simple.json
+│   ├── tree-radial.json / .svg / .ref.svg
+│   ├── tree-symbols.json / .svg / .ref.svg
+│   ├── tree-vertical.json
+│   ├── treemap.json / .svg / .ref.svg
+│   └── treemap-show-parent.json / .svg / .ref.svg
 ├── scale
 │   ├── moon.pkg
 │   ├── linear.mbt
