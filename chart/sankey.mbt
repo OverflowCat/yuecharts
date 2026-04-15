@@ -58,35 +58,6 @@ fn sankey_r4(v : Double) -> String {
 }
 
 ///|
-fn sankey_max(a : Double, b : Double) -> Double {
-  if a > b {
-    a
-  } else {
-    b
-  }
-}
-
-///|
-fn sankey_min(a : Double, b : Double) -> Double {
-  if a < b {
-    a
-  } else {
-    b
-  }
-}
-
-///|
-fn sankey_clamp(v : Double, min_v : Double, max_v : Double) -> Double {
-  if v < min_v {
-    min_v
-  } else if v > max_v {
-    max_v
-  } else {
-    v
-  }
-}
-
-///|
 fn sankey_data_value(item : @option.DataItem) -> Double {
   match item.value {
     @option.Num(n) => n
@@ -972,7 +943,7 @@ fn sankey_palette_color(t : Double) -> String {
   if palette.length() == 1 {
     return palette[0]
   }
-  let normalized = sankey_clamp(t, 0.0, 1.0)
+  let normalized = t.clamp(min=0.0, max=1.0)
   let scaled = normalized * (palette.length() - 1).to_double()
   let lower = scaled.to_int()
   let upper = if lower + 1 < palette.length() { lower + 1 } else { lower }
@@ -1282,14 +1253,16 @@ fn sankey_render_series(
 
   let mut min_value = nodes[0].value
   let mut max_value = nodes[0].value
-  let mut i = 1
-  while i < nodes.length() {
-    min_value = sankey_min(min_value, nodes[i].value)
-    max_value = sankey_max(max_value, nodes[i].value)
-    i += 1
+  for node in nodes {
+    if node.value < min_value {
+      min_value = node.value
+    }
+    if node.value > max_value {
+      max_value = node.value
+    }
   }
   let node_colors : Array[String] = []
-  i = 0
+  let mut i = 0
   while i < nodes.length() {
     let default_color = sankey_default_node_color(
       nodes[i].value,

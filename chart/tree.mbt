@@ -491,7 +491,7 @@ fn tree_set_expand_state(
   while nodes2.length() > 0 {
     let node = nodes2.pop().unwrap()
     node.is_expand = match node.item.collapsed {
-      Some(c) => not(c)
+      Some(c) => !c
       None => node.depth <= expand_depth
     }
     let mut i = 0
@@ -841,7 +841,7 @@ fn tree_raw_style_number_opt(
 
 ///|
 fn tree_uses_leaves_model(node : TreeNode) -> Bool {
-  node.children.length() == 0 || not(node.is_expand)
+  node.children.length() == 0 || !node.is_expand
 }
 
 ///|
@@ -1121,11 +1121,11 @@ fn tree_radial_direction(
       2.0
     rad = @math.atan2(center_y - root_y, center_x - root_x)
     if rad < 0.0 {
-      rad = 2.0 * @math.PI + rad
+      rad += 2.0 * @math.PI
     }
     is_left = center_x < root_x
     if is_left {
-      rad = rad - @math.PI
+      rad -= @math.PI
     }
   } else {
     rad = @math.atan2(target_y - root_y, target_x - root_x)
@@ -1133,15 +1133,15 @@ fn tree_radial_direction(
       rad = 2.0 * @math.PI + rad
     }
     if node.children.length() == 0 ||
-      (node.children.length() != 0 && not(node.is_expand)) {
+      (node.children.length() != 0 && !node.is_expand) {
       is_left = target_x < root_x
       if is_left {
-        rad = rad - @math.PI
+        rad -= @math.PI
       }
     } else {
       is_left = target_x > root_x
-      if not(is_left) {
-        rad = rad - @math.PI
+      if !is_left {
+        rad -= @math.PI
       }
     }
   }
@@ -1352,7 +1352,7 @@ fn render_tree_series(
     let node_style = tree_resolve_node_style(series, node)
     let label_style = tree_resolve_label_style(series, node)
     // symbolInnerColor: collapsed non-leaf → visualColor, otherwise → neutral00
-    let is_collapsed_nonleaf = not(node.is_expand) && node.children.length() > 0
+    let is_collapsed_nonleaf = !node.is_expand && node.children.length() > 0
     let empty_inner_color = if is_collapsed_nonleaf {
       node_style.visual_color
     } else {

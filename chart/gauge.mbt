@@ -375,7 +375,7 @@ pub fn render_gauge_series(
       }
       di -= 1
     }
-  } else if data_count > 0 && not(series.gauge_progress_show) {
+  } else if data_count > 0 && !series.gauge_progress_show {
     // Legacy single-value progress (backwards compat when progress.show=false)
     let value = match series.data[0].value {
       @option.Num(n) => n

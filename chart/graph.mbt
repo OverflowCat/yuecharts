@@ -108,11 +108,11 @@ fn graph_force_layout(
       let uy = dy / dist
       let w_sum = n1.w + n2.w
       let w = if w_sum == 0.0 { 0.5 } else { n2.w / w_sum }
-      if not(n1.fixed) {
+      if !n1.fixed {
         n1.x = n1.x + ux * w * spring * friction
         n1.y = n1.y + uy * w * spring * friction
       }
-      if not(n2.fixed) {
+      if !n2.fixed {
         n2.x = n2.x - ux * (1.0 - w) * spring * friction
         n2.y = n2.y - uy * (1.0 - w) * spring * friction
       }
@@ -122,7 +122,7 @@ fn graph_force_layout(
     let mut ni = 0
     while ni < n_nodes {
       let n = nodes[ni]
-      if not(n.fixed) {
+      if !n.fixed {
         n.x = n.x + (cx - n.x) * gravity * friction
         n.y = n.y + (cy - n.y) * gravity * friction
       }
@@ -150,11 +150,11 @@ fn graph_force_layout(
           dy
         }
         let rep_fact = (n1.w + n2.w) / d / d
-        if not(n1.fixed) {
+        if !n1.fixed {
           n1.px = n1.px + rep_dx * rep_fact
           n1.py = n1.py + rep_dy * rep_fact
         }
-        if not(n2.fixed) {
+        if !n2.fixed {
           n2.px = n2.px - rep_dx * rep_fact
           n2.py = n2.py - rep_dy * rep_fact
         }
@@ -166,7 +166,7 @@ fn graph_force_layout(
     let mut vi = 0
     while vi < n_nodes {
       let n = nodes[vi]
-      if not(n.fixed) {
+      if !n.fixed {
         let vx = n.x - n.px
         let vy = n.y - n.py
         n.x = n.x + vx * friction

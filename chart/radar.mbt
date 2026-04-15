@@ -132,10 +132,10 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
           di += 1
           match data_value_dimension(item.value, vm.dimension) {
             Some(v2) => {
-              if not(found) || v2 < mn {
+              if !found || v2 < mn {
                 mn = v2
               }
-              if not(found) || v2 > mx {
+              if !found || v2 > mx {
                 mx = v2
               }
               found = true
@@ -144,7 +144,7 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
           }
         }
       }
-      if not(found) {
+      if !found {
         (0.0, 100.0)
       } else {
         (mn, mx)

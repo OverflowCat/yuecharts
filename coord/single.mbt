@@ -485,8 +485,7 @@ pub fn Single::layout(
   }
   let rotation = if self.orient == "vertical" { @math.PI / 2.0 } else { 0.0 }
   let direction = match self.position {
-    "top" => -1
-    "left" => -1
+    "top" | "left" => -1
     _ => 1
   }
   let tick_direction = if axis_option.axis_tick.inside {
@@ -555,7 +554,7 @@ pub fn Single::collect_time_values(
               }
               k += 1
             }
-            if not(found) {
+            if !found {
               vals.push(v)
             }
           }
