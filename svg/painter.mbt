@@ -263,6 +263,11 @@ fn write_stroke_attr_from_base(
 }
 
 ///|
+fn line_path_d(l : @graphic.LineData) -> String {
+  "M\{l.x1} \{l.y1}L\{l.x2} \{l.y2}"
+}
+
+///|
 fn emphasis_fill_value(
   meta : @graphic.DisplayableMeta,
   normal_fill : String?,
@@ -641,9 +646,7 @@ fn render_line(
   let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color.to_svg()))
   let stroke_width = active_line_width_value(l.meta, Some(l.stroke.width))
   buf.write_string(indent)
-  buf.write_string(
-    "<line x1=\"\{l.x1}\" y1=\"\{l.y1}\" x2=\"\{l.x2}\" y2=\"\{l.y2}\"",
-  )
+  buf.write_string("<path d=\"\{line_path_d(l)}\"")
   write_stroke_attr_from_base(
     buf,
     stroke_value,
@@ -653,7 +656,6 @@ fn render_line(
     l.stroke.line_join,
   )
   buf.write_string(" fill=\"none\"")
-  buf.write_string(" pointer-events=\"visible\"")
   buf.write_string(opacity_attr(l.opacity))
   write_displayable_ecmeta_attrs(buf, l.meta)
   write_displayable_class_attr(buf, l.meta, None, scope)
@@ -1190,10 +1192,7 @@ fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
   let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color.to_svg()))
   let stroke_width = active_line_width_value(l.meta, Some(l.stroke.width))
   let attrs : Array[XmlAttr] = []
-  push_xml_attr(attrs, "x1", l.x1.to_string())
-  push_xml_attr(attrs, "y1", l.y1.to_string())
-  push_xml_attr(attrs, "x2", l.x2.to_string())
-  push_xml_attr(attrs, "y2", l.y2.to_string())
+  push_xml_attr(attrs, "d", line_path_d(l))
   push_stroke_attrs_from_base(
     attrs,
     stroke_value,
@@ -1203,7 +1202,6 @@ fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
     l.stroke.line_join,
   )
   push_xml_attr(attrs, "fill", "none")
-  push_xml_attr(attrs, "pointer-events", "visible")
   if l.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", l.opacity.to_string())
   }
@@ -1213,7 +1211,7 @@ fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
     "class",
     displayable_class_value(l.meta, None, scope),
   )
-  XmlNode::empty("line", attrs)
+  XmlNode::empty("path", attrs)
 }
 
 ///|

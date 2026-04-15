@@ -68,7 +68,7 @@ fn sample_expected_svg_concat() -> String {
     #|    </clipPath>
     #|    <g clip-path="url(#clip-0)">
     #|      <rect x="10" y="12" width="30" height="18" fill="#ffcc00" stroke="#223344" stroke-width="1.5" class="zr0-cls-0"/>
-    #|      <line x1="0" y1="0" x2="40" y2="10" stroke="#445566" stroke-width="2" stroke-dasharray="4,2" fill="none" pointer-events="visible" opacity="0.7" class="zr0-cls-1"/>
+    #|      <path d="M0 0L40 10" stroke="#445566" stroke-width="2" stroke-dasharray="4,2" fill="none" opacity="0.7" class="zr0-cls-1"/>
     #|    </g>
     #|  </g>
     #|  <text x="16" y="24" fill="#101010" font-size="14" font-family="serif" font-weight="bold" text-anchor="middle" dominant-baseline="central" class="zr0-cls-2">&lt;A&amp;B&gt;</text>
@@ -104,7 +104,7 @@ fn sample_expected_svg_pretty() -> String {
     #|    </clipPath>
     #|    <g clip-path="url(#clip-0)">
     #|      <rect x="10" y="12" width="30" height="18" fill="#ffcc00" stroke="#223344" stroke-width="1.5" class="zr0-cls-0"/>
-    #|      <line x1="0" y1="0" x2="40" y2="10" stroke="#445566" stroke-width="2" stroke-dasharray="4,2" fill="none" pointer-events="visible" opacity="0.7" class="zr0-cls-1"/>
+    #|      <path d="M0 0L40 10" stroke="#445566" stroke-width="2" stroke-dasharray="4,2" fill="none" opacity="0.7" class="zr0-cls-1"/>
     #|    </g>
     #|  </g>
     #|  <text x="16" y="24" fill="#101010" font-size="14" font-family="serif" font-weight="bold" text-anchor="middle" dominant-baseline="central" class="zr0-cls-2">&lt;A&amp;B&gt;</text>
