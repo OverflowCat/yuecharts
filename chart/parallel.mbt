@@ -1,6 +1,6 @@
-// Corresponds to: echarts/src/chart/parallel/ParallelView.ts
-//                  echarts/src/chart/parallel/ParallelSeries.ts
-//                  echarts/src/chart/parallel/parallelVisual.ts
+/// <=> echarts/src/chart/parallel/ParallelView.ts
+/// <=> echarts/src/chart/parallel/ParallelSeries.ts
+/// <=> echarts/src/chart/parallel/parallelVisual.ts
 
 ///|
 pub fn render_parallel_series(

@@ -1,8 +1,8 @@
-// Corresponds to: echarts/src/chart/lines/LinesSeries.ts
-//                  echarts/src/chart/lines/linesLayout.ts
-//                  echarts/src/chart/lines/LinesView.ts
-//                  echarts/src/chart/helper/Line.ts
-//                  echarts/src/chart/lines/install.ts
+/// <=> echarts/src/chart/lines/LinesSeries.ts
+/// <=> echarts/src/chart/lines/linesLayout.ts
+/// <=> echarts/src/chart/lines/LinesView.ts
+/// <=> echarts/src/chart/helper/Line.ts
+/// <=> echarts/src/chart/lines/install.ts
 
 ///|
 fn lines_chart_json_field(j : Json, key : String) -> Json? {

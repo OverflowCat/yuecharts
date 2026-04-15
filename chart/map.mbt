@@ -1,6 +1,6 @@
-// Corresponds to: echarts/src/chart/map/MapView.ts
-//                  echarts/src/chart/map/MapSeries.ts
-//                  echarts/src/chart/map/mapDataStatistic.ts
+/// <=> echarts/src/chart/map/MapView.ts
+/// <=> echarts/src/chart/map/MapSeries.ts
+/// <=> echarts/src/chart/map/mapDataStatistic.ts
 //                  echarts/src/component/helper/MapDraw.ts
 //                  echarts/src/component/visualMap/ContinuousModel.ts
 //                  echarts/src/visual/VisualMapping.ts

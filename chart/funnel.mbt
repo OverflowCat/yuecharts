@@ -1,5 +1,5 @@
-// Corresponds to: echarts/src/chart/funnel/FunnelView.ts
-//                  echarts/src/chart/funnel/funnelLayout.ts
+/// <=> echarts/src/chart/funnel/FunnelView.ts
+/// <=> echarts/src/chart/funnel/funnelLayout.ts
 //
 // Funnel chart renderer.
 //

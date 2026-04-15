@@ -1,5 +1,5 @@
-// Corresponds to: echarts/src/chart/gauge/GaugeView.ts
-//                  echarts/src/chart/gauge/GaugeSeries.ts
+/// <=> echarts/src/chart/gauge/GaugeView.ts
+/// <=> echarts/src/chart/gauge/GaugeSeries.ts
 //
 // Gauge chart renderer.
 //

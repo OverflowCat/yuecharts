@@ -1,6 +1,6 @@
-// Corresponds to: echarts/src/chart/sunburst/SunburstView.ts
-//                  echarts/src/chart/sunburst/sunburstLayout.ts
-//                  echarts/src/chart/sunburst/SunburstSeries.ts
+/// <=> echarts/src/chart/sunburst/SunburstView.ts
+/// <=> echarts/src/chart/sunburst/sunburstLayout.ts
+/// <=> echarts/src/chart/sunburst/SunburstSeries.ts
 
 ///|
 fn data_item_value(item : @option.DataItem) -> Double {

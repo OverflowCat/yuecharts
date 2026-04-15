@@ -1,4 +1,4 @@
-// Corresponds to: echarts/src/chart/heatmap/HeatmapView.ts
+/// <=> echarts/src/chart/heatmap/HeatmapView.ts
 //
 // Cartesian heatmap: data format per item is Vec([x_index, y_index, value])
 // where x_index and y_index are 0-based integer indices into the x/y categories.

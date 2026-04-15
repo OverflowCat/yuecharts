@@ -1,8 +1,8 @@
-// Corresponds to: echarts/src/chart/graph/GraphSeries.ts
-//                  echarts/src/chart/graph/GraphView.ts
-//                  echarts/src/chart/graph/forceLayout.ts
-//                  echarts/src/chart/graph/forceHelper.ts
-//                  echarts/src/chart/graph/categoryVisual.ts
+/// <=> echarts/src/chart/graph/GraphSeries.ts
+/// <=> echarts/src/chart/graph/GraphView.ts
+/// <=> echarts/src/chart/graph/forceLayout.ts
+/// <=> echarts/src/chart/graph/forceHelper.ts
+/// <=> echarts/src/chart/graph/categoryVisual.ts
 
 ///|
 /// Force layout node (Verlet integration).

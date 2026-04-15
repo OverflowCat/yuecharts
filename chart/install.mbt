@@ -1,4 +1,4 @@
-// Corresponds to: echarts/src/chart/*/install.ts for the currently implemented chart types.
+// Chart install registrations for the currently implemented chart types.
 
 ///|
 struct BarChartView {}
@@ -239,6 +239,7 @@ pub fn install_parallel(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/lines/install.ts:install
 pub fn install_lines(registry : @core.Registry) -> Unit {
   // echarts/src/chart/lines/install.ts
   // echarts/src/chart/lines/LinesSeries.ts
@@ -250,6 +251,7 @@ pub fn install_lines(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/bar/installPictorialBar.ts:install
 pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
   // echarts/src/chart/bar/installPictorialBar.ts
   // echarts/src/chart/bar/PictorialBarSeries.ts
@@ -261,6 +263,7 @@ pub fn install_pictorial_bar(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/map/install.ts:install
 pub fn install_map(registry : @core.Registry) -> Unit {
   // echarts/src/chart/map/install.ts
   // echarts/src/chart/map/MapSeries.ts
@@ -279,6 +282,7 @@ pub fn install_map(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/scatter/install.ts:install
 pub fn install_scatter(registry : @core.Registry) -> Unit {
   // echarts/src/chart/scatter/install.ts
   // echarts/src/chart/scatter/ScatterSeries.ts
@@ -290,6 +294,7 @@ pub fn install_scatter(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/effectScatter/install.ts:install
 pub fn install_effect_scatter(registry : @core.Registry) -> Unit {
   // echarts/src/chart/effectScatter/install.ts
   // echarts/src/chart/effectScatter/EffectScatterSeries.ts
@@ -301,6 +306,7 @@ pub fn install_effect_scatter(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/pie/install.ts:install
 pub fn install_pie(registry : @core.Registry) -> Unit {
   // echarts/src/chart/pie/install.ts
   // echarts/src/chart/pie/PieSeries.ts
@@ -314,6 +320,7 @@ pub fn install_pie(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/sunburst/install.ts:install
 pub fn install_sunburst(registry : @core.Registry) -> Unit {
   // echarts/src/chart/sunburst/install.ts
   // echarts/src/chart/sunburst/SunburstSeries.ts
@@ -327,6 +334,7 @@ pub fn install_sunburst(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/treemap/install.ts:install
 pub fn install_treemap(registry : @core.Registry) -> Unit {
   // echarts/src/chart/treemap/install.ts
   // echarts/src/chart/treemap/TreemapSeries.ts
@@ -339,6 +347,7 @@ pub fn install_treemap(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/radar/install.ts:install
 pub fn install_radar(registry : @core.Registry) -> Unit {
   // echarts/src/chart/radar/install.ts
   // echarts/src/chart/radar/RadarSeries.ts
@@ -351,6 +360,7 @@ pub fn install_radar(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/candlestick/install.ts:install
 pub fn install_candlestick(registry : @core.Registry) -> Unit {
   // echarts/src/chart/candlestick/install.ts
   // echarts/src/chart/candlestick/CandlestickSeries.ts
@@ -363,6 +373,7 @@ pub fn install_candlestick(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/heatmap/install.ts:install
 pub fn install_heatmap(registry : @core.Registry) -> Unit {
   // echarts/src/chart/heatmap/install.ts
   // echarts/src/chart/heatmap/HeatmapSeries.ts
@@ -373,6 +384,7 @@ pub fn install_heatmap(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/boxplot/install.ts:install
 pub fn install_boxplot(registry : @core.Registry) -> Unit {
   // echarts/src/chart/boxplot/install.ts
   // echarts/src/chart/boxplot/BoxplotSeries.ts
@@ -384,6 +396,7 @@ pub fn install_boxplot(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/funnel/install.ts:install
 pub fn install_funnel(registry : @core.Registry) -> Unit {
   // echarts/src/chart/funnel/install.ts
   // echarts/src/chart/funnel/FunnelSeries.ts
@@ -396,6 +409,7 @@ pub fn install_funnel(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/gauge/install.ts:install
 pub fn install_gauge(registry : @core.Registry) -> Unit {
   // echarts/src/chart/gauge/install.ts
   // echarts/src/chart/gauge/GaugeSeries.ts
@@ -406,6 +420,7 @@ pub fn install_gauge(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/themeRiver/install.ts:install
 pub fn install_theme_river(registry : @core.Registry) -> Unit {
   // echarts/src/chart/themeRiver/install.ts
   // echarts/src/chart/themeRiver/ThemeRiverSeries.ts
@@ -418,6 +433,7 @@ pub fn install_theme_river(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/tree/install.ts:install
 pub fn install_tree(registry : @core.Registry) -> Unit {
   // echarts/src/chart/tree/install.ts
   // echarts/src/chart/tree/TreeSeries.ts
@@ -430,6 +446,7 @@ pub fn install_tree(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/chord/install.ts:install
 pub fn install_chord(registry : @core.Registry) -> Unit {
   // echarts/src/chart/chord/install.ts
   // echarts/src/chart/chord/ChordSeries.ts
@@ -442,6 +459,7 @@ pub fn install_chord(registry : @core.Registry) -> Unit {
 }
 
 ///|
+/// <=> echarts/src/chart/sankey/install.ts:install
 pub fn install_sankey(registry : @core.Registry) -> Unit {
   // echarts/src/chart/sankey/install.ts
   // echarts/src/chart/sankey/SankeySeries.ts

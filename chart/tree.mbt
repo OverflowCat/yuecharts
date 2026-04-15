@@ -1,10 +1,10 @@
-// Corresponds to: echarts/src/chart/tree/TreeSeries.ts
-//                  echarts/src/chart/tree/TreeView.ts
-//                  echarts/src/chart/tree/treeLayout.ts
-//                  echarts/src/chart/tree/layoutHelper.ts (Reingold-Tilford)
-//                  echarts/src/chart/tree/traversalHelper.ts
-//                  echarts/src/chart/tree/treeVisual.ts
-//                  echarts/src/data/Tree.ts
+/// <=> echarts/src/chart/tree/TreeSeries.ts
+/// <=> echarts/src/chart/tree/TreeView.ts
+/// <=> echarts/src/chart/tree/treeLayout.ts
+/// <=> echarts/src/chart/tree/layoutHelper.ts
+/// <=> echarts/src/chart/tree/traversalHelper.ts
+/// <=> echarts/src/chart/tree/treeVisual.ts
+/// <=> echarts/src/data/Tree.ts
 
 // ----- Tree node data structure (corresponds to echarts/src/data/Tree.ts) -----
 

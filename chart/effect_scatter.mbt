@@ -1,8 +1,8 @@
-// Corresponds to: echarts/src/chart/effectScatter/EffectScatterSeries.ts
-//                  echarts/src/chart/effectScatter/EffectScatterView.ts
-//                  echarts/src/chart/effectScatter/install.ts
-//                  echarts/src/layout/points.ts
-//                  echarts/src/chart/helper/EffectSymbol.ts
+/// <=> echarts/src/chart/effectScatter/EffectScatterSeries.ts
+/// <=> echarts/src/chart/effectScatter/EffectScatterView.ts
+/// <=> echarts/src/chart/effectScatter/install.ts
+/// <=> echarts/src/layout/points.ts
+/// <=> echarts/src/chart/helper/EffectSymbol.ts
 
 ///|
 fn render_effect_ripple(

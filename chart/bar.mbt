@@ -1,6 +1,6 @@
-// Corresponds to: echarts/src/chart/bar/BarView.ts
-//                  echarts/src/layout/barGrid.ts
-//                  echarts/src/layout/barPolar.ts
+/// <=> echarts/src/chart/bar/BarView.ts
+/// <=> echarts/src/layout/barGrid.ts
+/// <=> echarts/src/layout/barPolar.ts
 
 ///|
 fn bar_r4(v : Double) -> String {

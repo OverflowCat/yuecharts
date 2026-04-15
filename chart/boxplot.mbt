@@ -1,4 +1,5 @@
-// Corresponds to: echarts/src/chart/boxplot/ (BoxplotView.ts, boxplotLayout.ts)
+/// <=> echarts/src/chart/boxplot/BoxplotView.ts
+/// <=> echarts/src/chart/boxplot/boxplotLayout.ts
 //
 // Data format per item: Vec([min, Q1, median, Q3, max])
 // Rendered as: box (Q1–Q3) + median line + whiskers to min/max

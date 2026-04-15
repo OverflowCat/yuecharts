@@ -1,6 +1,6 @@
-// Corresponds to: echarts/src/chart/bar/installPictorialBar.ts
-// and echarts/src/chart/bar/PictorialBarSeries.ts
-// and echarts/src/chart/bar/PictorialBarView.ts
+/// <=> echarts/src/chart/bar/installPictorialBar.ts
+/// <=> echarts/src/chart/bar/PictorialBarSeries.ts
+/// <=> echarts/src/chart/bar/PictorialBarView.ts
 
 ///|
 fn pictorial_symbol_color(

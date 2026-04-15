@@ -1,4 +1,4 @@
-// Corresponds to: echarts/src/chart/line/LineView.ts
+/// <=> echarts/src/chart/line/LineView.ts
 
 ///|
 fn polar_line_point(

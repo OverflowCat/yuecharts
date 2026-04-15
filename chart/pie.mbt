@@ -1,5 +1,5 @@
-// Corresponds to: echarts/src/chart/pie/PieView.ts
-//                  echarts/src/chart/pie/pieLayout.ts
+/// <=> echarts/src/chart/pie/PieView.ts
+/// <=> echarts/src/chart/pie/pieLayout.ts
 //
 // Pie / donut chart renderer.
 //

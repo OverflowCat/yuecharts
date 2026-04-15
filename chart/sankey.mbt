@@ -1,7 +1,7 @@
-// Corresponds to: echarts/src/chart/sankey/SankeySeries.ts
-//                  echarts/src/chart/sankey/sankeyLayout.ts
-//                  echarts/src/chart/sankey/SankeyView.ts
-//                  echarts/src/chart/sankey/sankeyVisual.ts
+/// <=> echarts/src/chart/sankey/SankeySeries.ts
+/// <=> echarts/src/chart/sankey/sankeyLayout.ts
+/// <=> echarts/src/chart/sankey/SankeyView.ts
+/// <=> echarts/src/chart/sankey/sankeyVisual.ts
 
 ///|
 priv struct SankeyNode {

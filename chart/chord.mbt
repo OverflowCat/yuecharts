@@ -1,8 +1,8 @@
-// Corresponds to: echarts/src/chart/chord/ChordSeries.ts
-//                  echarts/src/chart/chord/chordLayout.ts
-//                  echarts/src/chart/chord/ChordPiece.ts
-//                  echarts/src/chart/chord/ChordEdge.ts
-//                  echarts/src/chart/chord/ChordView.ts
+/// <=> echarts/src/chart/chord/ChordSeries.ts
+/// <=> echarts/src/chart/chord/chordLayout.ts
+/// <=> echarts/src/chart/chord/ChordPiece.ts
+/// <=> echarts/src/chart/chord/ChordEdge.ts
+/// <=> echarts/src/chart/chord/ChordView.ts
 
 ///|
 priv struct ChordNode {

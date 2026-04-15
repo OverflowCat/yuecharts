@@ -1,6 +1,6 @@
-// Corresponds to: echarts/src/chart/treemap/TreemapSeries.ts
-//                  echarts/src/chart/treemap/treemapLayout.ts
-//                  echarts/src/chart/treemap/TreemapView.ts
+/// <=> echarts/src/chart/treemap/TreemapSeries.ts
+/// <=> echarts/src/chart/treemap/treemapLayout.ts
+/// <=> echarts/src/chart/treemap/TreemapView.ts
 
 ///|
 priv struct TreemapRect {

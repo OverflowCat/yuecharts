@@ -1,7 +1,7 @@
-// Corresponds to: echarts/src/chart/themeRiver/ThemeRiverView.ts
-//                  echarts/src/chart/themeRiver/themeRiverLayout.ts
-//                  echarts/src/chart/themeRiver/ThemeRiverSeries.ts
-//                  echarts/src/chart/themeRiver/install.ts
+/// <=> echarts/src/chart/themeRiver/ThemeRiverView.ts
+/// <=> echarts/src/chart/themeRiver/themeRiverLayout.ts
+/// <=> echarts/src/chart/themeRiver/ThemeRiverSeries.ts
+/// <=> echarts/src/chart/themeRiver/install.ts
 //
 // ThemeRiver (stream graph) renderer.
 //

@@ -1,4 +1,4 @@
-// Corresponds to: echarts/src/chart/scatter/ScatterView.ts
+/// <=> echarts/src/chart/scatter/ScatterView.ts
 //                  echarts/src/layout/points.ts
 //                  echarts/src/component/visualMap/ContinuousModel.ts
 //                  echarts/src/visual/VisualMapping.ts

@@ -1,5 +1,5 @@
-// Corresponds to: echarts/src/chart/candlestick/CandlestickView.ts
-// and echarts/src/chart/candlestick/candlestickLayout.ts
+/// <=> echarts/src/chart/candlestick/CandlestickView.ts
+/// <=> echarts/src/chart/candlestick/candlestickLayout.ts
 //
 // Data format per item: Vec([open, close, low, high])
 // Bullish (close >= open): color "#eb5454" (red, Chinese convention: red = up)
