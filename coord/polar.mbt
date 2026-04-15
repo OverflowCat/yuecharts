@@ -110,30 +110,24 @@ pub fn PolarAxis::data_to_coord(
       scale.data_to_pixel(numeric)
     }
     Ordinal(scale) => {
-      let key = match value {
-        @option.Num(n) => n.to_int().to_string()
+      // echarts/src/scale/Ordinal.ts:parse — numeric value = direct ordinal index,
+      // string value = lookup by category name.
+      let index = match value {
+        @option.Num(n) => n.to_int()
         @option.Vec(arr) =>
           if arr.length() > 0 {
-            arr[0].to_int().to_string()
+            arr[0].to_int()
           } else {
-            fallback_index.to_string()
+            fallback_index
           }
-        @option.DateValue(date, _) => date
-        @option.Null => fallback_index.to_string()
+        @option.DateValue(date, _) =>
+          scale.index_of(date).unwrap_or(fallback_index)
+        @option.Null => fallback_index
       }
-      match scale.index_of(key) {
-        Some(index) =>
-          if self.dim == "angle" && !self.on_band {
-            scale.range_min + index.to_double() * scale.band_step()
-          } else {
-            scale.band_center(index)
-          }
-        None =>
-          if self.dim == "angle" && !self.on_band {
-            scale.range_min + fallback_index.to_double() * scale.band_step()
-          } else {
-            scale.band_center(fallback_index)
-          }
+      if self.dim == "angle" && !self.on_band {
+        scale.range_min + index.to_double() * scale.band_step()
+      } else {
+        scale.band_center(index)
       }
     }
   }
@@ -294,7 +288,7 @@ pub fn Polar::data_to_coord_size(
         scale.data_to_pixel(val + half_size)).abs()
     }
     if idx == 1 {
-      size = size * @math.PI / 180.0
+      size *= @math.PI / 180.0
     }
     result.push(size)
     idx += 1
