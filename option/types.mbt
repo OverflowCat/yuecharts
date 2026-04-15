@@ -561,6 +561,9 @@ pub(all) struct SeriesOption {
   symbol_bounding_data : SymbolBoundingData?
   symbol_offset : Array[String]?
   symbol_repeat_direction : String?
+  bar_width : String?
+  bar_max_width : String?
+  bar_min_width : String?
   bar_gap : String?
   bar_category_gap : String?
   bar_min_height : Double
@@ -682,6 +685,9 @@ pub(all) struct SeriesOption {
   gauge_progress_show : Bool
   gauge_progress_overlap : Bool
   gauge_progress_width : Double // default 10.0
+  gauge_progress_round_cap : Bool // progress.roundCap, default false
+  gauge_progress_clip : Bool // progress.clip, default true
+  gauge_round_cap : Bool // axisLine.roundCap, default false
   gauge_detail_formatter : String?
   gauge_detail_color : String?
   gauge_detail_font_size : Double // default 30.0
@@ -702,6 +708,9 @@ pub(all) struct SeriesOption {
   graph_force_edge_length : Double
   graph_force_repulsion : Double
   graph_force_gravity : Double
+  // Pie-specific options
+  // Corresponds to: echarts/src/chart/pie/PieSeries.ts
+  pie_selected_offset : Double // selectedOffset, default 10.0
 }
 
 ///|
@@ -725,6 +734,9 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     symbol_bounding_data: None,
     symbol_offset: None,
     symbol_repeat_direction: None,
+    bar_width: None,
+    bar_max_width: None,
+    bar_min_width: None,
     bar_gap: None,
     bar_category_gap: None,
     bar_min_height: 0.0,
@@ -837,6 +849,9 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     gauge_progress_show: false,
     gauge_progress_overlap: true,
     gauge_progress_width: 10.0,
+    gauge_progress_round_cap: false,
+    gauge_progress_clip: true,
+    gauge_round_cap: false,
     gauge_detail_formatter: None,
     gauge_detail_color: None,
     gauge_detail_font_size: 30.0,
@@ -853,6 +868,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     graph_force_edge_length: 30.0,
     graph_force_repulsion: 50.0,
     graph_force_gravity: 0.1,
+    pie_selected_offset: 10.0,
   }
 }
 

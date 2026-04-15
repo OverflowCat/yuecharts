@@ -58,6 +58,33 @@ fn gauge_sector_path(
 }
 
 ///|
+/// Add round-cap circles at both endpoints of a sector arc.
+/// Corresponds to: echarts/src/chart/gauge/GaugeView.ts Sausage shape.
+/// In SVG we approximate by placing filled circles of radius cap_r = (r - r0) / 2
+/// at the midpoint of each cap (r_mid = (r + r0) / 2 along the arc endpoints).
+fn gauge_round_cap_circles(
+  elems : Array[@graphic.Element],
+  cx : Double,
+  cy : Double,
+  r0 : Double,
+  r : Double,
+  a0 : Double,
+  a1 : Double,
+  color : String,
+) -> Unit {
+  let cap_r = (r - r0) / 2.0
+  let r_mid = (r + r0) / 2.0
+  // Start cap
+  let sc_x = cx + r_mid * @math.cos(a0)
+  let sc_y = cy + r_mid * @math.sin(a0)
+  elems.push(@graphic.Element::circle_colored(sc_x, sc_y, cap_r, color))
+  // End cap
+  let ec_x = cx + r_mid * @math.cos(a1)
+  let ec_y = cy + r_mid * @math.sin(a1)
+  elems.push(@graphic.Element::circle_colored(ec_x, ec_y, cap_r, color))
+}
+
+///|
 /// Format a gauge tick label value: integer if whole, else two decimal places.
 fn fmt_gauge_val(v : Double) -> String {
   let iv = v.to_int()
@@ -182,6 +209,12 @@ pub fn render_gauge_series(
   // GaugeView.ts: axisLine sector rendered as full range background.
   let bg_arc = gauge_sector_path(cx, cy, track_inner_r, r, start_rad, end_rad)
   elems.push(@graphic.Element::path_filled(bg_arc, track_bg_color, 1.0))
+  // roundCap on axisLine: add caps at start and end of full track arc.
+  if series.gauge_round_cap {
+    gauge_round_cap_circles(
+      elems, cx, cy, track_inner_r, r, start_rad, end_rad, track_bg_color,
+    )
+  }
 
   // --- 2. Progress arcs (one per data item) ---
   // Corresponds to: GaugeView.ts _renderPointer createProgress()
@@ -229,6 +262,13 @@ pub fn render_gauge_series(
           cx, cy, arc_r0, arc_r, start_rad, value_rad,
         )
         elems.push(@graphic.Element::path_filled(prog_arc, prog_color, 1.0))
+        // progress.roundCap: add circles at arc endpoints.
+        // Corresponds to: GaugeView.ts Sausage shape for progress.
+        if series.gauge_progress_round_cap {
+          gauge_round_cap_circles(
+            elems, cx, cy, arc_r0, arc_r, start_rad, value_rad, prog_color,
+          )
+        }
       }
       di -= 1
     }

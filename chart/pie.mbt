@@ -140,6 +140,17 @@ pub fn render_pie_series(
     }
   }
   if total <= 0.0 {
+    // Empty-circle fallback: render a gray ring when there is no data.
+    // Corresponds to: PieView.ts emptyCircle handling (emptyCircleStyle).
+    let empty_color = "#e0e2e5"
+    let empty_path = if r_inner <= 0.5 {
+      "M \{r4(cx)} \{r4(cy - r_outer)} A \{r4(r_outer)} \{r4(r_outer)} 0 1 1 \{r4(cx - 0.001)} \{r4(cy - r_outer)} Z"
+    } else {
+      let ro = r_outer
+      let ri = r_inner
+      "M \{r4(cx)} \{r4(cy - ro)} A \{r4(ro)} \{r4(ro)} 0 1 1 \{r4(cx - 0.001)} \{r4(cy - ro)} Z M \{r4(cx)} \{r4(cy - ri)} A \{r4(ri)} \{r4(ri)} 0 1 0 \{r4(cx - 0.001)} \{r4(cy - ri)} Z"
+    }
+    elems.push(@graphic.Element::path_filled(empty_path, empty_color, 1.0))
     return elems
   }
 
@@ -148,6 +159,7 @@ pub fn render_pie_series(
   // clockwise = true → SVG sweep-flag = 1
   let start_angle = -@math.PI / 2.0 // = -90° in screen coords
   let pi2 = @math.PI * 2.0
+  let selected_offset = series.pie_selected_offset
 
   let mut current_angle = start_angle
 
@@ -164,24 +176,32 @@ pub fn render_pie_series(
     let a0 = current_angle
     let a1 = current_angle + span
     current_angle = a1
+    let mid_angle = (a0 + a1) / 2.0
+
+    // selected offset: shift slice outward from center.
+    // Corresponds to: PieView.ts PieSeriesModel selectedOffset.
+    let is_selected = item.selected == Some(true)
+    let off = if is_selected { selected_offset } else { 0.0 }
+    let slice_cx = cx + off * @math.cos(mid_angle)
+    let slice_cy = cy + off * @math.sin(mid_angle)
 
     let large_arc = if span > @math.PI { 1 } else { 0 }
 
-    // Outer arc points
-    let x0 = cx + r_outer * @math.cos(a0)
-    let y0 = cy + r_outer * @math.sin(a0)
-    let x1 = cx + r_outer * @math.cos(a1)
-    let y1 = cy + r_outer * @math.sin(a1)
+    // Outer arc points (relative to possibly-offset slice center)
+    let x0 = slice_cx + r_outer * @math.cos(a0)
+    let y0 = slice_cy + r_outer * @math.sin(a0)
+    let x1 = slice_cx + r_outer * @math.cos(a1)
+    let y1 = slice_cy + r_outer * @math.sin(a1)
 
     let path_d = if r_inner <= 0.5 {
       // Full pie: M cx cy L x0 y0 A R R 0 large 1 x1 y1 Z
-      "M \{r4(cx)} \{r4(cy)} L \{r4(x0)} \{r4(y0)} A \{r4(r_outer)} \{r4(r_outer)} 0 \{large_arc} 1 \{r4(x1)} \{r4(y1)} Z"
+      "M \{r4(slice_cx)} \{r4(slice_cy)} L \{r4(x0)} \{r4(y0)} A \{r4(r_outer)} \{r4(r_outer)} 0 \{large_arc} 1 \{r4(x1)} \{r4(y1)} Z"
     } else {
       // Donut ring: outer arc forward, inner arc backward
-      let xi0 = cx + r_inner * @math.cos(a0)
-      let yi0 = cy + r_inner * @math.sin(a0)
-      let xi1 = cx + r_inner * @math.cos(a1)
-      let yi1 = cy + r_inner * @math.sin(a1)
+      let xi0 = slice_cx + r_inner * @math.cos(a0)
+      let yi0 = slice_cy + r_inner * @math.sin(a0)
+      let xi1 = slice_cx + r_inner * @math.cos(a1)
+      let yi1 = slice_cy + r_inner * @math.sin(a1)
       "M \{r4(x0)} \{r4(y0)} A \{r4(r_outer)} \{r4(r_outer)} 0 \{large_arc} 1 \{r4(x1)} \{r4(y1)} L \{r4(xi1)} \{r4(yi1)} A \{r4(r_inner)} \{r4(r_inner)} 0 \{large_arc} 0 \{r4(xi0)} \{r4(yi0)} Z"
     }
 
@@ -220,12 +240,41 @@ pub fn render_pie_series(
       Some(percent_str),
     )
     if label_text != "" {
-      let mid_angle = (a0 + a1) / 2.0
+      // labelLine (polyline from arc edge to label).
+      // Corresponds to: PieView.ts LabelLine + pieLayout labelLineTarget.
+      let line_r1 = r_outer + 6.0 // arc edge outward extension
+      let line_r2 = r_outer + 20.0 // elbow point
+      let elbow_x = slice_cx + line_r2 * @math.cos(mid_angle)
+      let elbow_y = slice_cy + line_r2 * @math.sin(mid_angle)
+      let edge_x = slice_cx + line_r1 * @math.cos(mid_angle)
+      let edge_y = slice_cy + line_r1 * @math.sin(mid_angle)
+      // Horizontal extension for label anchor
+      let label_stub_len = 8.0
+      let goes_right = @math.cos(mid_angle) >= 0.0
+      let stub_x = elbow_x +
+        (if goes_right { label_stub_len } else { -label_stub_len })
+      let stub_y = elbow_y
+      elems.push(
+        @graphic.Element::line_colored(
+          edge_x, edge_y, elbow_x, elbow_y, slice_color, 1.0,
+        ),
+      )
+      elems.push(
+        @graphic.Element::line_colored(
+          elbow_x, elbow_y, stub_x, stub_y, slice_color, 1.0,
+        ),
+      )
       let label_r = r_outer + 20.0
-      let lx = cx + label_r * @math.cos(mid_angle)
-      let ly = cy + label_r * @math.sin(mid_angle)
+      let lx = slice_cx +
+        label_r * @math.cos(mid_angle) +
+        (if goes_right {
+          label_stub_len + 3.0
+        } else {
+          -(label_stub_len + 3.0)
+        })
+      let ly = slice_cy + label_r * @math.sin(mid_angle)
       // Anchor: left if right half, right if left half
-      let anchor = if @math.cos(mid_angle) >= 0.0 {
+      let anchor = if goes_right {
         @graphic.TextAnchor::Start
       } else {
         @graphic.TextAnchor::End

@@ -257,6 +257,290 @@ fn bar_find_cartesian_stack_state_index(
 }
 
 ///|
+/// <=> echarts/src/layout/barGrid.ts:getSeriesStackId
+fn bar_category_series_stack_id(
+  series : @option.SeriesOption,
+  series_order : Int,
+) -> String {
+  bar_series_stack_id(series, series_order)
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:doCalBarWidthAndOffset
+fn bar_find_category_stack_layout_index(
+  stacks : Array[BarCategoryStackLayout],
+  stack_id : String,
+) -> Int {
+  let mut i = 0
+  while i < stacks.length() {
+    if stacks[i].stack_id == stack_id {
+      return i
+    }
+    i += 1
+  }
+  -1
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:doCalBarWidthAndOffset
+fn bar_category_axis_layout_default(
+  axis_index : Int,
+  band_width : Double,
+) -> BarCategoryAxisLayout {
+  {
+    axis_index,
+    band_width,
+    remained_width: band_width,
+    auto_width_count: 0,
+    category_gap: None,
+    gap: "10%",
+    stacks: [],
+  }
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:retrieveColumnLayout
+fn bar_category_layout_get_stack(
+  layouts : Array[BarCategoryAxisLayout],
+  axis_index : Int,
+  series : @option.SeriesOption,
+  series_order : Int,
+) -> BarCategoryStackLayout? {
+  if axis_index < 0 || axis_index >= layouts.length() {
+    return None
+  }
+  let stack_id = bar_category_series_stack_id(series, series_order)
+  let stack_index = bar_find_category_stack_layout_index(
+    layouts[axis_index].stacks,
+    stack_id,
+  )
+  if stack_index < 0 {
+    None
+  } else {
+    Some(layouts[axis_index].stacks[stack_index])
+  }
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:doCalBarWidthAndOffset
+fn bar_finalize_category_axis_layout(
+  axis_layout : BarCategoryAxisLayout,
+) -> BarCategoryAxisLayout {
+  let result = axis_layout
+  if result.band_width <= 0.0 || result.stacks.length() == 0 {
+    return result
+  }
+  let column_count = result.stacks.length()
+  let default_category_gap = if 35 - column_count * 4 > 15 {
+    35 - column_count * 4
+  } else {
+    15
+  }
+  let category_gap_percent = result.category_gap.unwrap_or(
+    "\{default_category_gap}%",
+  )
+  let category_gap = bar_parse_percent_like(
+    category_gap_percent,
+    result.band_width,
+  )
+  let bar_gap_percent = bar_parse_percent_like(result.gap, 1.0)
+  let mut remained_width = result.remained_width
+  let mut auto_width_count = result.auto_width_count
+  let mut auto_width = if auto_width_count > 0 {
+    let denom = auto_width_count.to_double() +
+      (auto_width_count - 1).to_double() * bar_gap_percent
+    if denom == 0.0 {
+      0.0
+    } else {
+      ((remained_width - category_gap) / denom).max(0.0)
+    }
+  } else {
+    0.0
+  }
+  let mut i = 0
+  while i < result.stacks.length() {
+    let stack = result.stacks[i]
+    if stack.width == 0.0 {
+      let mut final_width = auto_width
+      if stack.max_width > 0.0 && stack.max_width < final_width {
+        final_width = if stack.max_width < remained_width {
+          stack.max_width
+        } else {
+          remained_width
+        }
+      }
+      if stack.min_width != None {
+        let min_width = stack.min_width.unwrap_or(0.0)
+        if min_width > final_width {
+          final_width = min_width
+        }
+      }
+      if final_width != auto_width {
+        result.stacks[i].width = final_width
+        remained_width -= final_width + bar_gap_percent * final_width
+        auto_width_count -= 1
+      }
+    } else {
+      let mut final_width = stack.width
+      if stack.max_width > 0.0 {
+        final_width = if final_width < stack.max_width {
+          final_width
+        } else {
+          stack.max_width
+        }
+      }
+      if stack.min_width != None {
+        let min_width = stack.min_width.unwrap_or(0.0)
+        if min_width > final_width {
+          final_width = min_width
+        }
+      }
+      result.stacks[i].width = final_width
+      remained_width -= final_width + bar_gap_percent * final_width
+      auto_width_count -= 1
+    }
+    i += 1
+  }
+  auto_width = if auto_width_count > 0 {
+    let denom = auto_width_count.to_double() +
+      (auto_width_count - 1).to_double() * bar_gap_percent
+    if denom == 0.0 {
+      0.0
+    } else {
+      ((remained_width - category_gap) / denom).max(0.0)
+    }
+  } else {
+    0.0
+  }
+  let mut width_sum = 0.0
+  let mut last_width = 0.0
+  let mut j = 0
+  while j < result.stacks.length() {
+    if result.stacks[j].width == 0.0 {
+      result.stacks[j].width = auto_width
+    }
+    last_width = result.stacks[j].width
+    width_sum += result.stacks[j].width * (1.0 + bar_gap_percent)
+    j += 1
+  }
+  if result.stacks.length() > 0 {
+    width_sum -= last_width * bar_gap_percent
+  }
+  let mut offset = -width_sum / 2.0
+  let mut k = 0
+  while k < result.stacks.length() {
+    result.stacks[k].offset = offset
+    offset += result.stacks[k].width * (1.0 + bar_gap_percent)
+    k += 1
+  }
+  result
+}
+
+///|
+/// <=> echarts/src/layout/barGrid.ts:makeColumnLayout
+fn bar_make_category_layout(
+  series_list : Array[@option.SeriesOption],
+  coord : @coord.Cartesian2D,
+) -> Array[BarCategoryAxisLayout] {
+  let layouts : Array[BarCategoryAxisLayout] = []
+  let mut xi = 0
+  while xi < coord.x_scales.length() {
+    match coord.x_scales[xi] {
+      Ordinal(s) =>
+        layouts.push(bar_category_axis_layout_default(xi, s.band_width()))
+      Linear(_) => layouts.push(bar_category_axis_layout_default(xi, 0.0))
+    }
+    xi += 1
+  }
+  let mut si = 0
+  while si < series_list.length() {
+    let series = series_list[si]
+    si += 1
+    if series.series_type != Bar || series.coordinate_system == Some("polar") {
+      continue
+    }
+    let x_idx = if series.x_axis_index < layouts.length() {
+      series.x_axis_index
+    } else {
+      0
+    }
+    if x_idx < 0 || x_idx >= coord.x_scales.length() {
+      continue
+    }
+    match coord.x_scales[x_idx] {
+      Ordinal(_) => {
+        let axis_layout = layouts[x_idx]
+        let stack_id = bar_category_series_stack_id(series, si - 1)
+        let stack_index = bar_find_category_stack_layout_index(
+          axis_layout.stacks,
+          stack_id,
+        )
+        if stack_index < 0 {
+          axis_layout.auto_width_count += 1
+          axis_layout.stacks.push({
+            stack_id,
+            width: 0.0,
+            max_width: 0.0,
+            min_width: None,
+            offset: 0.0,
+          })
+        }
+        let stack_index = bar_find_category_stack_layout_index(
+          axis_layout.stacks,
+          stack_id,
+        )
+        if stack_index >= 0 {
+          if series.bar_width != None &&
+            axis_layout.stacks[stack_index].width == 0.0 {
+            let bar_width = bar_parse_percent_like(
+              series.bar_width.unwrap_or("0"),
+              axis_layout.band_width,
+            )
+            if bar_width > 0.0 {
+              let used_width = if bar_width < axis_layout.remained_width {
+                bar_width
+              } else {
+                axis_layout.remained_width
+              }
+              axis_layout.stacks[stack_index].width = used_width
+              axis_layout.remained_width -= used_width
+            }
+          }
+          if series.bar_max_width != None {
+            axis_layout.stacks[stack_index].max_width = bar_parse_percent_like(
+              series.bar_max_width.unwrap_or("0"),
+              axis_layout.band_width,
+            )
+          }
+          if series.bar_min_width != None {
+            axis_layout.stacks[stack_index].min_width = Some(
+              bar_parse_percent_like(
+                series.bar_min_width.unwrap_or("0"),
+                axis_layout.band_width,
+              ),
+            )
+          }
+        }
+        if series.bar_gap != None {
+          axis_layout.gap = series.bar_gap.unwrap_or(axis_layout.gap)
+        }
+        if series.bar_category_gap != None {
+          axis_layout.category_gap = series.bar_category_gap
+        }
+        layouts[x_idx] = axis_layout
+      }
+      Linear(_) => ()
+    }
+  }
+  let mut xi2 = 0
+  while xi2 < layouts.length() {
+    layouts[xi2] = bar_finalize_category_axis_layout(layouts[xi2])
+    xi2 += 1
+  }
+  layouts
+}
+
+///|
 priv struct PolarBarStackLayout {
   stack_id : String
   mut width : Double
@@ -285,6 +569,26 @@ priv struct BarCartesianStackCoord {
 priv struct BarCartesianStackState {
   stack_id : String
   coords : Array[BarCartesianStackCoord]
+}
+
+///|
+priv struct BarCategoryStackLayout {
+  stack_id : String
+  mut width : Double
+  mut max_width : Double
+  mut min_width : Double?
+  mut offset : Double
+}
+
+///|
+priv struct BarCategoryAxisLayout {
+  axis_index : Int
+  band_width : Double
+  mut remained_width : Double
+  mut auto_width_count : Int
+  mut category_gap : String?
+  mut gap : String
+  stacks : Array[BarCategoryStackLayout]
 }
 
 ///|
@@ -433,6 +737,7 @@ fn bar_render_series_cartesian_large_impl(
   coord : @coord.Cartesian2D,
   bar_index : Int,
   total_bars : Int,
+  stack_layout : BarCategoryStackLayout?,
   draw_background : Bool,
   draw_bars : Bool,
 ) -> Array[@graphic.Element] {
@@ -494,15 +799,23 @@ fn bar_render_series_cartesian_large_impl(
         } else {
           coord.bbox.x
         }
-        let bar_x = cat_px -
-          total_span / 2.0 +
-          bar_index.to_double() * bar_w * (1.0 + gap_percent)
+        let bar_x = match stack_layout {
+          Some(layout) => cat_px + layout.offset
+          None =>
+            cat_px -
+            total_span / 2.0 +
+            bar_index.to_double() * bar_w * (1.0 + gap_percent)
+        }
+        let render_bar_w = match stack_layout {
+          Some(layout) => layout.width
+          None => bar_w
+        }
         if draw_background && series.show_background {
           bar_append_rect_path(
             bg_buf,
             bar_x,
             coord.bbox.y,
-            bar_w,
+            render_bar_w,
             coord.bbox.height,
           )
           bg_count += 1
@@ -529,7 +842,7 @@ fn bar_render_series_cartesian_large_impl(
         }
         let top_y = coord.num_y(y_idx, value)
         let bar_h = top_y - base_y
-        bar_append_rect_path(fg_buf, bar_x, base_y, bar_w, bar_h)
+        bar_append_rect_path(fg_buf, bar_x, base_y, render_bar_w, bar_h)
         fg_count += 1
         if fg_count >= chunk_limit {
           children.push(
@@ -937,6 +1250,7 @@ fn bar_render_series_cartesian_impl(
   coord : @coord.Cartesian2D,
   bar_index : Int,
   total_bars : Int,
+  stack_layout : BarCategoryStackLayout?,
   draw_background : Bool,
   draw_bars : Bool,
   cartesian_stack_states : Array[BarCartesianStackState],
@@ -969,13 +1283,24 @@ fn bar_render_series_cartesian_impl(
         } else {
           coord.bbox.x
         }
-        let bar_x = cat_px -
-          total_span / 2.0 +
-          bar_index.to_double() * bar_w * 1.3
+        let render_bar_w = match stack_layout {
+          Some(layout) => layout.width
+          None => bar_w
+        }
+        let bar_x = match stack_layout {
+          Some(layout) => cat_px + layout.offset
+          None =>
+            cat_px - total_span / 2.0 + bar_index.to_double() * bar_w * 1.3
+        }
         if draw_background && series.show_background {
           elems.push(
             bar_render_path(
-              bar_rect_path(bar_x, coord.bbox.y, bar_w, coord.bbox.height),
+              bar_rect_path(
+                bar_x,
+                coord.bbox.y,
+                render_bar_w,
+                coord.bbox.height,
+              ),
               bar_resolve_background_style(series),
             ).with_silent(true),
           )
@@ -1034,7 +1359,10 @@ fn bar_render_series_cartesian_impl(
           }
         }
         elems.push(
-          bar_render_path(bar_rect_path(bar_x, base_coord, bar_w, bar_h), style)
+          bar_render_path(
+            bar_rect_path(bar_x, base_coord, render_bar_w, bar_h),
+            style,
+          )
           .with_ecmeta_attr("series_index", series_order.to_string())
           .with_ecmeta_attr("data_index", (di - 1).to_string())
           .with_ecmeta_attr("ssr_type", "chart"),
@@ -1099,11 +1427,27 @@ pub fn render_bar_series_cartesian(
   let cartesian_stack_states : Array[BarCartesianStackState] = []
   if bar_series_is_large(series) {
     bar_render_series_cartesian_large_impl(
-      series, series_index, series_index, coord, bar_index, total_bars, true, true,
+      series,
+      series_index,
+      series_index,
+      coord,
+      bar_index,
+      total_bars,
+      None,
+      true,
+      true,
     )
   } else {
     bar_render_series_cartesian_impl(
-      series, series_index, series_index, coord, bar_index, total_bars, true, true,
+      series,
+      series_index,
+      series_index,
+      coord,
+      bar_index,
+      total_bars,
+      None,
+      true,
+      true,
       cartesian_stack_states,
     )
   }
@@ -1117,8 +1461,8 @@ pub fn render_bars(
 ) -> Array[@graphic.Element] {
   let background_elems : Array[@graphic.Element] = []
   let foreground_elems : Array[@graphic.Element] = []
-  let mut color_idx = 0
   let max_xi = opt.x_axis.length()
+  let category_layouts = bar_make_category_layout(opt.series, coord)
   let bar_column_keys_by_axis : Array[Array[String]] = []
   let mut xi_init = 0
   while xi_init <= max_xi {
@@ -1143,8 +1487,9 @@ pub fn render_bars(
       _ => ()
     }
   }
+
   let mut sr_bg = 0
-  color_idx = 0
+  let mut color_idx = 0
   while sr_bg < opt.series.length() {
     let series = opt.series[sr_bg]
     sr_bg += 1
@@ -1178,6 +1523,12 @@ pub fn render_bars(
       } else {
         0
       }
+      let stack_layout = bar_category_layout_get_stack(
+        category_layouts,
+        xi,
+        series,
+        sr_bg - 1,
+      )
       let key = bar_series_cartesian_key(series, sr_bg - 1)
       let rank = bar_find_string_index(bar_column_keys_by_axis[xi], key)
       let total = bar_column_keys_by_axis[xi].length()
@@ -1189,6 +1540,7 @@ pub fn render_bars(
           coord,
           rank,
           total,
+          stack_layout,
           true,
           false,
         )
@@ -1200,6 +1552,7 @@ pub fn render_bars(
           coord,
           rank,
           total,
+          stack_layout,
           true,
           false,
           cartesian_stack_states,
@@ -1209,6 +1562,7 @@ pub fn render_bars(
     }
     color_idx += 1
   }
+
   let polar_stack_states : Array[PolarBarStackState] = []
   let mut sr = 0
   color_idx = 0
@@ -1245,6 +1599,12 @@ pub fn render_bars(
       } else {
         0
       }
+      let stack_layout = bar_category_layout_get_stack(
+        category_layouts,
+        xi,
+        series,
+        sr - 1,
+      )
       let key = bar_series_cartesian_key(series, sr - 1)
       let rank = bar_find_string_index(bar_column_keys_by_axis[xi], key)
       let total = bar_column_keys_by_axis[xi].length()
@@ -1256,6 +1616,7 @@ pub fn render_bars(
           coord,
           rank,
           total,
+          stack_layout,
           false,
           true,
         )
@@ -1267,6 +1628,7 @@ pub fn render_bars(
           coord,
           rank,
           total,
+          stack_layout,
           false,
           true,
           cartesian_stack_states,
@@ -1276,6 +1638,7 @@ pub fn render_bars(
     }
     color_idx += 1
   }
+
   background_elems.append(foreground_elems)
   background_elems
 }

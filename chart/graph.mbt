@@ -332,7 +332,9 @@ fn render_graph_series(
     li = li + 1
   }
 
-  // Run force layout (only for "force" layout mode)
+  // Run layout depending on mode
+  // Corresponds to: echarts/src/chart/graph/simpleLayoutHelper.ts simpleLayout
+  //                 echarts/src/chart/graph/circularLayoutHelper.ts circularLayout
   if series.graph_layout == "force" {
     graph_force_layout(
       force_nodes,
@@ -343,6 +345,42 @@ fn render_graph_series(
       rect_h,
       series.graph_force_gravity,
     )
+  } else if series.graph_layout == "none" || series.graph_layout == "" {
+    // Simple/none layout: use x/y from each node's raw data as pixel offsets
+    // relative to the chart rect origin.
+    // Corresponds to: echarts/src/chart/graph/simpleLayoutHelper.ts simpleLayout
+    let mut ni2 = 0
+    while ni2 < n_nodes {
+      let item = series.data[ni2]
+      match item.raw_item {
+        Some(Object(obj)) => {
+          let nx = match obj.get("x") {
+            Some(Number(n, ..)) => rect_x + n
+            _ => force_nodes[ni2].x
+          }
+          let ny = match obj.get("y") {
+            Some(Number(n, ..)) => rect_y + n
+            _ => force_nodes[ni2].y
+          }
+          force_nodes[ni2].x = nx
+          force_nodes[ni2].y = ny
+        }
+        _ => ()
+      }
+      ni2 += 1
+    }
+  } else if series.graph_layout == "circular" {
+    // Circular layout: place n_nodes evenly on a circle.
+    // Corresponds to: echarts/src/chart/graph/circularLayoutHelper.ts circularLayout
+    let circ_r = (if rect_w < rect_h { rect_w } else { rect_h }) / 2.0
+    let twopi = 6.283185307179586
+    let mut ni2 = 0
+    while ni2 < n_nodes {
+      let angle = twopi * ni2.to_double() / n_nodes.to_double()
+      force_nodes[ni2].x = cx + circ_r * @math.cos(angle)
+      force_nodes[ni2].y = cy + circ_r * @math.sin(angle)
+      ni2 += 1
+    }
   }
 
   // ---- Rendering ----

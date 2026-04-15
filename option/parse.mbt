@@ -1244,6 +1244,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "symbolRepeatDirection",
     base.symbol_repeat_direction,
   )
+  let bar_width = j_string_or_number_as_string_opt(j, "barWidth", None)
+  let bar_max_width = j_string_or_number_as_string_opt(j, "barMaxWidth", None)
+  let bar_min_width = j_string_or_number_as_string_opt(j, "barMinWidth", None)
   let bar_gap = j_string_or_number_as_string_opt(j, "barGap", base.bar_gap)
   let bar_category_gap = j_string_or_number_as_string_opt(
     j,
@@ -1379,6 +1382,18 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let gauge_progress_width = match gauge_progress {
     Some(p) => j_number(p, "width", base.gauge_progress_width)
     None => base.gauge_progress_width
+  }
+  let gauge_progress_round_cap = match gauge_progress {
+    Some(p) => j_bool(p, "roundCap", base.gauge_progress_round_cap)
+    None => base.gauge_progress_round_cap
+  }
+  let gauge_progress_clip = match gauge_progress {
+    Some(p) => j_bool(p, "clip", base.gauge_progress_clip)
+    None => base.gauge_progress_clip
+  }
+  let gauge_round_cap = match j_field(j, "axisLine") {
+    Some(al) => j_bool(al, "roundCap", base.gauge_round_cap)
+    None => base.gauge_round_cap
   }
   let gauge_detail_obj = j_field(j, "detail")
   let gauge_detail_formatter = match gauge_detail_obj {
@@ -1565,6 +1580,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     symbol_bounding_data,
     symbol_offset,
     symbol_repeat_direction,
+    bar_width,
+    bar_max_width,
+    bar_min_width,
     bar_gap,
     bar_category_gap,
     bar_min_height,
@@ -1676,6 +1694,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
     gauge_progress_show,
     gauge_progress_overlap,
     gauge_progress_width,
+    gauge_progress_round_cap,
+    gauge_progress_clip,
+    gauge_round_cap,
     gauge_detail_formatter,
     gauge_detail_color,
     gauge_detail_font_size,
@@ -1692,6 +1713,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     graph_force_edge_length,
     graph_force_repulsion,
     graph_force_gravity,
+    pie_selected_offset: j_number(j, "selectedOffset", base.pie_selected_offset),
   }
 }
 
