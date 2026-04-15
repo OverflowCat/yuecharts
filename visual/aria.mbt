@@ -25,6 +25,7 @@ fn series_type_name(series_type : @option.SeriesType) -> String {
     @option.Tree => "Tree diagram"
     @option.Chord => "Chord chart"
     @option.Sankey => "Sankey diagram"
+    @option.Graph => "Graph chart"
   }
 }
 

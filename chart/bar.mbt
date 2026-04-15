@@ -202,6 +202,61 @@ fn bar_xy_value(item : @option.DataItem, data_index : Int) -> (Double, Double) {
 }
 
 ///|
+fn bar_item_value(item : @option.DataItem) -> Double {
+  match item.value {
+    Num(n) => n
+    Vec(arr) =>
+      if arr.length() > 1 {
+        arr[1]
+      } else if arr.length() > 0 {
+        arr[0]
+      } else {
+        0.0
+      }
+    DateValue(_, n) => n
+    Null => 0.0
+  }
+}
+
+///|
+fn bar_series_cartesian_key(
+  series : @option.SeriesOption,
+  series_order : Int,
+) -> String {
+  match series.stack {
+    Some(stack) => "\{series.x_axis_index}::stack::\{stack}"
+    None => "\{series.x_axis_index}::series::\{series_order}"
+  }
+}
+
+///|
+fn bar_find_string_index(arr : Array[String], key : String) -> Int {
+  let mut i = 0
+  while i < arr.length() {
+    if arr[i] == key {
+      return i
+    }
+    i += 1
+  }
+  -1
+}
+
+///|
+fn bar_find_cartesian_stack_state_index(
+  states : Array[BarCartesianStackState],
+  stack_id : String,
+) -> Int {
+  let mut i = 0
+  while i < states.length() {
+    if states[i].stack_id == stack_id {
+      return i
+    }
+    i += 1
+  }
+  -1
+}
+
+///|
 priv struct PolarBarStackLayout {
   stack_id : String
   mut width : Double
@@ -218,6 +273,18 @@ priv struct PolarBarStackCoord {
 priv struct PolarBarStackState {
   stack_id : String
   coords : Array[PolarBarStackCoord]
+}
+
+///|
+priv struct BarCartesianStackCoord {
+  p : Double
+  n : Double
+}
+
+///|
+priv struct BarCartesianStackState {
+  stack_id : String
+  coords : Array[BarCartesianStackCoord]
 }
 
 ///|
@@ -921,11 +988,12 @@ fn bar_render_series_cartesian_impl(
   total_bars : Int,
   draw_background : Bool,
   draw_bars : Bool,
+  cartesian_stack_states : Array[BarCartesianStackState],
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
-  let base_y = coord.bbox.y + coord.bbox.height
+  let base_y = coord.num_y(y_idx, 0.0)
   if x_idx >= coord.x_scales.length() {
     return elems
   }
@@ -965,16 +1033,57 @@ fn bar_render_series_cartesian_impl(
           continue
         }
         let style = bar_resolve_data_style(series, item, series_index)
-        let value = match item.value {
-          Num(n) => n
-          Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
-          DateValue(_, n) => n
-          Null => 0.0
+        let value = bar_item_value(item)
+        let stacked = series.stack != None
+        let stack_state_index = if stacked {
+          let stack_key = bar_series_cartesian_key(series, series_order)
+          let existing = bar_find_cartesian_stack_state_index(
+            cartesian_stack_states, stack_key,
+          )
+          if existing >= 0 {
+            existing
+          } else {
+            cartesian_stack_states.push({ stack_id: stack_key, coords: [] })
+            cartesian_stack_states.length() - 1
+          }
+        } else {
+          -1
         }
-        let top_y = coord.num_y(y_idx, value)
+        let mut base_value = 0.0
+        if stack_state_index >= 0 {
+          while cartesian_stack_states[stack_state_index].coords.length() <=
+                di - 1 {
+            cartesian_stack_states[stack_state_index].coords.push({
+              p: 0.0,
+              n: 0.0,
+            })
+          }
+          let stack_coord = cartesian_stack_states[stack_state_index].coords[di -
+            1]
+          base_value = if value >= 0.0 { stack_coord.p } else { stack_coord.n }
+        }
+        let top_value = base_value + value
+        let top_y = coord.num_y(y_idx, top_value)
+        let base_coord = coord.num_y(y_idx, base_value)
         let bar_h = top_y - base_y
+        if stack_state_index >= 0 {
+          let stack_coord = cartesian_stack_states[stack_state_index].coords[di -
+            1]
+          cartesian_stack_states[stack_state_index].coords[di - 1] = {
+            p: if value >= 0.0 {
+              top_value
+            } else {
+              stack_coord.p
+            },
+            n: if value < 0.0 {
+              top_value
+            } else {
+              stack_coord.n
+            },
+          }
+        }
         elems.push(
-          bar_render_path(bar_rect_path(bar_x, base_y, bar_w, bar_h), style)
+          bar_render_path(bar_rect_path(bar_x, base_coord, bar_w, bar_h), style)
           .with_ecmeta_attr("series_index", series_order.to_string())
           .with_ecmeta_attr("data_index", (di - 1).to_string())
           .with_ecmeta_attr("ssr_type", "chart"),
@@ -1036,6 +1145,7 @@ pub fn render_bar_series_cartesian(
   bar_index : Int,
   total_bars : Int,
 ) -> Array[@graphic.Element] {
+  let cartesian_stack_states : Array[BarCartesianStackState] = []
   if bar_series_is_large(series) {
     bar_render_series_cartesian_large_impl(
       series, series_index, series_index, coord, bar_index, total_bars, true, true,
@@ -1043,6 +1153,7 @@ pub fn render_bar_series_cartesian(
   } else {
     bar_render_series_cartesian_impl(
       series, series_index, series_index, coord, bar_index, total_bars, true, true,
+      cartesian_stack_states,
     )
   }
 }
@@ -1057,20 +1168,17 @@ pub fn render_bars(
   let foreground_elems : Array[@graphic.Element] = []
   let mut color_idx = 0
   let max_xi = opt.x_axis.length()
-  let bar_counts : Array[Int] = []
-  let bar_rank_cursor_bg : Array[Int] = []
-  let bar_rank_cursor_fg : Array[Int] = []
+  let bar_column_keys_by_axis : Array[Array[String]] = []
   let mut xi_init = 0
   while xi_init <= max_xi {
-    bar_counts.push(0)
-    bar_rank_cursor_bg.push(0)
-    bar_rank_cursor_fg.push(0)
+    bar_column_keys_by_axis.push([])
     xi_init += 1
   }
   let polar_layout = match polar {
     Some(p) => Some(bar_cal_radial_layout(opt.series, p))
     None => None
   }
+  let cartesian_stack_states : Array[BarCartesianStackState] = []
   let mut count_i = 0
   while count_i < opt.series.length() {
     let s = opt.series[count_i]
@@ -1079,7 +1187,10 @@ pub fn render_bars(
       Bar =>
         if s.coordinate_system != Some("polar") {
           let xi = if s.x_axis_index < max_xi { s.x_axis_index } else { 0 }
-          bar_counts[xi] += 1
+          let key = bar_series_cartesian_key(s, count_i - 1)
+          if bar_find_string_index(bar_column_keys_by_axis[xi], key) < 0 {
+            bar_column_keys_by_axis[xi].push(key)
+          }
         }
       _ => ()
     }
@@ -1119,9 +1230,9 @@ pub fn render_bars(
       } else {
         0
       }
-      let total = bar_counts[xi]
-      let rank = bar_rank_cursor_bg[xi]
-      bar_rank_cursor_bg[xi] = rank + 1
+      let key = bar_series_cartesian_key(series, sr_bg - 1)
+      let rank = bar_find_string_index(bar_column_keys_by_axis[xi], key)
+      let total = bar_column_keys_by_axis[xi].length()
       let series_elems = if bar_series_is_large(series) {
         bar_render_series_cartesian_large_impl(
           series,
@@ -1143,6 +1254,7 @@ pub fn render_bars(
           total,
           true,
           false,
+          cartesian_stack_states,
         )
       }
       background_elems.append(series_elems)
@@ -1185,9 +1297,9 @@ pub fn render_bars(
       } else {
         0
       }
-      let total = bar_counts[xi]
-      let rank = bar_rank_cursor_fg[xi]
-      bar_rank_cursor_fg[xi] = rank + 1
+      let key = bar_series_cartesian_key(series, sr - 1)
+      let rank = bar_find_string_index(bar_column_keys_by_axis[xi], key)
+      let total = bar_column_keys_by_axis[xi].length()
       let series_elems = if bar_series_is_large(series) {
         bar_render_series_cartesian_large_impl(
           series,
@@ -1209,6 +1321,7 @@ pub fn render_bars(
           total,
           false,
           true,
+          cartesian_stack_states,
         )
       }
       foreground_elems.append(series_elems)
