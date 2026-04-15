@@ -293,7 +293,8 @@ fn matrix_heatmap_visual_opacity(
   while i < opt.visual_map.length() {
     let visual_map = opt.visual_map[i]
     i += 1
-    if visual_map.series_index != series_index {
+    if visual_map.series_index != None &&
+      visual_map.series_index != Some(series_index) {
       continue
     }
     if visual_map.in_range.opacity.length() >= 2 {

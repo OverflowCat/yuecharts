@@ -1106,6 +1106,22 @@ pub fn Element::polygon_fill_stroke(
 }
 
 ///|
+/// Filled polygon with no stroke at the given opacity.
+pub fn Element::polygon_filled(
+  pts : Array[Point],
+  fill_color : Color,
+  opacity : Double,
+) -> Element {
+  Polygon({
+    points: pts,
+    fill: Some({ color: fill_color }),
+    stroke: None,
+    opacity,
+    meta: DisplayableMeta::default(),
+  })
+}
+
+///|
 /// Rect with both fill and stroke colors.
 pub fn Element::rect_fill_stroke(
   x : Double,

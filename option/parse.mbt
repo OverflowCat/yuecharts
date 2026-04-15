@@ -2280,7 +2280,10 @@ fn parse_visual_map(j : Json) -> VisualMapOption {
     map_type: j_string_opt(j, "type"),
     min: j_number(j, "min", base.min),
     max: j_number(j, "max", base.max),
-    series_index: j_int(j, "seriesIndex", base.series_index),
+    series_index: match j_field(j, "seriesIndex") {
+      Some(Number(n, ..)) => Some(n.to_int())
+      _ => None
+    },
     dimension: j_int(j, "dimension", base.dimension),
     color: j_stringish_array(j, "color", base.color),
     text: j_stringish_array(j, "text", base.text),

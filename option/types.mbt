@@ -564,6 +564,8 @@ pub(all) struct SeriesOption {
   bar_category_gap : String?
   bar_min_height : Double
   bar_min_angle : Double
+  large : Bool
+  large_threshold : Int
   round_cap : Bool
   show_background : Bool
   x_axis_index : Int
@@ -719,6 +721,8 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     bar_category_gap: None,
     bar_min_height: 0.0,
     bar_min_angle: 0.0,
+    large: false,
+    large_threshold: 400,
     round_cap: false,
     show_background: false,
     x_axis_index: 0,
@@ -1336,7 +1340,8 @@ pub struct VisualMapOption {
   min : Double
   /// Maximum value of the mapped range.
   max : Double
-  series_index : Int
+  /// None means apply to all series; Some(n) means apply only to series n.
+  series_index : Int?
   dimension : Int
   color : Array[String]
   text : Array[String]
@@ -1374,7 +1379,7 @@ pub impl Default for VisualMapOption with default() {
     map_type: None,
     min: 0.0,
     max: 100.0,
-    series_index: 0,
+    series_index: None,
     dimension: 0,
     color: [],
     text: [],

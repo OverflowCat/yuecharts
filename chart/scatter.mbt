@@ -22,7 +22,12 @@ fn geo_visual_map_for_series(
   let mut i = 0
   while i < opt.visual_map.length() {
     let visual_map = opt.visual_map[i]
-    if visual_map.series_index == series_index {
+    // None means "apply to all series"; Some(n) means only series n
+    let matches = match visual_map.series_index {
+      None => true
+      Some(idx) => idx == series_index
+    }
+    if matches {
       return Some(visual_map)
     }
     i += 1

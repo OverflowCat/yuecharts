@@ -95,6 +95,62 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
     let bg_elems = render_radar_background(radar_opt, opt.width, opt.height)
     elems.append(bg_elems)
   }
+  // Find first visualMap that applies to all series (series_index = None)
+  // <=> echarts/src/component/visualMap/VisualMapModel.ts seriesIndex handling
+  let mut vm_opt : @option.VisualMapOption? = None
+  let mut vmi = 0
+  while vmi < opt.visual_map.length() {
+    let v = opt.visual_map[vmi]
+    match v.series_index {
+      None => {
+        vm_opt = Some(v)
+        break
+      }
+      _ => ()
+    }
+    vmi += 1
+  }
+  // Auto-compute min/max from all radar series data at vm.dimension
+  // <=> echarts/src/component/visualMap/VisualMapModel.ts _resetTarget
+  let (vm_min, vm_max) = match vm_opt {
+    None => (0.0, 100.0)
+    Some(vm) => {
+      let mut mn = 0.0
+      let mut mx = 0.0
+      let mut found = false
+      let mut s2 = 0
+      while s2 < opt.series.length() {
+        let s = opt.series[s2]
+        s2 += 1
+        match s.series_type {
+          Radar => ()
+          _ => continue
+        }
+        let mut di = 0
+        while di < s.data.length() {
+          let item = s.data[di]
+          di += 1
+          match data_value_dimension(item.value, vm.dimension) {
+            Some(v2) => {
+              if not(found) || v2 < mn {
+                mn = v2
+              }
+              if not(found) || v2 > mx {
+                mx = v2
+              }
+              found = true
+            }
+            None => ()
+          }
+        }
+      }
+      if not(found) {
+        (0.0, 100.0)
+      } else {
+        (mn, mx)
+      }
+    }
+  }
   // Render each radar series
   let mut si = 0
   let mut color_idx = 0
@@ -121,6 +177,9 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
       radar_opt,
       opt.width,
       opt.height,
+      vm_opt,
+      vm_min,
+      vm_max,
     )
     elems.append(series_elems)
     color_idx = color_idx + 1
@@ -240,13 +299,19 @@ fn render_radar_background(
 }
 
 ///|
-/// Render a single radar series as a stroked polygon (no fill by default).
+/// Render a single radar series.
+/// Each data item is rendered as a filled polygon (opacity 0.7) +
+/// a stroked polyline, matching RadarView.ts behaviour.
+/// <=> echarts/src/chart/radar/RadarView.ts
 pub fn render_radar_series(
   series : @option.SeriesOption,
   series_index : Int,
   radar_opt : @option.RadarOption,
   chart_width : Double,
   chart_height : Double,
+  vm_opt : @option.VisualMapOption?,
+  vm_min : Double,
+  vm_max : Double,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let n = radar_opt.indicator.length()
@@ -272,14 +337,45 @@ pub fn render_radar_series(
   let r = radar_parse_r(radar_opt.radius, ref_r)
   let start_angle_rad = radar_opt.start_angle * @math.PI / 180.0
   let sign = if radar_opt.clockwise { -1.0 } else { 1.0 }
+  // lineStyle.width, default 1 matching ECharts radar default
+  let line_width = series.line_style_width.unwrap_or(1.0)
 
   // For each data item — each gets its own palette color (series_index + data_index)
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
-    let data_color_str = match series.color {
-      Some(c) => c
-      None => @visual.palette_color(series_index + di)
+    // Resolve item color: visualMap > series.color > palette
+    // <=> echarts/src/chart/radar/RadarView.ts data.getItemVisual(idx, 'style').fill
+    let data_color_str = match vm_opt {
+      Some(vm) =>
+        match data_value_dimension(item.value, vm.dimension) {
+          Some(val) => {
+            let span = vm_max - vm_min
+            let ratio = if span == 0.0 {
+              0.0
+            } else {
+              clamp01((val - vm_min) / span)
+            }
+            match color_stops_color(vm.in_range.color, ratio) {
+              Some(c) => c
+              None =>
+                match series.color {
+                  Some(c) => c
+                  None => @visual.palette_color(series_index + di)
+                }
+            }
+          }
+          None =>
+            match series.color {
+              Some(c) => c
+              None => @visual.palette_color(series_index + di)
+            }
+        }
+      None =>
+        match series.color {
+          Some(c) => c
+          None => @visual.palette_color(series_index + di)
+        }
     }
     let color = @graphic.Color::from_string(data_color_str).unwrap_or(
       @graphic.black,
@@ -294,13 +390,10 @@ pub fn render_radar_series(
     let mut i = 0
     while i < n {
       let v = if i < values.length() { values[i] } else { 0.0 }
-      // Determine max for this indicator (auto = max of all data values if not set)
+      // Determine max for this indicator
       let max_val = match radar_opt.indicator[i].max {
         Some(m) => m
-        None =>
-          // If no max specified, use 100 as a fallback (ECharts would compute from data)
-          // A better implementation would auto-compute; for now use 100.
-          100.0
+        None => 100.0
       }
       let min_val = match radar_opt.indicator[i].min {
         Some(m) => m
@@ -319,8 +412,10 @@ pub fn render_radar_series(
     if pts.length() < 2 {
       continue
     }
-    elems.push(@graphic.Element::polygon_stroked_round(pts, color, 2.0))
-    // Note: vertex dots are not rendered by default in ECharts radar
+    // Fill polygon (opacity 0.7) — matches polygon.useStyle({fill: color, opacity: 0.7})
+    elems.push(@graphic.Element::polygon_filled(pts, color, 0.7))
+    // Border polyline (opacity 1.0) — matches polyline.useStyle({stroke: color, fill: 'none'})
+    elems.push(@graphic.Element::polygon_stroked_round(pts, color, line_width))
   }
   elems
 }
