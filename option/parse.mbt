@@ -1443,6 +1443,176 @@ fn parse_series_option(j : Json) -> SeriesOption {
       }
     None => base.gauge_title_offset_center
   }
+  // Gauge axisLine styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderMain
+  let gauge_axis_line_obj = j_field(j, "axisLine")
+  let gauge_axis_line_line_style = gauge_axis_line_obj.bind(al =>
+    j_field(al, "lineStyle")
+  )
+  let gauge_axis_line_colors : Array[(Double, String)] = match gauge_axis_line_line_style.bind(ls =>
+    j_field(ls, "color")
+  ) {
+    Some(Array(arr)) => {
+      let result : Array[(Double, String)] = []
+      for entry in arr {
+        match entry {
+          Array([Number(offset, ..), String(color)]) =>
+            result.push((offset, color))
+          _ => ()
+        }
+      }
+      if result.is_empty() {
+        base.gauge_axis_line_colors
+      } else {
+        result
+      }
+    }
+    _ => base.gauge_axis_line_colors
+  }
+  let gauge_axis_line_width = match gauge_axis_line_line_style {
+    Some(ls) => j_number(ls, "width", base.gauge_axis_line_width)
+    None => base.gauge_axis_line_width
+  }
+  // Gauge splitLine styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderTicks splitLine
+  let gauge_split_line_obj = j_field(j, "splitLine")
+  let gauge_split_line_show = match gauge_split_line_obj {
+    Some(sl) => j_bool(sl, "show", base.gauge_split_line_show)
+    None => base.gauge_split_line_show
+  }
+  let gauge_split_line_length = match gauge_split_line_obj {
+    Some(sl) => j_number(sl, "length", base.gauge_split_line_length)
+    None => base.gauge_split_line_length
+  }
+  let gauge_split_line_distance = match gauge_split_line_obj {
+    Some(sl) => j_number(sl, "distance", base.gauge_split_line_distance)
+    None => base.gauge_split_line_distance
+  }
+  let gauge_split_line_line_style = gauge_split_line_obj.bind(sl =>
+    j_field(sl, "lineStyle")
+  )
+  let gauge_split_line_color = match gauge_split_line_line_style {
+    Some(ls) => j_string(ls, "color", base.gauge_split_line_color)
+    None => base.gauge_split_line_color
+  }
+  let gauge_split_line_width = match gauge_split_line_line_style {
+    Some(ls) => j_number(ls, "width", base.gauge_split_line_width)
+    None => base.gauge_split_line_width
+  }
+  // Gauge axisTick styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderTicks axisTick
+  let gauge_axis_tick_obj = j_field(j, "axisTick")
+  let gauge_axis_tick_show = match gauge_axis_tick_obj {
+    Some(t) => j_bool(t, "show", base.gauge_axis_tick_show)
+    None => base.gauge_axis_tick_show
+  }
+  let gauge_axis_tick_length = match gauge_axis_tick_obj {
+    Some(t) => j_number(t, "length", base.gauge_axis_tick_length)
+    None => base.gauge_axis_tick_length
+  }
+  let gauge_axis_tick_distance = match gauge_axis_tick_obj {
+    Some(t) => j_number(t, "distance", base.gauge_axis_tick_distance)
+    None => base.gauge_axis_tick_distance
+  }
+  let gauge_axis_tick_split_number = match gauge_axis_tick_obj {
+    Some(t) => j_int(t, "splitNumber", base.gauge_axis_tick_split_number)
+    None => base.gauge_axis_tick_split_number
+  }
+  let gauge_axis_tick_line_style = gauge_axis_tick_obj.bind(t =>
+    j_field(t, "lineStyle")
+  )
+  let gauge_axis_tick_color = match gauge_axis_tick_line_style {
+    Some(ls) => j_string(ls, "color", base.gauge_axis_tick_color)
+    None => base.gauge_axis_tick_color
+  }
+  let gauge_axis_tick_width = match gauge_axis_tick_line_style {
+    Some(ls) => j_number(ls, "width", base.gauge_axis_tick_width)
+    None => base.gauge_axis_tick_width
+  }
+  // Gauge axisLabel styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderTicks axisLabel
+  let gauge_axis_label_obj = j_field(j, "axisLabel")
+  let gauge_axis_label_show = match gauge_axis_label_obj {
+    Some(l) => j_bool(l, "show", base.gauge_axis_label_show)
+    None => base.gauge_axis_label_show
+  }
+  let gauge_axis_label_color = match gauge_axis_label_obj {
+    Some(l) => j_string(l, "color", base.gauge_axis_label_color)
+    None => base.gauge_axis_label_color
+  }
+  let gauge_axis_label_distance = match gauge_axis_label_obj {
+    Some(l) => j_number(l, "distance", base.gauge_axis_label_distance)
+    None => base.gauge_axis_label_distance
+  }
+  let gauge_axis_label_font_size = match gauge_axis_label_obj {
+    Some(l) => j_number(l, "fontSize", base.gauge_axis_label_font_size)
+    None => base.gauge_axis_label_font_size
+  }
+  // Gauge pointer styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderPointer
+  let gauge_pointer_obj = j_field(j, "pointer")
+  let gauge_pointer_show = match gauge_pointer_obj {
+    Some(p) => j_bool(p, "show", base.gauge_pointer_show)
+    None => base.gauge_pointer_show
+  }
+  let gauge_pointer_item_style = gauge_pointer_obj.bind(p =>
+    j_field(p, "itemStyle")
+  )
+  let gauge_pointer_color = match gauge_pointer_item_style {
+    Some(pis) => j_string_opt(pis, "color")
+    None => base.gauge_pointer_color
+  }
+  let gauge_pointer_length = match gauge_pointer_obj {
+    Some(p) => j_string_or_number(p, "length", base.gauge_pointer_length)
+    None => base.gauge_pointer_length
+  }
+  let gauge_pointer_width = match gauge_pointer_obj {
+    Some(p) => j_number(p, "width", base.gauge_pointer_width)
+    None => base.gauge_pointer_width
+  }
+  let gauge_pointer_icon = match gauge_pointer_obj {
+    Some(p) => j_string_opt(p, "icon")
+    None => base.gauge_pointer_icon
+  }
+  let gauge_pointer_offset_center = match gauge_pointer_obj.bind(p =>
+    j_field(p, "offsetCenter")
+  ) {
+    Some(Array(arr)) =>
+      arr.map(fn(x) {
+        match x {
+          String(s) => s
+          Number(n, ..) => "\{n}"
+          _ => "0"
+        }
+      })
+    _ => base.gauge_pointer_offset_center
+  }
+  // Gauge anchor styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderAnchor
+  let gauge_anchor_obj = j_field(j, "anchor")
+  let gauge_anchor_show = match gauge_anchor_obj {
+    Some(a) => j_bool(a, "show", base.gauge_anchor_show)
+    None => base.gauge_anchor_show
+  }
+  let gauge_anchor_size = match gauge_anchor_obj {
+    Some(a) => j_number(a, "size", base.gauge_anchor_size)
+    None => base.gauge_anchor_size
+  }
+  let gauge_anchor_item_style = gauge_anchor_obj.bind(a =>
+    j_field(a, "itemStyle")
+  )
+  let gauge_anchor_color = match gauge_anchor_item_style {
+    Some(ais) => j_string_opt(ais, "color")
+    None => base.gauge_anchor_color
+  }
+  let gauge_anchor_border_color = match gauge_anchor_item_style {
+    Some(ais) => j_string_opt(ais, "borderColor")
+    None => base.gauge_anchor_border_color
+  }
+  let gauge_anchor_border_width = match gauge_anchor_item_style {
+    Some(ais) => j_number(ais, "borderWidth", base.gauge_anchor_border_width)
+    None => base.gauge_anchor_border_width
+  }
   let map_value_calculation = match j_string(j, "mapValueCalculation", "sum") {
     "average" => MapValueCalculationType::Average
     "min" => MapValueCalculationType::Min
@@ -1703,6 +1873,34 @@ fn parse_series_option(j : Json) -> SeriesOption {
     gauge_detail_offset_center,
     gauge_title_font_size,
     gauge_title_offset_center,
+    gauge_axis_line_colors,
+    gauge_axis_line_width,
+    gauge_split_line_show,
+    gauge_split_line_length,
+    gauge_split_line_distance,
+    gauge_split_line_color,
+    gauge_split_line_width,
+    gauge_axis_tick_show,
+    gauge_axis_tick_length,
+    gauge_axis_tick_distance,
+    gauge_axis_tick_color,
+    gauge_axis_tick_width,
+    gauge_axis_tick_split_number,
+    gauge_axis_label_show,
+    gauge_axis_label_color,
+    gauge_axis_label_distance,
+    gauge_axis_label_font_size,
+    gauge_pointer_show,
+    gauge_pointer_color,
+    gauge_pointer_length,
+    gauge_pointer_width,
+    gauge_pointer_offset_center,
+    gauge_pointer_icon,
+    gauge_anchor_show,
+    gauge_anchor_size,
+    gauge_anchor_color,
+    gauge_anchor_border_color,
+    gauge_anchor_border_width,
     candle_color_up,
     candle_color_down,
     candle_border_color_up,

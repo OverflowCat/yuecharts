@@ -694,6 +694,46 @@ pub(all) struct SeriesOption {
   gauge_detail_offset_center : Array[String] // default ["0", "40%"]
   gauge_title_font_size : Double // default 16.0
   gauge_title_offset_center : Array[String] // default ["0", "20%"]
+  // Gauge axisLine styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts axisLine
+  gauge_axis_line_colors : Array[(Double, String)] // axisLine.lineStyle.color, default [[1,"#e8ebf0"]]
+  gauge_axis_line_width : Double // axisLine.lineStyle.width, default 10.0
+  // Gauge splitLine styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts splitLine
+  gauge_split_line_show : Bool // splitLine.show, default true
+  gauge_split_line_length : Double // splitLine.length, default 10.0
+  gauge_split_line_distance : Double // splitLine.distance, default 10.0
+  gauge_split_line_color : String // splitLine.lineStyle.color, default "#54555a"
+  gauge_split_line_width : Double // splitLine.lineStyle.width, default 3.0
+  // Gauge axisTick styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts axisTick
+  gauge_axis_tick_show : Bool // axisTick.show, default true
+  gauge_axis_tick_length : Double // axisTick.length, default 6.0
+  gauge_axis_tick_distance : Double // axisTick.distance, default 10.0
+  gauge_axis_tick_color : String // axisTick.lineStyle.color, default "#b0b2b5"
+  gauge_axis_tick_width : Double // axisTick.lineStyle.width, default 1.0
+  gauge_axis_tick_split_number : Int // axisTick.splitNumber, default 5
+  // Gauge axisLabel styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts axisLabel
+  gauge_axis_label_show : Bool // axisLabel.show, default true
+  gauge_axis_label_color : String // axisLabel.color, default "#54555a"
+  gauge_axis_label_distance : Double // axisLabel.distance, default 15.0
+  gauge_axis_label_font_size : Double // axisLabel.fontSize, default 12.0
+  // Gauge pointer styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts pointer
+  gauge_pointer_show : Bool // pointer.show, default true
+  gauge_pointer_color : String? // pointer.itemStyle.color, default None (palette)
+  gauge_pointer_length : String // pointer.length, default "60%"
+  gauge_pointer_width : Double // pointer.width, default 6.0
+  gauge_pointer_offset_center : Array[String] // pointer.offsetCenter, default ["0","0"]
+  gauge_pointer_icon : String? // pointer.icon, default None
+  // Gauge anchor styling
+  // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts anchor
+  gauge_anchor_show : Bool // anchor.show, default false
+  gauge_anchor_size : Double // anchor.size, default 6.0
+  gauge_anchor_color : String? // anchor.itemStyle.color, default None
+  gauge_anchor_border_color : String? // anchor.itemStyle.borderColor, default None
+  gauge_anchor_border_width : Double // anchor.itemStyle.borderWidth, default 0.0
   // Candlestick-specific itemStyle
   // Corresponds to: echarts/src/chart/candlestick/CandlestickSeries.ts
   candle_color_up : String? // itemStyle.color (bullish/close>=open)
@@ -858,6 +898,34 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     gauge_detail_offset_center: ["0", "40%"],
     gauge_title_font_size: 16.0,
     gauge_title_offset_center: ["0", "20%"],
+    gauge_axis_line_colors: [(1.0, "#e8ebf0")],
+    gauge_axis_line_width: 10.0,
+    gauge_split_line_show: true,
+    gauge_split_line_length: 10.0,
+    gauge_split_line_distance: 10.0,
+    gauge_split_line_color: "#54555a",
+    gauge_split_line_width: 3.0,
+    gauge_axis_tick_show: true,
+    gauge_axis_tick_length: 6.0,
+    gauge_axis_tick_distance: 10.0,
+    gauge_axis_tick_color: "#b0b2b5",
+    gauge_axis_tick_width: 1.0,
+    gauge_axis_tick_split_number: 5,
+    gauge_axis_label_show: true,
+    gauge_axis_label_color: "#54555a",
+    gauge_axis_label_distance: 15.0,
+    gauge_axis_label_font_size: 12.0,
+    gauge_pointer_show: true,
+    gauge_pointer_color: None,
+    gauge_pointer_length: "60%",
+    gauge_pointer_width: 6.0,
+    gauge_pointer_offset_center: ["0", "0"],
+    gauge_pointer_icon: None,
+    gauge_anchor_show: false,
+    gauge_anchor_size: 6.0,
+    gauge_anchor_color: None,
+    gauge_anchor_border_color: None,
+    gauge_anchor_border_width: 0.0,
     candle_color_up: None,
     candle_color_down: None,
     candle_border_color_up: None,

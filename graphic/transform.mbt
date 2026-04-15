@@ -78,6 +78,19 @@ pub struct Matrix {
 pub let identity : Matrix = { a: 1.0, b: 0.0, c: 0.0, d: 1.0, e: 0.0, f: 0.0 }
 
 ///|
+/// Construct a Matrix from explicit affine coefficients (a,b,c,d,e,f).
+pub fn Matrix::from_values(
+  a : Double,
+  b : Double,
+  c : Double,
+  d : Double,
+  e : Double,
+  f : Double,
+) -> Matrix {
+  { a, b, c, d, e, f }
+}
+
+///|
 pub fn Matrix::translate(tx : Double, ty : Double) -> Matrix {
   { a: 1.0, b: 0.0, c: 0.0, d: 1.0, e: tx, f: ty }
 }

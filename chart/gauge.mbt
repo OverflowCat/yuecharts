@@ -110,6 +110,72 @@ fn fmt_gauge_val(v : Double) -> String {
 }
 
 ///|
+/// Approximate bounding box of an SVG path by scanning all numeric tokens.
+/// Returns (min_x, min_y, width, height). Treats alternating token pairs as (x,y).
+/// Corresponds to: zrender getBoundingRect for icons used by createSymbol.
+fn svg_path_bbox(path_data : String) -> (Double, Double, Double, Double) {
+  let n = path_data.length()
+  let nums : Array[Double] = []
+  let mut i = 0
+  while i < n {
+    let ch = path_data[i].to_int()
+    // 48='0' 57='9' 45='-' 46='.'
+    if ch == 45 || (ch >= 48 && ch <= 57) || ch == 46 {
+      let start = i
+      if ch == 45 {
+        i = i + 1
+      }
+      while i < n {
+        let c = path_data[i].to_int()
+        if (c >= 48 && c <= 57) || c == 46 {
+          i = i + 1
+        } else {
+          break
+        }
+      }
+      if i > start {
+        let tok = path_data.substring(start=start, end=i)
+        let r = try? @strconv.parse_double(tok)
+        match r {
+          Ok(v) => nums.push(v)
+          Err(_) => ()
+        }
+      }
+    } else {
+      i = i + 1
+    }
+  }
+  if nums.length() < 2 {
+    return (0.0, 0.0, 1.0, 1.0)
+  }
+  let mut min_x = nums[0]
+  let mut max_x = nums[0]
+  let mut min_y = nums[1]
+  let mut max_y = nums[1]
+  let mut j = 2
+  while j + 1 < nums.length() {
+    let x = nums[j]
+    let y = nums[j + 1]
+    if x < min_x {
+      min_x = x
+    }
+    if x > max_x {
+      max_x = x
+    }
+    if y < min_y {
+      min_y = y
+    }
+    if y > max_y {
+      max_y = y
+    }
+    j = j + 2
+  }
+  let bw = max_x - min_x
+  let bh = max_y - min_y
+  (min_x, min_y, if bw > 0.0 { bw } else { 1.0 }, if bh > 0.0 { bh } else { 1.0 })
+}
+
+///|
 /// Render all gauge series in the chart option.
 pub fn render_gauges(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
@@ -191,29 +257,53 @@ pub fn render_gauge_series(
   let min_v = series.min_val
   let max_v = series.max_val
 
-  // --- Layout constants (GaugeSeries.ts defaults) ---
-  let track_width = 10.0 // axisLine.lineStyle.width
+  // --- Read styled fields ---
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderMain
+  let track_width = series.gauge_axis_line_width
   let track_inner_r = r - track_width
-  let split_len = 10.0 // splitLine.length
-  let tick_len = 6.0 // axisTick.length
-  let label_gap = 25.0 // approx distance from inner track edge to label baseline
+  let split_len = series.gauge_split_line_length
+  let split_dist = series.gauge_split_line_distance
+  let split_color = series.gauge_split_line_color
+  let split_line_width = series.gauge_split_line_width
+  let tick_len = series.gauge_axis_tick_length
+  let tick_dist = series.gauge_axis_tick_distance
+  let tick_color = series.gauge_axis_tick_color
+  let tick_line_width = series.gauge_axis_tick_width
+  let label_color = series.gauge_axis_label_color
+  let label_dist = series.gauge_axis_label_distance
+  let label_font_size = series.gauge_axis_label_font_size
   let split_n = if series.split_number > 0 { series.split_number } else { 10 }
 
-  // --- ECharts default colors ---
-  let track_bg_color = "#e8ebf0"
-  let split_color = "#54555a"
-  let tick_color = "#b0b2b5"
-  let label_color = "#54555a"
-
-  // --- 1. Background track arc ---
-  // GaugeView.ts: axisLine sector rendered as full range background.
-  let bg_arc = gauge_sector_path(cx, cy, track_inner_r, r, start_rad, end_rad)
-  elems.push(@graphic.Element::path_filled(bg_arc, track_bg_color, 1.0))
-  // roundCap on axisLine: add caps at start and end of full track arc.
-  if series.gauge_round_cap {
-    gauge_round_cap_circles(
-      elems, cx, cy, track_inner_r, r, start_rad, end_rad, track_bg_color,
-    )
+  // --- 1. axisLine: colored sectors ---
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderMain axisLine sectors
+  // colorList = [[offset, color], ...] each sector spans prevEnd..startAngle+span*offset
+  {
+    let color_list = series.gauge_axis_line_colors
+    let mut prev_end = start_rad
+    for entry in color_list {
+      let (pct, seg_color) = entry
+      let pct_clamped = if pct < 0.0 {
+        0.0
+      } else if pct > 1.0 {
+        1.0
+      } else {
+        pct
+      }
+      let seg_end = start_rad + angle_span * pct_clamped
+      let arc = gauge_sector_path(cx, cy, track_inner_r, r, prev_end, seg_end)
+      elems.push(@graphic.Element::path_filled(arc, seg_color, 1.0))
+      prev_end = seg_end
+    }
+    if series.gauge_round_cap {
+      let last_color = if color_list.length() > 0 {
+        color_list[color_list.length() - 1].1
+      } else {
+        "#e8ebf0"
+      }
+      gauge_round_cap_circles(
+        elems, cx, cy, track_inner_r, r, start_rad, end_rad, last_color,
+      )
+    }
   }
 
   // --- 2. Progress arcs (one per data item) ---
@@ -303,98 +393,222 @@ pub fn render_gauge_series(
   }
 
   // --- 3. Split lines and labels ---
-  // Corresponds to: GaugeView.ts _renderTicks
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderTicks splitLine/axisLabel
+  // JS formula:
+  //   splitLine outer = r - (splitLineDistance + axisLineWidth)
+  //   splitLine inner = r - splitLineLen - (splitLineDistance + axisLineWidth)
+  //   label textX = unitX * (r - splitLineLen - (labelDistance + splitLineDistance)) + cx
+  let sl_offset = split_dist + track_width
+  let lbl_dist_total = label_dist + split_dist
   let mut ssi = 0
   while ssi <= split_n {
     let a = start_rad + angle_span * ssi.to_double() / split_n.to_double()
     let ux = @math.cos(a)
     let uy = @math.sin(a)
-    let ox = cx + r * ux
-    let oy = cy + r * uy
-    let ix = cx + (r - split_len) * ux
-    let iy = cy + (r - split_len) * uy
-    elems.push(@graphic.Element::line_colored(ox, oy, ix, iy, split_color, 2.0))
-    let split_val = min_v +
-      (max_v - min_v) * ssi.to_double() / split_n.to_double()
-    let lx = cx + (r - split_len - label_gap) * ux
-    let ly = cy + (r - split_len - label_gap) * uy
-    elems.push(
-      @graphic.Element::text_colored(
-        lx,
-        ly,
-        fmt_gauge_val(split_val),
-        @graphic.TextAnchor::Middle,
-        @graphic.TextBaseline::Middle,
-        label_color,
-      ),
-    )
+    if series.gauge_split_line_show {
+      let sl_outer_r = r - sl_offset
+      let sl_inner_r = r - split_len - sl_offset
+      let ox = cx + sl_outer_r * ux
+      let oy = cy + sl_outer_r * uy
+      let ix = cx + sl_inner_r * ux
+      let iy = cy + sl_inner_r * uy
+      elems.push(
+        @graphic.Element::line_colored(ox, oy, ix, iy, split_color, split_line_width),
+      )
+    }
+    if series.gauge_axis_label_show {
+      let split_val = min_v +
+        (max_v - min_v) * ssi.to_double() / split_n.to_double()
+      let lbl_r = r - split_len - lbl_dist_total
+      let lx = cx + lbl_r * ux
+      let ly = cy + lbl_r * uy
+      elems.push(
+        @graphic.Element::text_custom(
+          lx,
+          ly,
+          fmt_gauge_val(split_val),
+          @graphic.TextAnchor::Middle,
+          @graphic.TextBaseline::Middle,
+          label_color,
+          label_font_size,
+          "sans-serif",
+          "normal",
+        ),
+      )
+    }
     ssi = ssi + 1
   }
 
   // --- 4. Minor ticks ---
-  let minor_per_split = 5
-  let minor_total = split_n * minor_per_split
-  let mut ti = 0
-  while ti <= minor_total {
-    if ti % minor_per_split == 0 {
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderTicks axisTick
+  // JS formula:
+  //   axisTick outer = r - (tickDistance + axisLineWidth)
+  //   axisTick inner = r - tickLen - (tickDistance + axisLineWidth)
+  let sub_n = series.gauge_axis_tick_split_number
+  let tick_offset = tick_dist + track_width
+  if series.gauge_axis_tick_show {
+    let minor_total = split_n * sub_n
+    let mut ti = 0
+    while ti < minor_total {
+      if ti % sub_n == 0 {
+        ti += 1
+        continue
+      }
+      let a = start_rad + angle_span * ti.to_double() / minor_total.to_double()
+      let ux = @math.cos(a)
+      let uy = @math.sin(a)
+      let tk_outer_r = r - tick_offset
+      let tk_inner_r = r - tick_len - tick_offset
+      let ox = cx + tk_outer_r * ux
+      let oy = cy + tk_outer_r * uy
+      let ix = cx + tk_inner_r * ux
+      let iy = cy + tk_inner_r * uy
+      elems.push(
+        @graphic.Element::line_colored(
+          ox, oy, ix, iy, tick_color, tick_line_width,
+        ),
+      )
       ti += 1
-      continue
     }
-    let a = start_rad + angle_span * ti.to_double() / minor_total.to_double()
-    let ux = @math.cos(a)
-    let uy = @math.sin(a)
-    let ox = cx + r * ux
-    let oy = cy + r * uy
-    let ix = cx + (r - tick_len) * ux
-    let iy = cy + (r - tick_len) * uy
-    elems.push(@graphic.Element::line_colored(ox, oy, ix, iy, tick_color, 1.0))
-    ti += 1
   }
 
   // --- 5. Pointer ---
-  // For multi-item gauges the pointer aims at the first data item by convention.
-  // Corresponds to: GaugeView.ts _renderPointer createPointer()
-  let ptr_value = if data_count > 0 {
-    match series.data[0].value {
-      @option.Num(n) => n
-      @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { min_v }
-      @option.DateValue(_, n) => n
-      @option.Null => min_v
-    }
-  } else {
-    min_v
-  }
-  let ptr_pct = if max_v > min_v {
-    let p = (ptr_value - min_v) / (max_v - min_v)
-    if p < 0.0 {
-      0.0
-    } else if p > 1.0 {
-      1.0
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderPointer createPointer()
+  // pointer.show=false => skip
+  if series.gauge_pointer_show {
+    let ptr_value = if data_count > 0 {
+      match series.data[0].value {
+        @option.Num(n) => n
+        @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { min_v }
+        @option.DateValue(_, n) => n
+        @option.Null => min_v
+      }
     } else {
-      p
+      min_v
     }
-  } else {
-    0.0
+    let ptr_pct = if max_v > min_v {
+      let p = (ptr_value - min_v) / (max_v - min_v)
+      if p < 0.0 { 0.0 } else if p > 1.0 { 1.0 } else { p }
+    } else {
+      0.0
+    }
+    let value_rad = start_rad + angle_span * ptr_pct
+    let ptr_color = match series.gauge_pointer_color {
+      Some(c) => c
+      None => @visual.palette_color(series_index)
+    }
+    // offsetCenter in pixels relative to cx/cy
+    let off_x = if series.gauge_pointer_offset_center.length() >= 1 {
+      parse_pct_or_px(series.gauge_pointer_offset_center[0], r)
+    } else {
+      0.0
+    }
+    let off_y = if series.gauge_pointer_offset_center.length() >= 2 {
+      parse_pct_or_px(series.gauge_pointer_offset_center[1], r)
+    } else {
+      0.0
+    }
+    let ptr_len = parse_pct_or_px(series.gauge_pointer_length, r)
+    let ptr_w = series.gauge_pointer_width
+    // Rotation for the needle: -(value_rad + PI/2)
+    // JS: pointer.rotation = -(angle + PI/2); pointer.x = cx; pointer.y = cy
+    let rot = -(value_rad + @math.PI / 2.0)
+    let cos_r = @math.cos(rot)
+    let sin_r = @math.sin(rot)
+    match series.gauge_pointer_icon {
+      Some(icon_str) if icon_str.has_prefix("path://") => {
+        // Custom SVG path icon pointer.
+        // Corresponds to: GaugeView.ts createPointer using createSymbol("path://...")
+        // The path is normalized to fit bounding box [offX-w/2, offY-len, w, len]
+        // then matrix-transformed by rotation around (cx, cy).
+        //
+        // We approximate: translate(cx+offX, cy+offY) then rotate(rot) then
+        // translate (-offX, -offY) to center the path on the offset point.
+        // For simplicity, compute the full affine transform:
+        //   final transform = translate(cx, cy) * rotate(rot) (since createSymbol
+        //   already builds path in [offX-w/2, offY-len, w, len] space)
+        let path_data = icon_str.substring(start=7) // strip "path://"
+        // Compute SVG path bounding box heuristically from coordinate values
+        // and scale to target box [offX-w/2, offY-ptr_len, ptr_w, ptr_len]
+        let bbox = svg_path_bbox(path_data)
+        let target_x = off_x - ptr_w / 2.0
+        let target_y = off_y - ptr_len
+        let target_w = ptr_w
+        let target_h = ptr_len
+        let (bx, by, bw, bh) = bbox
+        let sx = if bw > 0.0 { target_w / bw } else { 1.0 }
+        let sy = if bh > 0.0 { target_h / bh } else { 1.0 }
+        let tx = target_x - bx * sx
+        let ty = target_y - by * sy
+        // Combined transform: translate(cx,cy) * rotate(rot) applied to the
+        // path which is already in local space from createSymbol output.
+        // Full matrix = rotate(rot) * scale(sx,sy) * translate(tx_local, ty_local)
+        // But we also need to account for the rotation center being (cx, cy).
+        // The path is in createSymbol space (already scaled/translated).
+        // Then pointer.rotation = rot, pointer.x = cx, pointer.y = cy means:
+        //   transformedPoint = rotate(rot) * localPoint + (cx, cy)
+        // So we need: rotate(rot) * (scale(sx,sy)*originalPoint + (tx,ty)) + (cx,cy)
+        //          = rot_mat * scale * original + rot_mat * (tx, ty) + (cx, cy)
+        // Matrix: [sx*cos_r, sx*sin_r; -sy*sin_r, sy*cos_r] with
+        //         translate = rot*(tx,ty) + (cx,cy)
+        let m_a = sx * cos_r
+        let m_b = sx * sin_r
+        let m_c = -sy * sin_r
+        let m_d = sy * cos_r
+        let m_e = cos_r * tx - sin_r * ty + cx
+        let m_f = sin_r * tx + cos_r * ty + cy
+        let mat = @graphic.Matrix::from_values(m_a, m_b, m_c, m_d, m_e, m_f)
+        let path_elem = @graphic.Element::path_filled(path_data, ptr_color, 1.0)
+        elems.push(@graphic.Element::group_transformed([path_elem], mat))
+      }
+      _ => {
+        // Default PointerPath: triangle pointing from back through tip.
+        // JS PointerPath shape: angle=-PI/2 means pointing up before rotation.
+        // Base at (offX, offY), tip at (offX, offY-ptr_len).
+        // We replicate with a simple thin triangle path in rotated space.
+        let base_half_w = ptr_w / 2.0
+        // local coords (before rotation): tip=(offX, offY-ptr_len), base width at offY
+        // map: rotate by (rot) then translate(cx,cy)
+        let points = [
+          (off_x, off_y - ptr_len), // tip
+          (off_x + base_half_w, off_y), // base right
+          (off_x - base_half_w, off_y), // base left
+        ]
+        let to_world = fn(lx : Double, ly : Double) -> (Double, Double) {
+          (cos_r * lx - sin_r * ly + cx, sin_r * lx + cos_r * ly + cy)
+        }
+        let (tx0, ty0) = to_world(points[0].0, points[0].1)
+        let (tx1, ty1) = to_world(points[1].0, points[1].1)
+        let (tx2, ty2) = to_world(points[2].0, points[2].1)
+        let back_x = cx + r * 0.1 * @math.cos(value_rad)
+        let back_y = cy + r * 0.1 * @math.sin(value_rad)
+        let _ = (back_x, back_y)
+        let ptr_d = "M \{r4(tx0)} \{r4(ty0)} L \{r4(tx1)} \{r4(ty1)} L \{r4(tx2)} \{r4(ty2)} Z"
+        elems.push(@graphic.Element::path_filled(ptr_d, ptr_color, 1.0))
+      }
+    }
   }
-  let value_rad = start_rad + angle_span * ptr_pct
-  let pointer_length = r * 0.6
-  let ptr_tip_x = cx + pointer_length * @math.cos(value_rad)
-  let ptr_tip_y = cy + pointer_length * @math.sin(value_rad)
-  let perp_angle = value_rad + @math.PI / 2.0
-  let base_half_w = 3.0
-  let px0 = cx + base_half_w * @math.cos(perp_angle)
-  let py0 = cy + base_half_w * @math.sin(perp_angle)
-  let px1 = cx - base_half_w * @math.cos(perp_angle)
-  let py1 = cy - base_half_w * @math.sin(perp_angle)
-  let back_x = cx - r * 0.1 * @math.cos(value_rad)
-  let back_y = cy - r * 0.1 * @math.sin(value_rad)
-  let ptr_d = "M \{r4(px0)} \{r4(py0)} L \{r4(ptr_tip_x)} \{r4(ptr_tip_y)} L \{r4(px1)} \{r4(py1)} L \{r4(back_x)} \{r4(back_y)} Z"
-  let ptr_color = @visual.palette_color(0)
-  elems.push(@graphic.Element::path_filled(ptr_d, ptr_color, 1.0))
 
-  // --- 6. Anchor dot ---
-  elems.push(@graphic.Element::circle_colored(cx, cy, 6.0, ptr_color))
-  elems.push(@graphic.Element::circle_colored(cx, cy, 3.0, "#ffffff"))
+  // --- 6. Anchor ---
+  // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderAnchor
+  // anchor is a circle of radius = size/2 at (cx, cy), styled by itemStyle.
+  if series.gauge_anchor_show {
+    let anc_r = series.gauge_anchor_size / 2.0
+    let anc_fill = match series.gauge_anchor_color {
+      Some(c) => c
+      None => "#ffffff"
+    }
+    let anc_border = match series.gauge_anchor_border_color {
+      Some(c) => c
+      None => @visual.palette_color(series_index)
+    }
+    let anc_border_w = series.gauge_anchor_border_width
+    elems.push(
+      @graphic.Element::circle_fill_stroke(
+        cx, cy, anc_r, anc_fill, anc_border, anc_border_w,
+      ),
+    )
+  }
 
   // --- 7. Per-item title and detail ---
   // Corresponds to: GaugeView.ts _renderTitleAndDetail
