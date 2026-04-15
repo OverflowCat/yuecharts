@@ -741,11 +741,11 @@ E:\recharts\echarts\src
 │   ├── gauge.ts => chart/gauge.mbt [partial] Feature: gauge chart entry
 │   ├── graph.ts =>  [missing] Feature: graph chart entry
 │   ├── heatmap.ts => chart/heatmap.mbt [partial] Feature: heatmap chart entry + static visualMap binding
-│   ├── line.ts => chart/line.mbt [partial] Feature: line chart entry
+│   ├── line.ts => chart/line.mbt [partial] Feature: line chart entry; orig-examples/line-y-category.json now matches the upstream smooth y-category render
 │   ├── lines.ts => chart/lines.mbt [partial] Feature: lines chart entry
 │   ├── map.ts => chart/install.mbt [partial] Feature: map chart entry
 │   ├── parallel.ts => chart/install.mbt, chart/parallel.mbt [partial] Feature: parallel chart entry
-│   ├── pictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar chart entry
+│   ├── pictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar chart entry; orig-examples/pictorialBar-dotted.json now preserves gradient fills like upstream JS
 │   ├── pie.ts => chart/pie.mbt [partial] Feature: pie chart entry
 │   ├── radar.ts => chart/radar.mbt [partial] Feature: radar chart entry
 │   ├── sankey.ts => chart/install.mbt, chart/sankey.mbt [partial] Feature: sankey chart entry

@@ -22,11 +22,30 @@ pub struct CssStyleCacheEntry {
 }
 
 ///|
+pub struct SvgLinearGradientStop {
+  offset : Double
+  color : String
+}
+
+///|
+pub struct SvgLinearGradientDef {
+  spec : String
+  id : String
+  x1 : Double
+  y1 : Double
+  x2 : Double
+  y2 : Double
+  stops : Array[SvgLinearGradientStop]
+}
+
+///|
 pub struct BrushScope {
   zr_id : String
   css_nodes : Array[CssNode]
   css_style_cache : Array[CssStyleCacheEntry]
+  gradient_defs : Array[SvgLinearGradientDef]
   next_class_id : Int
+  next_gradient_id : Int
   emphasis : Bool
 }
 
@@ -36,7 +55,9 @@ pub fn BrushScope::new() -> BrushScope {
     zr_id: "zr0",
     css_nodes: [],
     css_style_cache: [],
+    gradient_defs: [],
     next_class_id: 0,
+    next_gradient_id: 0,
     emphasis: true,
   }
 }
@@ -196,27 +217,114 @@ fn lift_color_or_self(color : String) -> String {
 }
 
 ///|
-fn color_string_attrs(attr_name : String, color_str : String) -> String {
-  let buf = StringBuilder::new()
-  match @graphic.Color::from_string(color_str) {
-    Some(color) => {
-      buf.write_string(" \{attr_name}=\"\{color.to_svg_attr()}\"")
-      match color.svg_opacity() {
-        Some(opacity) =>
-          buf.write_string(
-            " \{attr_name}-opacity=\"\{@graphic.format_opacity(opacity)}\"",
-          )
-        None => ()
+fn resolve_gradient_spec(
+  scope : Ref[BrushScope],
+  color_str : String,
+) -> String? {
+  if !color_str.has_prefix("__linear_gradient__|") {
+    return None
+  }
+  let parts = color_str.split("|").collect()
+  let mut x1 = 0.0
+  let mut y1 = 0.0
+  let mut x2 = 0.0
+  let mut y2 = 1.0
+  let stops : Array[SvgLinearGradientStop] = []
+  let mut i = 1
+  while i < parts.length() {
+    let part = parts[i].to_string()
+    if part.has_prefix("x=") {
+      let parsed = try? @string.parse_double(part[2:].to_string())
+      match parsed {
+        Ok(v) => x1 = v
+        Err(_) => ()
+      }
+    } else if part.has_prefix("y=") {
+      let parsed = try? @string.parse_double(part[2:].to_string())
+      match parsed {
+        Ok(v) => y1 = v
+        Err(_) => ()
+      }
+    } else if part.has_prefix("x2=") {
+      let parsed = try? @string.parse_double(part[3:].to_string())
+      match parsed {
+        Ok(v) => x2 = v
+        Err(_) => ()
+      }
+    } else if part.has_prefix("y2=") {
+      let parsed = try? @string.parse_double(part[3:].to_string())
+      match parsed {
+        Ok(v) => y2 = v
+        Err(_) => ()
+      }
+    } else if part.has_prefix("stops=") {
+      let stop_specs = part[6:].to_string().split(";").collect()
+      for stop_spec in stop_specs {
+        let stop_spec_str = stop_spec.to_string()
+        let stop_sep = stop_spec_str.find(":")
+        match stop_sep {
+          Some(idx) => {
+            let offset_text = stop_spec_str[:idx].to_string()
+            let color_text = stop_spec_str[idx + 1:].to_string()
+            let parsed = try? @string.parse_double(offset_text)
+            match parsed {
+              Ok(offset) => stops.push({ offset, color: color_text })
+              Err(_) => ()
+            }
+          }
+          None => ()
+        }
       }
     }
-    None => buf.write_string(" \{attr_name}=\"\{color_str}\"")
+    i += 1
+  }
+  if stops.length() == 0 {
+    return None
+  }
+  let mut j = 0
+  while j < scope.val.gradient_defs.length() {
+    let existing = scope.val.gradient_defs[j]
+    if existing.spec == color_str {
+      return Some(existing.id)
+    }
+    j += 1
+  }
+  let id = "\{scope.val.zr_id}-g\{scope.val.next_gradient_id}"
+  scope.val = { ..scope.val, next_gradient_id: scope.val.next_gradient_id + 1 }
+  scope.val.gradient_defs.push({ spec: color_str, id, x1, y1, x2, y2, stops })
+  Some(id)
+}
+
+///|
+fn color_string_attrs(
+  attr_name : String,
+  color_str : String,
+  scope : Ref[BrushScope],
+) -> String {
+  let buf = StringBuilder::new()
+  match resolve_gradient_spec(scope, color_str) {
+    Some(id) => buf.write_string(" \{attr_name}=\"url(#\{id})\"")
+    None =>
+      match @graphic.Color::from_string(color_str) {
+        Some(color) => {
+          buf.write_string(" \{attr_name}=\"\{color.to_svg_attr()}\"")
+          match color.svg_opacity() {
+            Some(opacity) =>
+              buf.write_string(
+                " \{attr_name}-opacity=\"\{@graphic.format_opacity(opacity)}\"",
+              )
+            None => ()
+          }
+        }
+        None => buf.write_string(" \{attr_name}=\"\{color_str}\"")
+      }
   }
   buf.to_string()
 }
 
 ///|
-fn fill_string_attr(color_str : String) -> String {
-  color_string_attrs("fill", color_str)
+fn fill_string_attr(color_str : String, scope : Ref[BrushScope]) -> String {
+  color_string_attrs("fill", color_str, scope)
 }
 
 ///|
@@ -227,10 +335,11 @@ fn write_stroke_attr_from_base(
   dash : Array[Double],
   line_cap : String,
   line_join : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   match stroke_color {
     Some(stroke_color) => {
-      buf.write_string(color_string_attrs("stroke", stroke_color))
+      buf.write_string(color_string_attrs("stroke", stroke_color, scope))
       match stroke_width {
         Some(stroke_width) =>
           buf.write_string(" stroke-width=\"\{stroke_width}\"")
@@ -287,6 +396,7 @@ fn emphasis_fill_value(
 fn emphasis_hover_properties(
   meta : @graphic.DisplayableMeta,
   normal_fill : String?,
+  scope : Ref[BrushScope],
 ) -> Array[CssProperty] {
   let properties : Array[CssProperty] = []
   if meta.silent {
@@ -295,13 +405,27 @@ fn emphasis_hover_properties(
   }
   properties.push({ name: "cursor", value: "pointer" })
   match emphasis_fill_value(meta, normal_fill) {
-    Some(fill) => properties.push({ name: "fill", value: fill })
+    Some(fill) =>
+      properties.push({
+        name: "fill",
+        value: match resolve_gradient_spec(scope, fill) {
+          Some(id) => "url(#\{id})"
+          None => fill
+        },
+      })
     None => ()
   }
   match meta.states.emphasis {
     Some(style) => {
       match style.stroke {
-        Some(stroke) => properties.push({ name: "stroke", value: stroke })
+        Some(stroke) =>
+          properties.push({
+            name: "stroke",
+            value: match resolve_gradient_spec(scope, stroke) {
+              Some(id) => "url(#\{id})"
+              None => stroke
+            },
+          })
         None => ()
       }
       match style.line_width {
@@ -342,7 +466,7 @@ fn displayable_class_value(
     None => ()
   }
   if scope.val.emphasis {
-    let hover_properties = emphasis_hover_properties(meta, normal_fill)
+    let hover_properties = emphasis_hover_properties(meta, normal_fill, scope)
     if hover_properties.length() > 0 {
       class_names.push(css_cached_class_name(scope, hover_properties, true))
     }
@@ -374,6 +498,91 @@ fn write_displayable_ecmeta_attrs(
 ) -> Unit {
   for attr in meta.ecmeta_attrs {
     buf.write_string(" ecmeta_\{attr.key.to_lower()}=\"\{attr.value}\"")
+  }
+}
+
+///|
+fn gradient_stop_attrs(stop : SvgLinearGradientStop) -> Array[XmlAttr] {
+  let attrs : Array[XmlAttr] = []
+  attrs.push(XmlAttr::new("offset", "\{stop.offset * 100.0}%"))
+  match @graphic.Color::from_string(stop.color) {
+    Some(color) => {
+      attrs.push(XmlAttr::new("stop-color", color.to_svg_attr()))
+      match color.svg_opacity() {
+        Some(opacity) =>
+          attrs.push(
+            XmlAttr::new("stop-opacity", @graphic.format_opacity(opacity)),
+          )
+        None => ()
+      }
+    }
+    None => attrs.push(XmlAttr::new("stop-color", stop.color))
+  }
+  attrs
+}
+
+///|
+fn gradient_defs_node(scope : Ref[BrushScope]) -> XmlNode? {
+  if scope.val.gradient_defs.length() == 0 {
+    return None
+  }
+  let defs_children : Array[XmlNode] = []
+  for gradient in scope.val.gradient_defs {
+    let gradient_attrs : Array[XmlAttr] = [
+      XmlAttr::new("id", gradient.id),
+      XmlAttr::new("gradientUnits", "objectBoundingBox"),
+      XmlAttr::new("x1", gradient.x1.to_string()),
+      XmlAttr::new("y1", gradient.y1.to_string()),
+      XmlAttr::new("x2", gradient.x2.to_string()),
+      XmlAttr::new("y2", gradient.y2.to_string()),
+    ]
+    let stop_nodes : Array[XmlNode] = []
+    for stop in gradient.stops {
+      stop_nodes.push(XmlNode::empty("stop", gradient_stop_attrs(stop)))
+    }
+    defs_children.push(
+      XmlNode::element("linearGradient", gradient_attrs, stop_nodes),
+    )
+  }
+  Some(XmlNode::element("defs", [], defs_children))
+}
+
+///|
+fn gradient_defs_string(scope : Ref[BrushScope]) -> String {
+  match gradient_defs_node(scope) {
+    Some(node) => {
+      let pretty = node.to_pretty_string("  ")
+      "\{pretty}\n"
+    }
+    None => ""
+  }
+}
+
+///|
+fn push_color_xml_attrs(
+  attrs : Array[XmlAttr],
+  attr_name : String,
+  color_str : String,
+  scope : Ref[BrushScope],
+) -> Unit {
+  match resolve_gradient_spec(scope, color_str) {
+    Some(id) => push_xml_attr(attrs, attr_name, "url(#\{id})")
+    None =>
+      match @graphic.Color::from_string(color_str) {
+        Some(color) => {
+          push_xml_attr(attrs, attr_name, color.to_svg_attr())
+          match color.svg_opacity() {
+            Some(opacity) =>
+              push_xml_attr(
+                attrs,
+                "\{attr_name}-opacity",
+                @graphic.format_opacity(opacity),
+              )
+            None => ()
+          }
+        }
+        None => push_xml_attr(attrs, attr_name, color_str)
+      }
   }
 }
 
@@ -481,13 +690,10 @@ fn render_rect(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  let fill_value = active_fill_value(
-    r.meta,
-    r.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(r.meta, r.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     r.meta,
-    r.stroke.map(stroke => stroke.color.to_svg()),
+    r.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     r.meta,
@@ -504,7 +710,7 @@ fn render_rect(
     buf.write_string(" ry=\"\{r.ry}\"")
   }
   match fill_value {
-    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value, scope))
     None => buf.write_string(" fill=\"none\"")
   }
   match r.stroke {
@@ -516,6 +722,7 @@ fn render_rect(
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       write_stroke_attr_from_base(
@@ -525,6 +732,7 @@ fn render_rect(
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   buf.write_string(opacity_attr(r.opacity))
@@ -544,13 +752,10 @@ fn render_circle(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  let fill_value = active_fill_value(
-    c.meta,
-    c.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(c.meta, c.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     c.meta,
-    c.stroke.map(stroke => stroke.color.to_svg()),
+    c.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     c.meta,
@@ -559,7 +764,7 @@ fn render_circle(
   buf.write_string(indent)
   buf.write_string("<circle cx=\"\{c.cx}\" cy=\"\{c.cy}\" r=\"\{c.r}\"")
   match fill_value {
-    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value, scope))
     None => buf.write_string(" fill=\"none\"")
   }
   match c.stroke {
@@ -571,6 +776,7 @@ fn render_circle(
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       write_stroke_attr_from_base(
@@ -580,6 +786,7 @@ fn render_circle(
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   buf.write_string(opacity_attr(c.opacity))
@@ -599,7 +806,7 @@ fn render_line(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color.to_svg()))
+  let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color))
   let stroke_width = active_line_width_value(l.meta, Some(l.stroke.width))
   buf.write_string(indent)
   buf.write_string("<path d=\"\{line_path_d(l)}\"")
@@ -610,6 +817,7 @@ fn render_line(
     l.stroke.dash,
     l.stroke.line_cap,
     l.stroke.line_join,
+    scope,
   )
   buf.write_string(" fill=\"none\"")
   buf.write_string(opacity_attr(l.opacity))
@@ -626,15 +834,12 @@ fn render_polyline(
   scope : Ref[BrushScope],
 ) -> Unit {
   let fill_value = active_fill_value(pl.meta, Some(pl.fill.to_svg()))
-  let stroke_value = active_stroke_value(
-    pl.meta,
-    Some(pl.stroke.color.to_svg()),
-  )
+  let stroke_value = active_stroke_value(pl.meta, Some(pl.stroke.color))
   let stroke_width = active_line_width_value(pl.meta, Some(pl.stroke.width))
   buf.write_string(indent)
   buf.write_string("<polyline points=\"\{points_to_svg(pl.points)}\"")
   match fill_value {
-    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value, scope))
     None => buf.write_string(" fill=\"none\"")
   }
   write_stroke_attr_from_base(
@@ -644,6 +849,7 @@ fn render_polyline(
     pl.stroke.dash,
     pl.stroke.line_cap,
     pl.stroke.line_join,
+    scope,
   )
   buf.write_string(opacity_attr(pl.opacity))
   match pointer_events_visible_attr(fill_value, stroke_value) {
@@ -662,13 +868,10 @@ fn render_polygon(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  let fill_value = active_fill_value(
-    pg.meta,
-    pg.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(pg.meta, pg.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     pg.meta,
-    pg.stroke.map(stroke => stroke.color.to_svg()),
+    pg.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     pg.meta,
@@ -677,7 +880,7 @@ fn render_polygon(
   buf.write_string(indent)
   buf.write_string("<polygon points=\"\{points_to_svg(pg.points)}\"")
   match fill_value {
-    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value, scope))
     None => buf.write_string(" fill=\"none\"")
   }
   match pg.stroke {
@@ -689,6 +892,7 @@ fn render_polygon(
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       write_stroke_attr_from_base(
@@ -698,6 +902,7 @@ fn render_polygon(
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   buf.write_string(opacity_attr(pg.opacity))
@@ -717,13 +922,10 @@ fn render_path(
   indent : String,
   scope : Ref[BrushScope],
 ) -> Unit {
-  let fill_value = active_fill_value(
-    p.meta,
-    p.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(p.meta, p.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     p.meta,
-    p.stroke.map(stroke => stroke.color.to_svg()),
+    p.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     p.meta,
@@ -732,7 +934,7 @@ fn render_path(
   buf.write_string(indent)
   buf.write_string("<path d=\"\{p.d}\"")
   match fill_value {
-    Some(fill_value) => buf.write_string(fill_string_attr(fill_value))
+    Some(fill_value) => buf.write_string(fill_string_attr(fill_value, scope))
     None => buf.write_string(" fill=\"none\"")
   }
   match p.stroke {
@@ -744,6 +946,7 @@ fn render_path(
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       write_stroke_attr_from_base(
@@ -753,6 +956,7 @@ fn render_path(
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   buf.write_string(opacity_attr(p.opacity))
@@ -778,7 +982,7 @@ fn render_text(
     s.fill.to_svg(),
   )
   buf.write_string("<text x=\"\{t.x}\" y=\"\{t.y}\"")
-  buf.write_string(fill_string_attr(fill_value))
+  buf.write_string(fill_string_attr(fill_value, scope))
   buf.write_string(" font-size=\"\{s.font_size}\"")
   if s.font_family != "sans-serif" {
     buf.write_string(" font-family=\"\{s.font_family}\"")
@@ -874,29 +1078,6 @@ fn push_displayable_ecmeta_attrs(
 }
 
 ///|
-fn push_color_xml_attrs(
-  attrs : Array[XmlAttr],
-  attr_name : String,
-  color_str : String,
-) -> Unit {
-  match @graphic.Color::from_string(color_str) {
-    Some(color) => {
-      push_xml_attr(attrs, attr_name, color.to_svg_attr())
-      match color.svg_opacity() {
-        Some(opacity) =>
-          push_xml_attr(
-            attrs,
-            "\{attr_name}-opacity",
-            @graphic.format_opacity(opacity),
-          )
-        None => ()
-      }
-    }
-    None => push_xml_attr(attrs, attr_name, color_str)
-  }
-}
-
-///|
 fn push_stroke_attrs_from_base(
   attrs : Array[XmlAttr],
   stroke_color : String?,
@@ -904,10 +1085,11 @@ fn push_stroke_attrs_from_base(
   dash : Array[Double],
   line_cap : String,
   line_join : String,
+  scope : Ref[BrushScope],
 ) -> Unit {
   match stroke_color {
     Some(stroke_color) => {
-      push_color_xml_attrs(attrs, "stroke", stroke_color)
+      push_color_xml_attrs(attrs, "stroke", stroke_color, scope)
       match stroke_width {
         Some(stroke_width) =>
           push_xml_attr(attrs, "stroke-width", stroke_width.to_string())
@@ -1019,13 +1201,10 @@ fn build_group_nodes(
 
 ///|
 fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
-  let fill_value = active_fill_value(
-    r.meta,
-    r.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(r.meta, r.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     r.meta,
-    r.stroke.map(stroke => stroke.color.to_svg()),
+    r.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     r.meta,
@@ -1043,7 +1222,7 @@ fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
     push_xml_attr(attrs, "ry", r.ry.to_string())
   }
   match fill_value {
-    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value, scope)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match r.stroke {
@@ -1055,6 +1234,7 @@ fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       push_stroke_attrs_from_base(
@@ -1064,6 +1244,7 @@ fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   if r.opacity < 1.0 {
@@ -1087,13 +1268,10 @@ fn build_circle_node(
   c : @graphic.CircleData,
   scope : Ref[BrushScope],
 ) -> XmlNode {
-  let fill_value = active_fill_value(
-    c.meta,
-    c.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(c.meta, c.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     c.meta,
-    c.stroke.map(stroke => stroke.color.to_svg()),
+    c.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     c.meta,
@@ -1104,7 +1282,7 @@ fn build_circle_node(
   push_xml_attr(attrs, "cy", c.cy.to_string())
   push_xml_attr(attrs, "r", c.r.to_string())
   match fill_value {
-    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value, scope)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match c.stroke {
@@ -1116,6 +1294,7 @@ fn build_circle_node(
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       push_stroke_attrs_from_base(
@@ -1125,6 +1304,7 @@ fn build_circle_node(
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   if c.opacity < 1.0 {
@@ -1145,7 +1325,7 @@ fn build_circle_node(
 
 ///|
 fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
-  let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color.to_svg()))
+  let stroke_value = active_stroke_value(l.meta, Some(l.stroke.color))
   let stroke_width = active_line_width_value(l.meta, Some(l.stroke.width))
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "d", line_path_d(l))
@@ -1156,6 +1336,7 @@ fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
     l.stroke.dash,
     l.stroke.line_cap,
     l.stroke.line_join,
+    scope,
   )
   push_xml_attr(attrs, "fill", "none")
   if l.opacity < 1.0 {
@@ -1176,15 +1357,12 @@ fn build_polyline_node(
   scope : Ref[BrushScope],
 ) -> XmlNode {
   let fill_value = active_fill_value(pl.meta, Some(pl.fill.to_svg()))
-  let stroke_value = active_stroke_value(
-    pl.meta,
-    Some(pl.stroke.color.to_svg()),
-  )
+  let stroke_value = active_stroke_value(pl.meta, Some(pl.stroke.color))
   let stroke_width = active_line_width_value(pl.meta, Some(pl.stroke.width))
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "points", points_to_svg(pl.points))
   match fill_value {
-    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value, scope)
     None => push_xml_attr(attrs, "fill", "none")
   }
   push_stroke_attrs_from_base(
@@ -1194,6 +1372,7 @@ fn build_polyline_node(
     pl.stroke.dash,
     pl.stroke.line_cap,
     pl.stroke.line_join,
+    scope,
   )
   if pl.opacity < 1.0 {
     push_xml_attr(attrs, "opacity", pl.opacity.to_string())
@@ -1216,13 +1395,10 @@ fn build_polygon_node(
   pg : @graphic.PolygonData,
   scope : Ref[BrushScope],
 ) -> XmlNode {
-  let fill_value = active_fill_value(
-    pg.meta,
-    pg.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(pg.meta, pg.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     pg.meta,
-    pg.stroke.map(stroke => stroke.color.to_svg()),
+    pg.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     pg.meta,
@@ -1231,7 +1407,7 @@ fn build_polygon_node(
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "points", points_to_svg(pg.points))
   match fill_value {
-    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value, scope)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match pg.stroke {
@@ -1243,6 +1419,7 @@ fn build_polygon_node(
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       push_stroke_attrs_from_base(
@@ -1252,6 +1429,7 @@ fn build_polygon_node(
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   if pg.opacity < 1.0 {
@@ -1272,13 +1450,10 @@ fn build_polygon_node(
 
 ///|
 fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
-  let fill_value = active_fill_value(
-    p.meta,
-    p.fill.map(fill => fill.color.to_svg()),
-  )
+  let fill_value = active_fill_value(p.meta, p.fill.map(fill => fill.color))
   let stroke_value = active_stroke_value(
     p.meta,
-    p.stroke.map(stroke => stroke.color.to_svg()),
+    p.stroke.map(stroke => stroke.color),
   )
   let stroke_width = active_line_width_value(
     p.meta,
@@ -1287,7 +1462,7 @@ fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "d", p.d)
   match fill_value {
-    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value)
+    Some(fill_value) => push_color_xml_attrs(attrs, "fill", fill_value, scope)
     None => push_xml_attr(attrs, "fill", "none")
   }
   match p.stroke {
@@ -1299,6 +1474,7 @@ fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
         s.dash,
         s.line_cap,
         s.line_join,
+        scope,
       )
     None =>
       push_stroke_attrs_from_base(
@@ -1308,6 +1484,7 @@ fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
         [],
         "butt",
         "miter",
+        scope,
       )
   }
   if p.opacity < 1.0 {
@@ -1335,7 +1512,7 @@ fn build_text_node(t : @graphic.TextData, scope : Ref[BrushScope]) -> XmlNode {
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "x", t.x.to_string())
   push_xml_attr(attrs, "y", t.y.to_string())
-  push_color_xml_attrs(attrs, "fill", fill_value)
+  push_color_xml_attrs(attrs, "fill", fill_value, scope)
   push_xml_attr(attrs, "font-size", s.font_size.to_string())
   if s.font_family != "sans-serif" {
     push_xml_attr(attrs, "font-family", s.font_family)
@@ -1393,6 +1570,17 @@ pub fn paint_xml(
     }
     None => ()
   }
+  let body_children : Array[XmlNode] = []
+  for elem in elements {
+    append_xml_nodes(
+      body_children,
+      build_element_nodes(elem, clip_counter, scope),
+    )
+  }
+  match gradient_defs_node(scope) {
+    Some(node) => children.push(node)
+    None => ()
+  }
   match background {
     Some(bg) => {
       let bg_attrs : Array[XmlAttr] = [
@@ -1401,17 +1589,10 @@ pub fn paint_xml(
         XmlAttr::new("width", width.to_string()),
         XmlAttr::new("height", height.to_string()),
       ]
-      push_color_xml_attrs(bg_attrs, "fill", bg.to_svg())
+      push_color_xml_attrs(bg_attrs, "fill", bg.to_svg(), scope)
       children.push(XmlNode::empty("rect", bg_attrs))
     }
     None => ()
-  }
-  let body_children : Array[XmlNode] = []
-  for elem in elements {
-    append_xml_nodes(
-      body_children,
-      build_element_nodes(elem, clip_counter, scope),
-    )
   }
   append_xml_nodes(children, body_children)
   let css_text = css_nodes_to_string(scope.val.css_nodes)
@@ -1470,10 +1651,20 @@ pub fn paint(
   let body_buf = StringBuilder::new()
   let clip_counter : Ref[Int] = Ref::new(0)
   let scope : Ref[BrushScope] = Ref::new(BrushScope::new())
+  let background_str = match background {
+    Some(bg) => {
+      let attrs = color_string_attrs("fill", bg.to_svg(), scope)
+      Some(
+        "  <rect x=\"0\" y=\"0\" width=\"\{width}\" height=\"\{height}\"\{attrs}/>\n",
+      )
+    }
+    None => None
+  }
   for elem in elements {
     render_element(body_buf, elem, "  ", clip_counter, scope)
   }
   let css_text = css_nodes_to_string(scope.val.css_nodes)
+  let defs_text = gradient_defs_string(scope)
 
   let buf = StringBuilder::new()
   buf.write_string("<svg width=\"\{width}\" height=\"\{height}\"")
@@ -1509,14 +1700,9 @@ pub fn paint(
     }
     None => ()
   }
-  match background {
-    Some(bg) => {
-      buf.write_string(
-        "  <rect x=\"0\" y=\"0\" width=\"\{width}\" height=\"\{height}\"",
-      )
-      buf.write_string(color_string_attrs("fill", bg.to_svg()))
-      buf.write_string("/>\n")
-    }
+  buf.write_string(defs_text)
+  match background_str {
+    Some(bg_str) => buf.write_string(bg_str)
     None => ()
   }
   buf.write_string(body_buf.to_string())

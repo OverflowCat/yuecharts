@@ -75,7 +75,7 @@ fn sample_expected_svg_concat() -> String {
     #|<style><![CDATA[
     #|.zr0-cls-0:hover {
     #|cursor:pointer;
-    #|fill:#55aa33;
+    #|fill:#5dbb38;
     #|stroke:#112233;
     #|stroke-width:2.5;
     #|}
@@ -111,7 +111,7 @@ fn sample_expected_svg_pretty() -> String {
     #|  <style><![CDATA[
     #|.zr0-cls-0:hover {
     #|cursor:pointer;
-    #|fill:#55aa33;
+    #|fill:#5dbb38;
     #|stroke:#112233;
     #|stroke-width:2.5;
     #|}

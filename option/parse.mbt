@@ -180,9 +180,9 @@ fn parse_legend(j : Json) -> LegendOption {
   let base = LegendOption::default()
   {
     show: j_bool(j, "show", base.show),
-    left: j_string(j, "left", base.left),
-    top: j_string(j, "top", base.top),
-    bottom: j_string(j, "bottom", base.bottom),
+    left: j_string_or_number(j, "left", base.left),
+    top: j_string_or_number(j, "top", base.top),
+    bottom: j_string_or_number(j, "bottom", base.bottom),
     orient: j_string(j, "orient", base.orient),
     data: j_string_array_lossy(j, "data", base.data),
     selected: parse_legend_selected(j),
@@ -620,6 +620,23 @@ fn parse_geo_item_style_patch_option(j : Json) -> GeoItemStylePatchOption {
     border_color: j_string_opt(j, "borderColor"),
     border_width: j_number_opt(j, "borderWidth"),
     opacity: j_number_opt(j, "opacity"),
+    border_radius: match j_field(j, "borderRadius") {
+      Some(Number(n, ..)) => Some([n])
+      Some(Array(arr)) => {
+        let vals = arr.filter_map(fn(v) {
+          match v {
+            Number(n, ..) => Some(n)
+            _ => None
+          }
+        })
+        if vals.length() > 0 {
+          Some(vals)
+        } else {
+          None
+        }
+      }
+      _ => None
+    },
   }
 }
 
@@ -1346,35 +1363,31 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(style) => Some(parse_geo_item_style_patch_option(style))
     None => base.background_style
   }
-  let color = match j_string_opt(j, "color") {
+  let color = match j_color_opt(j, "color") {
     Some(c) => Some(c)
     None => base.color
   }
   let item_style = match j_field(j, "itemStyle") {
-    Some(style) =>
-      match j_field(style, "color") {
-        Some(String(s)) => Some(s)
-        _ => None
-      }
+    Some(style) => j_color_opt(style, "color")
     _ => None
   }
   // Candlestick-specific itemStyle fields
   // Corresponds to: echarts/src/chart/candlestick/CandlestickSeries.ts
   let candle_item_style = j_field(j, "itemStyle")
   let candle_color_up = match candle_item_style {
-    Some(style) => j_string_opt(style, "color")
+    Some(style) => j_color_opt(style, "color")
     None => base.candle_color_up
   }
   let candle_color_down = match candle_item_style {
-    Some(style) => j_string_opt(style, "color0")
+    Some(style) => j_color_opt(style, "color0")
     None => base.candle_color_down
   }
   let candle_border_color_up = match candle_item_style {
-    Some(style) => j_string_opt(style, "borderColor")
+    Some(style) => j_color_opt(style, "borderColor")
     None => base.candle_border_color_up
   }
   let candle_border_color_down = match candle_item_style {
-    Some(style) => j_string_opt(style, "borderColor0")
+    Some(style) => j_color_opt(style, "borderColor0")
     None => base.candle_border_color_down
   }
   let candle_border_width = match candle_item_style {
@@ -1413,7 +1426,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
   let polyline = j_bool(j, "polyline", base.polyline)
   let clip = j_bool(j, "clip", base.clip)
   let line_style = j_field_or_self(j, "lineStyle")
-  let line_style_color = match j_string_opt(line_style, "color") {
+  let line_style_color = match j_color_opt(line_style, "color") {
     Some(color) => Some(color)
     None => base.line_style_color
   }
@@ -3188,6 +3201,75 @@ fn j_string(j : Json, key : String, default_val : String) -> String {
 
 ///|
 fn j_string_opt(j : Json, key : String) -> String? {
+  match j_field(j, key) {
+    Some(String(s)) => Some(s)
+    _ => None
+  }
+}
+
+///|
+fn j_color_opt(j : Json, key : String) -> String? {
+  match j_field(j, key) {
+    Some(String(s)) => Some(s)
+    Some(Object(_)) => j_linear_gradient_spec(j_field(j, key))
+    _ => None
+  }
+}
+
+///|
+fn j_linear_gradient_spec(value : Json?) -> String? {
+  match value {
+    Some(Object(_)) => {
+      let jv = value.unwrap()
+      let gradient_type = j_string(jv, "type", "")
+      if gradient_type != "linear" {
+        return None
+      }
+      let x = j_number(jv, "x", 0.0)
+      let y = j_number(jv, "y", 0.0)
+      let x2 = j_number(jv, "x2", 0.0)
+      let y2 = j_number(jv, "y2", 1.0)
+      let stops = j_linear_gradient_color_stops(jv)
+      if stops.length() == 0 {
+        None
+      } else {
+        let stops_str = stops.join(";")
+        Some(
+          "__linear_gradient__|x=\{x}|y=\{y}|x2=\{x2}|y2=\{y2}|stops=\{stops_str}",
+        )
+      }
+    }
+    _ => None
+  }
+}
+
+///|
+fn j_linear_gradient_color_stops(j : Json) -> Array[String] {
+  let stops : Array[String] = []
+  match j_field(j, "colorStops") {
+    Some(Array(arr)) =>
+      for stop in arr {
+        match stop {
+          Object(_) => {
+            let offset = j_number_opt(stop, "offset")
+            let color = j_color_literal(stop, "color")
+            match (offset, color) {
+              (Some(off), Some(c)) => stops.push("\{off}:\{c}")
+              _ => ()
+            }
+          }
+          Array([Number(offset, ..), String(color)]) =>
+            stops.push("\{offset}:\{color}")
+          _ => ()
+        }
+      }
+    _ => ()
+  }
+  stops
+}
+
+///|
+fn j_color_literal(j : Json, key : String) -> String? {
   match j_field(j, key) {
     Some(String(s)) => Some(s)
     _ => None

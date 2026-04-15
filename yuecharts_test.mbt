@@ -508,35 +508,35 @@ test "bar example snapshot" {
     svg,
     content=(
       #|<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 600 400">
-      #|  <line x1="165" y1="65" x2="165" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="315" y1="65" x2="315" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="465" y1="65" x2="465" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="90" y1="320" x2="540" y2="320" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="90" y1="256.25" x2="540" y2="256.25" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="90" y1="192.5" x2="540" y2="192.5" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="90" y1="128.75" x2="540" y2="128.75" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="90" y1="65" x2="540" y2="65" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="90" y1="320" x2="540" y2="320" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="165" y1="320" x2="165" y2="324" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M165 65L165 320" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M315 65L315 320" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M465 65L465 320" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M90 320L540 320" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M90 256.25L540 256.25" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M90 192.5L540 192.5" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M90 128.75L540 128.75" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M90 65L540 65" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M90 320L540 320" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M165 320L165 324" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="165" y="334" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Mon</text>
-      #|  <line x1="315" y1="320" x2="315" y2="324" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M315 320L315 324" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="315" y="334" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Tue</text>
-      #|  <line x1="465" y1="320" x2="465" y2="324" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M465 320L465 324" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="465" y="334" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Wed</text>
-      #|  <line x1="90" y1="65" x2="90" y2="320" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="86" y1="320" x2="90" y2="320" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M90 65L90 320" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M86 320L90 320" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="82" y="320" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">0</text>
-      #|  <line x1="86" y1="256.25" x2="90" y2="256.25" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M86 256.25L90 256.25" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="82" y="256.25" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">50</text>
-      #|  <line x1="86" y1="192.5" x2="90" y2="192.5" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M86 192.5L90 192.5" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="82" y="192.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">100</text>
-      #|  <line x1="86" y1="128.75" x2="90" y2="128.75" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M86 128.75L90 128.75" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="82" y="128.75" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">150</text>
-      #|  <line x1="86" y1="65" x2="90" y2="65" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M86 65L90 65" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="82" y="65" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">200</text>
-      #|  <path d="M113.3 320l103.5 0l0 -153l-103.5 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <path d="M263.3 320l103.5 0l0 -255l-103.5 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <path d="M413.3 320l103.5 0l0 -191.2l-103.5 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M118.4 320l93.2 0l0 -153l-93.1 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M268.4 320l93.2 0l0 -255l-93.1 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M418.4 320l93.2 0l0 -191.2l-93.1 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
       #|<style><![CDATA[
       #|.zr0-cls-0:hover {
       #|cursor:pointer;
@@ -573,76 +573,76 @@ test "mixed example snapshot" {
     svg,
     content=(
       #|<svg width="700" height="450" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="full" viewBox="0 0 700 450">
-      #|  <line x1="148.75" y1="65" x2="148.75" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="236.25" y1="65" x2="236.25" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="323.75" y1="65" x2="323.75" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="411.25" y1="65" x2="411.25" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="498.75" y1="65" x2="498.75" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="586.25" y1="65" x2="586.25" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="370" x2="630" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="293.75" x2="630" y2="293.75" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="217.5" x2="630" y2="217.5" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="141.25" x2="630" y2="141.25" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="65" x2="630" y2="65" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="370" x2="630" y2="370" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="319.1666666666667" x2="630" y2="319.1666666666667" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="268.33333333333337" x2="630" y2="268.33333333333337" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="217.5" x2="630" y2="217.5" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="166.66666666666669" x2="630" y2="166.66666666666669" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="115.83333333333331" x2="630" y2="115.83333333333331" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="65" x2="630" y2="65" stroke="#dbdee4" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="105" y1="370" x2="630" y2="370" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="148.75" y1="370" x2="148.75" y2="374" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M148.75 65L148.75 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M236.25 65L236.25 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M323.75 65L323.75 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M411.25 65L411.25 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M498.75 65L498.75 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M586.25 65L586.25 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 370L630 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 293.75L630 293.75" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 217.5L630 217.5" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 141.25L630 141.25" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 65L630 65" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 370L630 370" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 319.1666666666667L630 319.1666666666667" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 268.33333333333337L630 268.33333333333337" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 217.5L630 217.5" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 166.66666666666669L630 166.66666666666669" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 115.83333333333331L630 115.83333333333331" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 65L630 65" stroke="#dbdee4" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M105 370L630 370" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M148.75 370L148.75 374" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="148.75" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Jan</text>
-      #|  <line x1="236.25" y1="370" x2="236.25" y2="374" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M236.25 370L236.25 374" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="236.25" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Feb</text>
-      #|  <line x1="323.75" y1="370" x2="323.75" y2="374" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M323.75 370L323.75 374" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="323.75" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Mar</text>
-      #|  <line x1="411.25" y1="370" x2="411.25" y2="374" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M411.25 370L411.25 374" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="411.25" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Apr</text>
-      #|  <line x1="498.75" y1="370" x2="498.75" y2="374" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M498.75 370L498.75 374" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="498.75" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">May</text>
-      #|  <line x1="586.25" y1="370" x2="586.25" y2="374" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M586.25 370L586.25 374" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="586.25" y="384" fill="#54555a" font-size="12" text-anchor="middle" dominant-baseline="hanging" class="zr0-cls-1">Jun</text>
-      #|  <line x1="105" y1="65" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="101" y1="370" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M105 65L105 370" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M101 370L105 370" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="370" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">0</text>
-      #|  <line x1="101" y1="293.75" x2="105" y2="293.75" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 293.75L105 293.75" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="293.75" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">20</text>
-      #|  <line x1="101" y1="217.5" x2="105" y2="217.5" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 217.5L105 217.5" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="217.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">40</text>
-      #|  <line x1="101" y1="141.25" x2="105" y2="141.25" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 141.25L105 141.25" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="141.25" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">60</text>
-      #|  <line x1="101" y1="65" x2="105" y2="65" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 65L105 65" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="65" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">80</text>
-      #|  <line x1="105" y1="65" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
-      #|  <line x1="101" y1="370" x2="105" y2="370" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M105 65L105 370" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
+      #|  <path d="M101 370L105 370" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="370" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">0</text>
-      #|  <line x1="101" y1="319.1666666666667" x2="105" y2="319.1666666666667" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 319.1666666666667L105 319.1666666666667" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="319.1666666666667" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">2</text>
-      #|  <line x1="101" y1="268.33333333333337" x2="105" y2="268.33333333333337" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 268.33333333333337L105 268.33333333333337" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="268.33333333333337" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">4</text>
-      #|  <line x1="101" y1="217.5" x2="105" y2="217.5" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 217.5L105 217.5" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="217.5" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">6</text>
-      #|  <line x1="101" y1="166.66666666666669" x2="105" y2="166.66666666666669" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 166.66666666666669L105 166.66666666666669" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="166.66666666666669" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">8</text>
-      #|  <line x1="101" y1="115.83333333333331" x2="105" y2="115.83333333333331" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 115.83333333333331L105 115.83333333333331" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="115.83333333333331" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">10</text>
-      #|  <line x1="101" y1="65" x2="105" y2="65" stroke="#54555a" stroke-width="1" fill="none" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <path d="M101 65L105 65" stroke="#54555a" stroke-width="1" fill="none" class="zr0-cls-0"/>
       #|  <text x="97" y="65" fill="#54555a" font-size="12" text-anchor="end" dominant-baseline="middle" class="zr0-cls-1">12</text>
-      #|  <path d="M118.6 370l60.4 0l0 -9.9l-60.4 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <path d="M206.1 370l60.4 0l0 -22.5l-60.4 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <path d="M293.6 370l60.4 0l0 -34.3l-60.4 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <path d="M381.1 370l60.4 0l0 -100.6l-60.4 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <path d="M468.6 370l60.4 0l0 -109.4l-60.4 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <path d="M556.1 370l60.4 0l0 -269.5l-60.4 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="5" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
-      #|  <polyline points="148.75,319.1666666666667 236.25,314.0833333333333 323.75,286.125 411.25,255.625 498.75,209.875 586.25,110.75" fill="none" stroke="#b6d634" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="zr0-cls-3"/>
-      #|  <circle cx="148.75" cy="319.1666666666667" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-4"/>
-      #|  <circle cx="236.25" cy="314.0833333333333" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-4"/>
-      #|  <circle cx="323.75" cy="286.125" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-4"/>
-      #|  <circle cx="411.25" cy="255.625" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-4"/>
-      #|  <circle cx="498.75" cy="209.875" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-4"/>
-      #|  <circle cx="586.25" cy="110.75" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-4"/>
+      #|  <path d="M121.6 370l54.3 0l0 -9.9l-54.3 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="0" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M209.1 370l54.3 0l0 -22.5l-54.3 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="1" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M296.6 370l54.3 0l0 -34.3l-54.3 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="2" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M384.1 370l54.3 0l0 -100.6l-54.3 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="3" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M471.6 370l54.3 0l0 -109.4l-54.3 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="4" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M559.1 370l54.3 0l0 -269.5l-54.3 0Z" fill="#5070dd" stroke="none" pointer-events="visible" ecmeta_series_index="0" ecmeta_data_index="5" ecmeta_ssr_type="chart" class="zr0-cls-2"/>
+      #|  <path d="M 148.75 319.1666666666667 L 236.25 314.0833333333333 L 323.75 286.125 L 411.25 255.625 L 498.75 209.875 L 586.25 110.75" fill="none" stroke="#b6d634" stroke-width="2" stroke-linejoin="bevel" pointer-events="visible" class="zr0-cls-0"/>
+      #|  <circle cx="148.75" cy="319.1666666666667" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-3"/>
+      #|  <circle cx="236.25" cy="314.0833333333333" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-3"/>
+      #|  <circle cx="323.75" cy="286.125" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-3"/>
+      #|  <circle cx="411.25" cy="255.625" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-3"/>
+      #|  <circle cx="498.75" cy="209.875" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-3"/>
+      #|  <circle cx="586.25" cy="110.75" r="2" fill="#b6d634" stroke="none" pointer-events="visible" class="zr0-cls-3"/>
       #|<style><![CDATA[
       #|.zr0-cls-0:hover {
       #|cursor:pointer;
@@ -656,10 +656,6 @@ test "mixed example snapshot" {
       #|fill:#587bf3;
       #|}
       #|.zr0-cls-3:hover {
-      #|cursor:pointer;
-      #|fill:none;
-      #|}
-      #|.zr0-cls-4:hover {
       #|cursor:pointer;
       #|fill:#c8eb39;
       #|}
@@ -759,7 +755,7 @@ test "pictorial bar body-fill centers the grid vertically" {
     #|  }]
     #|}
   let svg = @yuecharts.render(json_str)
-  assert_true(svg.contains("y1=\"315\""))
+  assert_true(svg.contains("M90 85L90 315"))
   assert_true(svg.contains("fill=\"#5070dd\""))
 }
 
