@@ -111,7 +111,7 @@ pub fn parse_path_number(d : String, start : Int) -> (Double, Int)? {
       i += 1
     }
   }
-  try @strconv.parse_double(d[i0:i].to_string()) catch {
+  try @string.parse_double(d[i0:i].to_string()) catch {
     _ => None
   } noraise {
     value => Some((value, i))

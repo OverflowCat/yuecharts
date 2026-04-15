@@ -1,6 +1,6 @@
 import {
   "moonbitlang/core/math" @math,
-  "moonbitlang/core/strconv" @strconv,
+  "moonbitlang/core/string" @string,
   "OverflowCat/yuecharts/core" @core,
   "OverflowCat/yuecharts/graphic" @graphic,
   "OverflowCat/yuecharts/coord" @coord,

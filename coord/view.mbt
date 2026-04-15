@@ -27,13 +27,13 @@ fn view_parse_percent_with_offset(
 ) -> Double {
   if value.has_suffix("%") {
     let pct_str = value[:value.length() - 1].to_string()
-    let parsed = try? @strconv.parse_double(pct_str)
+    let parsed = try? @string.parse_double(pct_str)
     match parsed {
       Ok(pct) => offset + total * pct / 100.0
       _ => offset
     }
   } else {
-    let parsed = try? @strconv.parse_double(value)
+    let parsed = try? @string.parse_double(value)
     match parsed {
       Ok(px) => px
       _ => offset

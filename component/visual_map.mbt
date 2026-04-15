@@ -13,7 +13,7 @@ fn vm_parse_pos(s : String) -> Double {
   if s == "" || s == "auto" {
     0.0
   } else {
-    let r = try? @strconv.parse_double(s)
+    let r = try? @string.parse_double(s)
     r.unwrap_or(0.0)
   }
 }

@@ -980,7 +980,7 @@ fn parse_matrix_coord_value(j : Json) -> MatrixCoordValue {
     Number(n, ..) => Locator(n.to_int())
     Null => Missing
     String(s) => {
-      let parsed = try? @strconv.parse_int(s, base=10)
+      let parsed = try? @string.parse_int(s, base=10)
       match parsed {
         Ok(v) => Locator(v)
         Err(_) => Name(s)
@@ -1054,13 +1054,13 @@ fn parse_size_spec(j : Json, key : String, default_val : SizeSpec) -> SizeSpec {
     Some(String(s)) =>
       if s.has_suffix("%") {
         let pct_str = s[:s.length() - 1]
-        let r = try? @strconv.parse_double(pct_str.to_string())
+        let r = try? @string.parse_double(pct_str.to_string())
         match r {
           Ok(pct) => SizeSpec::Pct(pct)
           Err(_) => default_val
         }
       } else {
-        let r = try? @strconv.parse_double(s)
+        let r = try? @string.parse_double(s)
         match r {
           Ok(px) => SizeSpec::Px(px)
           Err(_) => default_val
@@ -1081,10 +1081,10 @@ fn parse_size_spec_opt(
     Some(String(s)) =>
       if s.has_suffix("%") {
         let pct_str = s[:s.length() - 1]
-        let r = try? @strconv.parse_double(pct_str.to_string())
+        let r = try? @string.parse_double(pct_str.to_string())
         r.map(pct => Some(SizeSpec::Pct(pct))).unwrap_or(default_val)
       } else {
-        let r = try? @strconv.parse_double(s)
+        let r = try? @string.parse_double(s)
         r.map(px => Some(SizeSpec::Px(px))).unwrap_or(default_val)
       }
     _ => default_val
@@ -2009,7 +2009,7 @@ fn parse_data_item(j : Json) -> DataItem {
         detail_offset_center: None,
       }
     String(s) => {
-      let parsed = try? @strconv.parse_double(s)
+      let parsed = try? @string.parse_double(s)
       match parsed {
         Ok(n) =>
           {

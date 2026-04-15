@@ -740,13 +740,13 @@ fn tree_r4(v : Double) -> String {
 fn tree_parse_percent(s : String, base : Double) -> Double {
   if s.length() > 0 && s[s.length() - 1] == '%' {
     let pct_str = s[:s.length() - 1].to_string()
-    let parsed = try? @strconv.parse_double(pct_str)
+    let parsed = try? @string.parse_double(pct_str)
     match parsed {
       Ok(n) => n / 100.0 * base
       Err(_) => 0.0
     }
   } else {
-    let parsed = try? @strconv.parse_double(s)
+    let parsed = try? @string.parse_double(s)
     match parsed {
       Ok(n) => n
       Err(_) => 0.0

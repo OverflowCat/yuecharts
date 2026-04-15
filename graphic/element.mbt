@@ -997,13 +997,13 @@ pub fn Element::path_stroked_round(
 ///|
 /// Path filled with a CSS/hex color string (semi-transparent area).
 pub fn Element::path_filled(
-  d : String,
+  d : StringView,
   color_str : String,
   opacity : Double,
 ) -> Element {
   let color = Color::from_string(color_str).unwrap_or(black)
   Path({
-    d,
+    d: d.to_string(), // TODO: use StringView directly in PathData?
     fill: Some({ color, }),
     stroke: None,
     opacity,

@@ -113,7 +113,7 @@ fn fmt_gauge_val(v : Double) -> String {
 /// Approximate bounding box of an SVG path by scanning all numeric tokens.
 /// Returns (min_x, min_y, width, height). Treats alternating token pairs as (x,y).
 /// Corresponds to: zrender getBoundingRect for icons used by createSymbol.
-fn svg_path_bbox(path_data : String) -> (Double, Double, Double, Double) {
+fn svg_path_bbox(path_data : StringView) -> (Double, Double, Double, Double) {
   let n = path_data.length()
   let nums : Array[Double] = []
   let mut i = 0
@@ -134,15 +134,15 @@ fn svg_path_bbox(path_data : String) -> (Double, Double, Double, Double) {
         }
       }
       if i > start {
-        let tok = path_data.substring(start~, end=i)
-        let r = try? @strconv.parse_double(tok)
+        let tok = path_data[start:i]
+        let r = try? @string.parse_double(tok)
         match r {
           Ok(v) => nums.push(v)
           Err(_) => ()
         }
       }
     } else {
-      i = i + 1
+      i += 1
     }
   }
   if nums.length() < 2 {
@@ -548,7 +548,7 @@ pub fn render_gauge_series(
         // For simplicity, compute the full affine transform:
         //   final transform = translate(cx, cy) * rotate(rot) (since createSymbol
         //   already builds path in [offX-w/2, offY-len, w, len] space)
-        let path_data = icon_str.substring(start=7) // strip "path://"
+        let path_data = icon_str[7:] // strip "path://"
         // Compute SVG path bounding box heuristically from coordinate values
         // and scale to target box [offX-w/2, offY-ptr_len, ptr_w, ptr_len]
         let bbox = svg_path_bbox(path_data)

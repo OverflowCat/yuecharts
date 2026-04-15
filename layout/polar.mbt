@@ -5,13 +5,13 @@
 fn parse_pct_or_px(value : String, reference : Double) -> Double {
   if value.has_suffix("%") {
     let inner = value[:value.length() - 1]
-    let result = try? @strconv.parse_double(inner.to_string())
+    let result = try? @string.parse_double(inner.to_string())
     match result {
       Ok(parsed) => parsed / 100.0 * reference
       Err(_) => 0.0
     }
   } else {
-    let result = try? @strconv.parse_double(value)
+    let result = try? @string.parse_double(value)
     match result {
       Ok(parsed) => parsed
       Err(_) => 0.0

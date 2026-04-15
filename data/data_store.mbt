@@ -33,7 +33,7 @@ fn data_store_dimension_value(
     @option.DataValue::Num(n) => if dim_index == 0 { Some(n) } else { None }
     @option.DataValue::DateValue(raw, n) =>
       if dim_index == 0 {
-        let parsed = try? @strconv.parse_double(raw)
+        let parsed = try? @string.parse_double(raw)
         match parsed {
           Ok(value) => Some(value)
           Err(_) => Some(n)

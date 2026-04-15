@@ -1287,13 +1287,13 @@ fn bar_render_series_cartesian_large_impl(
 fn bar_parse_percent_like(value : String, reference : Double) -> Double {
   if value.has_suffix("%") {
     let pct_str = value[:value.length() - 1].to_string()
-    let parsed = try? @strconv.parse_double(pct_str)
+    let parsed = try? @string.parse_double(pct_str)
     match parsed {
       Ok(pct) => reference * pct / 100.0
       Err(_) => 0.0
     }
   } else {
-    let parsed = try? @strconv.parse_double(value)
+    let parsed = try? @string.parse_double(value)
     match parsed {
       Ok(px) => px
       Err(_) => 0.0

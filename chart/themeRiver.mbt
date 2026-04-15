@@ -353,13 +353,13 @@ fn theme_river_parse_gap_px(
   }
   if raw.has_suffix("%") {
     let pct_str = raw[:raw.length() - 1].to_string()
-    let parsed = try? @strconv.parse_double(pct_str)
+    let parsed = try? @string.parse_double(pct_str)
     match parsed {
       Ok(pct) => total * pct / 100.0
       Err(_) => 0.0
     }
   } else {
-    let parsed = try? @strconv.parse_double(raw)
+    let parsed = try? @string.parse_double(raw)
     match parsed {
       Ok(px) => px
       Err(_) => 0.0

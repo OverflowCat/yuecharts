@@ -216,7 +216,7 @@ fn parse_css_rgba_like(text : String, has_alpha : Bool) -> Color? {
 
 ///|
 fn parse_css_rgb_component(value : String) -> Int? {
-  let parsed = try? @strconv.parse_double(value)
+  let parsed = try? @string.parse_double(value)
   match parsed {
     Ok(v) => Some(color_channel_from_double(v))
     Err(_) => None
@@ -225,7 +225,7 @@ fn parse_css_rgb_component(value : String) -> Int? {
 
 ///|
 fn parse_css_alpha_component(value : String) -> Int? {
-  let parsed = try? @strconv.parse_double(value)
+  let parsed = try? @string.parse_double(value)
   match parsed {
     Ok(v) => Some(color_alpha_from_double(v))
     Err(_) => None

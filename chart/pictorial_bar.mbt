@@ -46,13 +46,13 @@ fn pictorial_margin_px(series : @option.SeriesOption, unit : Double) -> Double {
       }
       if margin_value.has_suffix("%") {
         let pct_str = margin_value[:margin_value.length() - 1]
-        let parsed = try? @strconv.parse_double(pct_str.to_string())
+        let parsed = try? @string.parse_double(pct_str.to_string())
         match parsed {
           Ok(pct) => unit * pct / 100.0
           Err(_) => unit * 0.15
         }
       } else {
-        let parsed = try? @strconv.parse_double(margin_value)
+        let parsed = try? @string.parse_double(margin_value)
         match parsed {
           Ok(px) => px
           Err(_) => unit * 0.15
@@ -72,10 +72,10 @@ fn has_end_gap(series : @option.SeriesOption) -> Bool {
 fn parse_offset_component(value : String, reference : Double) -> Double {
   if value.has_suffix("%") {
     let pct_str = value[:value.length() - 1]
-    let parsed = try? @strconv.parse_double(pct_str.to_string())
+    let parsed = try? @string.parse_double(pct_str.to_string())
     parsed.unwrap_or(0.0) * reference / 100.0
   } else {
-    let parsed = try? @strconv.parse_double(value)
+    let parsed = try? @string.parse_double(value)
     parsed.unwrap_or(0.0)
   }
 }
@@ -84,13 +84,13 @@ fn parse_offset_component(value : String, reference : Double) -> Double {
 fn parse_symbol_size_component(value : String, reference : Double) -> Double {
   if value.has_suffix("%") {
     let pct_str = value[:value.length() - 1]
-    let parsed = try? @strconv.parse_double(pct_str.to_string())
+    let parsed = try? @string.parse_double(pct_str.to_string())
     match parsed {
       Ok(pct) => reference * pct / 100.0
       Err(_) => reference
     }
   } else {
-    let parsed = try? @strconv.parse_double(value)
+    let parsed = try? @string.parse_double(value)
     parsed.unwrap_or(reference)
   }
 }

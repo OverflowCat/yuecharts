@@ -65,7 +65,7 @@ fn parse_date_to_days(s : String) -> Double {
   let normalized = s.replace(old="/", new="-")
   // Fast path for canonical date strings like YYYY-MM-DD.
   if normalized.length() < 10 {
-    let r = try? @strconv.parse_double(s)
+    let r = try? @string.parse_double(s)
     match r {
       Ok(v) => return v
       Err(_) => return 0.0
@@ -74,17 +74,17 @@ fn parse_date_to_days(s : String) -> Double {
   let y_str = normalized[:4].to_string()
   let m_str = normalized[5:7].to_string()
   let d_str = normalized[8:10].to_string()
-  let year_r = try? @strconv.parse_int(y_str, base=10)
+  let year_r = try? @string.parse_int(y_str, base=10)
   let year = match year_r {
     Ok(v) => v
     Err(_) => 1970
   }
-  let month_r = try? @strconv.parse_int(m_str, base=10)
+  let month_r = try? @string.parse_int(m_str, base=10)
   let month = match month_r {
     Ok(v) => v
     Err(_) => 1
   }
-  let day_r = try? @strconv.parse_int(d_str, base=10)
+  let day_r = try? @string.parse_int(d_str, base=10)
   let day = match day_r {
     Ok(v) => v
     Err(_) => 1
@@ -596,7 +596,7 @@ pub(all) struct SingleTick {
 fn format_time_tick_label(raw : String) -> String {
   if raw.length() >= 2 {
     let day = raw[raw.length() - 2:].to_string()
-    let parsed = try? @strconv.parse_int(day, base=10)
+    let parsed = try? @string.parse_int(day, base=10)
     match parsed {
       Ok(v) => v.to_string()
       Err(_) => raw

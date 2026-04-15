@@ -152,25 +152,16 @@ fn sankey_compute_node_values(
   nodes : Array[SankeyNode],
   edges : Array[SankeyEdge],
 ) -> Unit {
-  let mut i = 0
-  while i < nodes.length() {
+  for node in nodes {
     let mut out_sum = 0.0
-    let mut j = 0
-    while j < nodes[i].out_edges.length() {
-      out_sum = out_sum + edges[nodes[i].out_edges[j]].value
-      j += 1
+    for edge_index in node.out_edges {
+      out_sum += edges[edge_index].value
     }
     let mut in_sum = 0.0
-    j = 0
-    while j < nodes[i].in_edges.length() {
-      in_sum = in_sum + edges[nodes[i].in_edges[j]].value
-      j += 1
+    for edge_index in node.in_edges {
+      in_sum += edges[edge_index].value
     }
-    nodes[i].value = sankey_max(
-      sankey_max(out_sum, in_sum),
-      sankey_data_value(nodes[i].item),
-    )
-    i += 1
+    node.value = out_sum.max(in_sum).max(sankey_data_value(node.item))
   }
 }
 
@@ -215,12 +206,7 @@ fn sankey_box(
       let height = series.sankey_height.map_or(opt.height - top - bottom, spec => {
         sankey_resolve_size(spec, opt.height)
       })
-      {
-        x: left,
-        y: top,
-        width: sankey_max(width, 0.0),
-        height: sankey_max(height, 0.0),
-      }
+      { x: left, y: top, width: width.max(0.0), height: height.max(0.0) }
     }
   }
 }
@@ -410,17 +396,15 @@ fn sankey_compute_node_breadths(
   let kx = if max_depth <= 0 {
     0.0
   } else {
-    sankey_max((span - node_width) / max_depth.to_double(), 0.0)
+    0.0.max((span - node_width) / max_depth.to_double())
   }
-  i = 0
-  while i < nodes.length() {
-    let coord = nodes[i].depth.to_double() * kx
+  for node in nodes {
+    let coord = node.depth.to_double() * kx
     if orient == "vertical" {
-      nodes[i].y = coord
+      node.y = coord
     } else {
-      nodes[i].x = coord
+      node.x = coord
     }
-    i += 1
   }
   true
 }
@@ -1121,7 +1105,7 @@ fn sankey_edge_path(
   view : @coord.View?,
   curveness : Double,
 ) -> String {
-  let extent = sankey_max(edge.dy, 1.0)
+  let extent = edge.dy.max(1)
   let source = nodes[edge.source_index]
   let target = nodes[edge.target_index]
   if series.sankey_orient == "vertical" {

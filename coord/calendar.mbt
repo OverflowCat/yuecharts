@@ -534,7 +534,7 @@ fn is_all_digits(value : String) -> Bool {
 
 ///|
 fn to_int_or(value : String, fallback : Int) -> Int {
-  let r = try? @strconv.parse_int(value)
+  let r = try? @string.parse_int(value)
   match r {
     Ok(v) => v
     Err(_) => fallback

@@ -108,7 +108,7 @@ fn geo_svg_attr_value(node : GeoSvgNode, name : String) -> String? {
 fn geo_svg_attr_double(node : GeoSvgNode, name : String) -> Double? {
   match geo_svg_attr_value(node, name) {
     Some(value) => {
-      let parsed = try? @strconv.parse_double(value)
+      let parsed = try? @string.parse_double(value)
       match parsed {
         Ok(v) => Some(v)
         Err(_) => None

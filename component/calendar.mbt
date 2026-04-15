@@ -573,13 +573,13 @@ fn week_text_element(
 fn parse_percent(value : String, max_value : Double) -> Double {
   if value.has_suffix("%") {
     let raw = value[:value.length() - 1].to_string()
-    let parsed = try? @strconv.parse_double(raw)
+    let parsed = try? @string.parse_double(raw)
     match parsed {
       Ok(v) => max_value * v / 100.0
       Err(_) => 0.0
     }
   } else {
-    let parsed = try? @strconv.parse_double(value)
+    let parsed = try? @string.parse_double(value)
     match parsed {
       Ok(v) => v
       Err(_) => 0.0
@@ -615,7 +615,7 @@ fn positive_mod(value : Int, m : Int) -> Int {
 
 ///|
 fn to_int_or(value : String, fallback : Int) -> Int {
-  let parsed = try? @strconv.parse_int(value)
+  let parsed = try? @string.parse_int(value)
   match parsed {
     Ok(v) => v
     Err(_) => fallback

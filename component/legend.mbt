@@ -19,7 +19,7 @@ fn legend_parse_pos(s : String, fallback : Double) -> Double {
   if s == "" || s == "auto" {
     fallback
   } else {
-    let r = try? @strconv.parse_double(s)
+    let r = try? @string.parse_double(s)
     r.unwrap_or(fallback)
   }
 }

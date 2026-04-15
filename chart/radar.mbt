@@ -51,13 +51,13 @@ fn radar_point(
 fn radar_parse_r(s : String, ref_val : Double) -> Double {
   if s.has_suffix("%") {
     let inner = s[:s.length() - 1]
-    let r = try? @strconv.parse_double(inner.to_string())
+    let r = try? @string.parse_double(inner.to_string())
     match r {
       Ok(v) => v / 100.0 * ref_val
       Err(_) => ref_val * 0.75
     }
   } else {
-    let r = try? @strconv.parse_double(s)
+    let r = try? @string.parse_double(s)
     match r {
       Ok(v) => v
       Err(_) => ref_val * 0.75
@@ -69,13 +69,13 @@ fn radar_parse_r(s : String, ref_val : Double) -> Double {
 fn radar_parse_center(s : String, ref_val : Double) -> Double {
   if s.has_suffix("%") {
     let inner = s[:s.length() - 1]
-    let r = try? @strconv.parse_double(inner.to_string())
+    let r = try? @string.parse_double(inner.to_string())
     match r {
       Ok(v) => v / 100.0 * ref_val
       Err(_) => ref_val * 0.5
     }
   } else {
-    let r = try? @strconv.parse_double(s)
+    let r = try? @string.parse_double(s)
     match r {
       Ok(v) => v
       Err(_) => ref_val * 0.5

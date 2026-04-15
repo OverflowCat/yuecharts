@@ -67,13 +67,13 @@ fn chord_max(a : Double, b : Double) -> Double {
 fn chord_parse_pct_or_px(s : String, reference : Double) -> Double {
   if s.has_suffix("%") {
     let inner = s[:s.length() - 1]
-    let parsed = try? @strconv.parse_double(inner.to_string())
+    let parsed = try? @string.parse_double(inner.to_string())
     match parsed {
       Ok(v) => v / 100.0 * reference
       Err(_) => 0.0
     }
   } else {
-    let parsed = try? @strconv.parse_double(s)
+    let parsed = try? @string.parse_double(s)
     match parsed {
       Ok(v) => v
       Err(_) => 0.0
@@ -422,14 +422,12 @@ fn chord_layout(
 
   let mut node_data_sum = 0.0
   let mut edge_data_sum = 0.0
-  let mut i = 0
-  while i < nodes.length() {
-    node_data_sum = node_data_sum + chord_data_value(nodes[i].item)
-    i += 1
+  for node in nodes {
+    node_data_sum += chord_data_value(node.item)
   }
   let mut ei = 0
   while ei < edges.length() {
-    edge_data_sum = edge_data_sum + chord_data_value(edges[ei].item)
+    edge_data_sum += chord_data_value(edges[ei].item)
     ei += 1
   }
   let all_zero = node_data_sum == 0.0 && edge_data_sum == 0.0
@@ -441,10 +439,8 @@ fn chord_layout(
   let dir = if clockwise { 1.0 } else { -1.0 }
 
   let node_values : Array[Double] = []
-  i = 0
-  while i < nodes.length() {
+  for _ in nodes {
     node_values.push(0.0)
-    i += 1
   }
 
   let mut rendered_node_count = 0
@@ -462,8 +458,7 @@ fn chord_layout(
   }
 
   let mut node_value_sum = 0.0
-  i = 0
-  while i < nodes.length() {
+  for i = 0; i < nodes.length(); i = i + 1 {
     let explicit_value = chord_data_value(nodes[i].item)
     if explicit_value == explicit_value {
       node_values[i] = chord_max(explicit_value, node_values[i])
@@ -471,8 +466,7 @@ fn chord_layout(
     if !all_zero && (node_values[i] > 0.0 || min_angle > 0.0) {
       rendered_node_count += 1
     }
-    node_value_sum = node_value_sum + node_values[i]
-    i += 1
+    node_value_sum += node_values[i]
   }
 
   if rendered_node_count == 0 || node_value_sum == 0.0 {
@@ -506,7 +500,7 @@ fn chord_layout(
   let mut total_deficit = 0.0
   let mut total_surplus = 0.0
   let mut total_surplus_span = 0.0
-  i = 0
+  let mut i = 0
   while i < nodes.length() {
     let span_angle = unit_angle * node_values[i] * dir
     let abs_span_angle = chord_abs(span_angle)

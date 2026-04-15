@@ -6,7 +6,7 @@
 pub(all) struct Tick {
   value : Double
   label : String
-} derive(Show)
+} derive(Debug)
 
 ///|
 /// Linear scale: maps a numeric domain [min, max] to a pixel range [range_min, range_max].
@@ -252,7 +252,7 @@ pub fn get_precision_safe(val : Double) -> Int {
   }
   let exp : Int = if e_idx >= 0 {
     let slice = s[e_idx + 1:]
-    let res = try? @strconv.parse_int(slice)
+    let res = try? @string.parse_int(slice)
     match res {
       Ok(n) => n
       Err(_) => 0
@@ -380,16 +380,16 @@ pub fn ParsedBreak::from_option(
     gap_abs: None,
     gap_real: 0.0,
   }
-  let s = gap_str.trim_space()
-  if s.ends_with("%") {
+  let s = gap_str.trim()
+  if s.has_suffix("%") {
     let num_str = s[0:s.length() - 1].to_string()
-    let parsed = try? @strconv.parse_double(num_str)
+    let parsed = try? @string.parse_double(num_str)
     match parsed {
       Ok(pct) => { ..brk, gap_pct: Some(pct / 100.0) }
       Err(_) => brk
     }
   } else {
-    let parsed = try? @strconv.parse_double(s)
+    let parsed = try? @string.parse_double(s)
     match parsed {
       Ok(abs) => { ..brk, gap_abs: Some(abs) }
       Err(_) => brk

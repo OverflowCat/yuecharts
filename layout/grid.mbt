@@ -20,13 +20,13 @@ fn grid_layout_value(value : String, total : Double) -> Double {
     0.0 / 0.0
   } else if value.has_suffix("%") {
     let pct_str = value[:value.length() - 1]
-    let parsed = try? @strconv.parse_double(pct_str.to_string())
+    let parsed = try? @string.parse_double(pct_str.to_string())
     match parsed {
       Ok(pct) => total * pct / 100.0
       Err(_) => 0.0 / 0.0
     }
   } else {
-    let parsed = try? @strconv.parse_double(value)
+    let parsed = try? @string.parse_double(value)
     match parsed {
       Ok(px) => px
       Err(_) => 0.0 / 0.0

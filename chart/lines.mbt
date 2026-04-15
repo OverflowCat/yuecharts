@@ -65,7 +65,7 @@ fn lines_chart_json_number_pair_opt(j : Json, key : String) -> Array[Double]? {
 
 ///|
 fn lines_chart_parse_double_string(value : String, fallback : Double) -> Double {
-  let parsed = try? @strconv.parse_double(value)
+  let parsed = try? @string.parse_double(value)
   match parsed {
     Ok(n) => n
     _ => fallback

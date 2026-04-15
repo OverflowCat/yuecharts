@@ -458,13 +458,13 @@ fn geo_parse_center_coord(
     _ =>
       if value.has_suffix("%") {
         let pct = value[:value.length() - 1]
-        let parsed = try? @strconv.parse_double(pct.to_string())
+        let parsed = try? @string.parse_double(pct.to_string())
         match parsed {
           Ok(v) => offset + v / 100.0 * total
           Err(_) => 0.0 / 0.0
         }
       } else {
-        let parsed = try? @strconv.parse_double(value)
+        let parsed = try? @string.parse_double(value)
         match parsed {
           Ok(v) => v
           Err(_) => 0.0 / 0.0
@@ -737,13 +737,13 @@ fn geo_layout_value(value : String, total : Double) -> Double {
   }
   if value.has_suffix("%") {
     let pct = value[:value.length() - 1]
-    let parsed = try? @strconv.parse_double(pct.to_string())
+    let parsed = try? @string.parse_double(pct.to_string())
     match parsed {
       Ok(v) => v / 100.0 * total
       Err(_) => 0.0 / 0.0
     }
   } else {
-    let parsed = try? @strconv.parse_double(value)
+    let parsed = try? @string.parse_double(value)
     match parsed {
       Ok(v) => v
       Err(_) => 0.0 / 0.0
