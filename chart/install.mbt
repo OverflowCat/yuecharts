@@ -454,6 +454,27 @@ pub fn install_sankey(registry : @core.Registry) -> Unit {
 }
 
 ///|
+struct GraphChartView {}
+
+///|
+pub impl @core.ChartViewLike for GraphChartView with render(_self, ctx) {
+  render_graphs(ctx.option, ctx.coord)
+}
+
+///|
+/// <=> echarts/src/chart/graph/install.ts:install
+pub fn install_graph(registry : @core.Registry) -> Unit {
+  // echarts/src/chart/graph/install.ts
+  // echarts/src/chart/graph/GraphSeries.ts
+  // echarts/src/chart/graph/GraphView.ts
+  // layout: echarts/src/chart/graph/forceLayout.ts
+  // visual: echarts/src/chart/graph/categoryVisual.ts
+  register_chart(registry, @option.SeriesType::Graph, false, false, GraphChartView::{
+
+  })
+}
+
+///|
 pub fn install_all(registry : @core.Registry) -> Unit {
   install_bar(registry)
   install_heatmap(registry)
@@ -476,4 +497,5 @@ pub fn install_all(registry : @core.Registry) -> Unit {
   install_tree(registry)
   install_chord(registry)
   install_sankey(registry)
+  install_graph(registry)
 }

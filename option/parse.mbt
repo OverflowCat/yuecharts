@@ -1120,6 +1120,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "tree" => SeriesType::Tree
     "chord" => SeriesType::Chord
     "sankey" => SeriesType::Sankey
+    "graph" => SeriesType::Graph
     _ => SeriesType::Line
   }
   let base = match series_type {
@@ -1140,6 +1141,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Tree => SeriesOption::default_tree()
     Chord => SeriesOption::default_chord()
     Sankey => SeriesOption::default_sankey()
+    Graph => SeriesOption::default_graph()
     _ => SeriesOption::default_line()
   }
   // Note: Candlestick, Heatmap, Boxplot, Radar use default_line as base defaults.
@@ -1471,40 +1473,28 @@ fn parse_series_option(j : Json) -> SeriesOption {
   }
   let tree_leaves_geo_item_style = match tree_leaves {
     Some(leaves) =>
-      match j_field(leaves, "itemStyle") {
-        Some(value) => Some(parse_geo_item_style_patch_option(value))
-        None => None
-      }
+      j_field(leaves, "itemStyle").map(parse_geo_item_style_patch_option)
     None => None
   }
-  let tree_leaves_symbol = match tree_leaves {
-    Some(leaves) => j_string_or_number_as_string_opt(leaves, "symbol", None)
-    None => None
-  }
-  let tree_leaves_symbol_size = match tree_leaves {
-    Some(leaves) => j_number_opt(leaves, "symbolSize")
-    None => None
-  }
-  let tree_leaves_line_style = match tree_leaves {
-    Some(leaves) => j_field(leaves, "lineStyle")
-    None => None
-  }
-  let tree_leaves_line_style_color = match tree_leaves_line_style {
-    Some(style) => j_string_opt(style, "color")
-    None => None
-  }
-  let tree_leaves_line_style_width = match tree_leaves_line_style {
-    Some(style) => j_number_opt(style, "width")
-    None => None
-  }
-  let tree_leaves_line_style_opacity = match tree_leaves_line_style {
-    Some(style) => j_number_opt(style, "opacity")
-    None => None
-  }
-  let tree_leaves_line_style_curveness = match tree_leaves_line_style {
-    Some(style) => j_number_opt(style, "curveness")
-    None => None
-  }
+  let tree_leaves_symbol = tree_leaves.bind(l => {
+    j_string_or_number_as_string_opt(l, "symbol", None)
+  })
+  let tree_leaves_symbol_size = tree_leaves.bind(l => {
+    j_number_opt(l, "symbolSize")
+  })
+  let tree_leaves_line_style = tree_leaves.bind(l => j_field(l, "lineStyle"))
+  let tree_leaves_line_style_color = tree_leaves_line_style.bind(style => {
+    j_string_opt(style, "color")
+  })
+  let tree_leaves_line_style_width = tree_leaves_line_style.bind(style => {
+    j_number_opt(style, "width")
+  })
+  let tree_leaves_line_style_opacity = tree_leaves_line_style.bind(style => {
+    j_number_opt(style, "opacity")
+  })
+  let tree_leaves_line_style_curveness = tree_leaves_line_style.bind(style => {
+    j_number_opt(style, "curveness")
+  })
   let sankey_orient = j_string(j, "orient", base.sankey_orient)
   let sankey_node_width = j_number(j, "nodeWidth", base.sankey_node_width)
   let sankey_node_gap = j_number(j, "nodeGap", base.sankey_node_gap)
@@ -1530,6 +1520,32 @@ fn parse_series_option(j : Json) -> SeriesOption {
     None => base.treemap_item_style
   }
   let treemap_levels = j_parse_array(j, "levels", parse_treemap_level_option, [])
+  // Graph-specific fields
+  // Corresponds to: echarts/src/chart/graph/GraphSeries.ts
+  let graph_layout = j_string(j, "layout", base.graph_layout)
+  let graph_categories = match j_field(j, "categories") {
+    Some(Array(arr)) =>
+      arr.map(fn(cat) {
+        match j_field(cat, "name") {
+          Some(String(s)) => s
+          _ => ""
+        }
+      })
+    _ => base.graph_categories
+  }
+  let graph_force_obj = j_field(j, "force")
+  let graph_force_edge_length = match graph_force_obj {
+    Some(f) => j_number(f, "edgeLength", base.graph_force_edge_length)
+    None => base.graph_force_edge_length
+  }
+  let graph_force_repulsion = match graph_force_obj {
+    Some(f) => j_number(f, "repulsion", base.graph_force_repulsion)
+    None => base.graph_force_repulsion
+  }
+  let graph_force_gravity = match graph_force_obj {
+    Some(f) => j_number(f, "gravity", base.graph_force_gravity)
+    None => base.graph_force_gravity
+  }
   {
     series_type,
     name,
@@ -1671,6 +1687,11 @@ fn parse_series_option(j : Json) -> SeriesOption {
     candle_border_color_up,
     candle_border_color_down,
     candle_border_width,
+    graph_layout,
+    graph_categories,
+    graph_force_edge_length,
+    graph_force_repulsion,
+    graph_force_gravity,
   }
 }
 

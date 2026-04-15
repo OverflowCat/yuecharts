@@ -434,6 +434,7 @@ pub(all) enum SeriesType {
   Tree
   Chord
   Sankey
+  Graph
 } derive(Eq)
 
 ///|
@@ -694,6 +695,13 @@ pub(all) struct SeriesOption {
   candle_border_color_up : String? // itemStyle.borderColor
   candle_border_color_down : String? // itemStyle.borderColor0
   candle_border_width : Double // itemStyle.borderWidth, default 1.0
+  // Graph-specific options
+  // Corresponds to: echarts/src/chart/graph/GraphSeries.ts
+  graph_layout : String
+  graph_categories : Array[String]
+  graph_force_edge_length : Double
+  graph_force_repulsion : Double
+  graph_force_gravity : Double
 }
 
 ///|
@@ -840,6 +848,24 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     candle_border_color_up: None,
     candle_border_color_down: None,
     candle_border_width: 1.0,
+    graph_layout: "none",
+    graph_categories: [],
+    graph_force_edge_length: 30.0,
+    graph_force_repulsion: 50.0,
+    graph_force_gravity: 0.1,
+  }
+}
+
+///|
+pub fn SeriesOption::default_graph() -> SeriesOption {
+  {
+    ..SeriesOption::default_line(),
+    series_type: SeriesType::Graph,
+    graph_layout: "none",
+    graph_categories: [],
+    graph_force_edge_length: 30.0,
+    graph_force_repulsion: 50.0,
+    graph_force_gravity: 0.1,
   }
 }
 
