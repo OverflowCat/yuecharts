@@ -65,6 +65,35 @@ test "effect scatter uses palette color and ripple circles" {
 }
 
 ///|
+/// xAxis/yAxis with scale=true should keep data extent and use nice interval expansion.
+/// Equivalent behavior in ECharts effectScatter example: x=[140,190], y=[40,110].
+test "effect scatter value axes respect scale true nice extent" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "xAxis": {"type": "value", "scale": true},
+    #|  "yAxis": {"type": "value", "scale": true},
+    #|  "series": [
+    #|    {
+    #|      "type": "effectScatter",
+    #|      "symbolSize": 20,
+    #|      "data": [[172.7, 105.2], [153.4, 42.0]]
+    #|    },
+    #|    {
+    #|      "type": "scatter",
+    #|      "data": [[147.2, 49.8], [182.9, 81.8], [165.1, 104.1], [176.5, 87.8], [160.0, 43.2]]
+    #|    }
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains(">140</text>"))
+  assert_true(svg.contains(">190</text>"))
+  assert_true(svg.contains(">40</text>"))
+  assert_true(svg.contains(">110</text>"))
+}
+
+///|
 /// Two line series must use palette[0] and palette[1] respectively.
 test "two line series use distinct palette colors" {
   let json_str =

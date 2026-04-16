@@ -256,6 +256,22 @@ fn bar_stack_range_for_y_axis(
 }
 
 ///|
+fn has_stacked_bar_for_y_axis(opt : @option.ChartOption, y_idx : Int) -> Bool {
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    si += 1
+    if series.series_type == Bar &&
+      series.y_axis_index == y_idx &&
+      series.coordinate_system != Some("polar") &&
+      series.stack != None {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn bar_stack_range_for_x_axis(
   opt : @option.ChartOption,
   x_idx : Int,
@@ -341,6 +357,22 @@ fn bar_stack_range_for_x_axis(
 }
 
 ///|
+fn has_stacked_bar_for_x_axis(opt : @option.ChartOption, x_idx : Int) -> Bool {
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    si += 1
+    if series.series_type == Bar &&
+      series.x_axis_index == x_idx &&
+      series.coordinate_system != Some("polar") &&
+      series.stack != None {
+      return true
+    }
+  }
+  false
+}
+
+///|
 /// Build a Cartesian2D from the parsed chart option.
 /// Each axis is resolved against its own `gridIndex`, with grid 0 as fallback.
 pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
@@ -358,10 +390,23 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
         @coord.XScale::make_ordinal(make_ordinal_x_scale(ax.data, axis_bbox))
       Value | Log | Time => {
         let (dmin, dmax) = series_x_range(opt, xi - 1)
-        let (stack_min, stack_max) = bar_stack_range_for_x_axis(opt, xi - 1)
-        let dmin = if stack_min < dmin { stack_min } else { dmin }
-        let dmax = if stack_max > dmax { stack_max } else { dmax }
-        let lo = ax.min.unwrap_or(dmin.min(0.0))
+        let mut dmin = dmin
+        let mut dmax = dmax
+        if has_stacked_bar_for_x_axis(opt, xi - 1) {
+          let (stack_min, stack_max) = bar_stack_range_for_x_axis(opt, xi - 1)
+          dmin = if stack_min < dmin { stack_min } else { dmin }
+          dmax = if stack_max > dmax { stack_max } else { dmax }
+        }
+        // ECharts default: scale=false includes 0 in extent, scale=true keeps pure data extent.
+        let lo = ax.min.unwrap_or(
+          if ax.scale {
+            dmin
+          } else if dmin > 0.0 {
+            0.0
+          } else {
+            dmin
+          },
+        )
         let hi = ax.max.unwrap_or(dmax)
         @coord.XScale::make_linear(make_linear_x_scale(lo, hi, axis_bbox))
       }
@@ -378,9 +423,13 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
     let ys : @coord.YScale = match ax.axis_type {
       Value | Log | Time => {
         let (dmin, dmax) = series_y_range(opt, yi)
-        let (stack_min, stack_max) = bar_stack_range_for_y_axis(opt, yi)
-        let dmin = if stack_min < dmin { stack_min } else { dmin }
-        let dmax = if stack_max > dmax { stack_max } else { dmax }
+        let mut dmin = dmin
+        let mut dmax = dmax
+        if has_stacked_bar_for_y_axis(opt, yi) {
+          let (stack_min, stack_max) = bar_stack_range_for_y_axis(opt, yi)
+          dmin = if stack_min < dmin { stack_min } else { dmin }
+          dmax = if stack_max > dmax { stack_max } else { dmax }
+        }
         // ECharts default: scale=false means include 0 in the extent.
         // scale=true: fit axis to actual data range (do not force include 0).
         let lo = ax.min.unwrap_or(

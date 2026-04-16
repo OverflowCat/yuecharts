@@ -351,8 +351,8 @@ E:\recharts\echarts\src
 │   ├── Log.ts =>  [missing] Feature: log scale
 │   ├── Time.ts =>  [missing] Feature: time scale
 │   ├── helper.ts => scale/linear.mbt [partial] Feature: scale helpers
-│   ├── break.ts =>  [missing] Feature: axis break support
-│   └── breakImpl.ts =>  [missing] Feature: axis break impl
+│   ├── break.ts => scale/linear.mbt [partial] Feature: axis break support
+│   └── breakImpl.ts => component/axis.mbt [partial] Feature: static axis break rendering
 │
 ├── data
 │   ├── DataDiffer.ts =>  [missing] Feature: data diff
@@ -372,9 +372,9 @@ E:\recharts\echarts\src
 │       ├── linkList.ts =>  [missing] Feature: graph/tree link helper
 │       ├── linkSeriesData.ts =>  [missing] Feature: linked series data
 │       ├── SeriesDataSchema.ts =>  [missing] Feature: series data schema
-│       ├── sourceHelper.ts =>  [missing] Feature: source normalization
+│       ├── sourceHelper.ts => option/parse.mbt [partial] Feature: static dataset dimension/name inference subset used by parser-side dataset->pie binding
 │       ├── sourceManager.ts =>  [missing] Feature: source manager
-│       └── transform.ts =>  [missing] Feature: data transform helper
+│       └── transform.ts => option/parse.mbt [partial] Feature: static filter-transform subset (`type: "filter"`, equality condition)
 │
 ├── coord
 │   ├── Axis.ts =>  [missing] Feature: axis base
@@ -551,12 +551,12 @@ E:\recharts\echarts\src
 │   │   ├── AngleAxisView.ts =>  [missing] Feature: angle axis view
 │   │   ├── AxisBuilder.ts => component/axis.mbt [partial] Feature: axis builder
 │   │   ├── axisAction.ts =>  [missing] Feature: axis actions
-│   │   ├── axisBreakHelper.ts =>  [missing] Feature: axis break helper
-│   │   ├── axisBreakHelperImpl.ts =>  [missing] Feature: axis break impl
+│   │   ├── axisBreakHelper.ts => component/axis.mbt [partial] Feature: axis break overlay helper
+│   │   ├── axisBreakHelperImpl.ts => component/axis.mbt [partial] Feature: static axis break overlay renderer
 │   │   ├── axisSplitHelper.ts => component/grid_lines.mbt [translated] Feature: split line rendering
 │   │   ├── AxisView.ts => component/axis.mbt [translated] Feature: axis rendering
 │   │   ├── CartesianAxisView.ts => component/axis.mbt [partial] Feature: cartesian axis view
-│   │   ├── installBreak.ts =>  [missing] Feature: axis break install
+│   │   ├── installBreak.ts => component/install.mbt [partial] Feature: axis break overlay install
 │   │   ├── parallelAxisAction.ts =>  [missing] Feature: parallel axis action
 │   │   ├── ParallelAxisView.ts => component/parallel.mbt [partial] Feature: parallel axis view
 │   │   ├── RadiusAxisView.ts =>  [missing] Feature: radius axis view
