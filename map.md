@@ -146,6 +146,7 @@ E:\yuecharts
 │   ├── funnel-align.json
 │   ├── gauge.json / .svg
 │   ├── gauge-multi-title.json
+│   ├── gauge-stage.json / .svg / .ref.svg
 │   ├── geo-choropleth-scatter.json / .svg
 │   ├── geo-compressed.json
 │   ├── geo-hole.json
@@ -230,6 +231,12 @@ E:\yuecharts
     ├── aria.mbt
     └── palette.mbt
 ```
+
+## 2026-04-16: Geo / Map Example JSON Coverage
+
+- Added JSON fallbacks under `examples/` for current geo/map scripts that previously executed `myChart` directly.
+- Covered examples include `map-usa`, `map-HK`, `geo-beef-cuts`, `geo-organ`, `geo-seatmap-flight`, `geo-svg-*`, `map-bar-morph`, `map-bin`, `map-polygon`, `effectScatter-*`, `heatmap-map`, `lines-bmap*`, `scatter-map*`, and `matrix-mini-bar-geo`.
+- Remaining gap: `map-usa-projection` still depends on missing `d3-array` / `d3-geo` runtime scripts and is left unexported.
 
 Notes:
 - This tree intentionally lists source, tests, examples, and comparison tools; it omits generated `_build/`, local scratch `_tmp/`, and editor metadata.

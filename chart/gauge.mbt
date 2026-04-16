@@ -110,6 +110,61 @@ fn fmt_gauge_val(v : Double) -> String {
 }
 
 ///|
+/// Resolve a gauge axisLine color stop at a normalized percentage.
+/// Corresponds to GaugeView.ts getColor(percent).
+fn gauge_color_for_percent(
+  color_list : Array[(Double, String)],
+  percent : Double,
+) -> String {
+  if color_list.length() == 0 {
+    return "#e8ebf0"
+  }
+  let pct = if percent < 0.0 {
+    0.0
+  } else if percent > 1.0 {
+    1.0
+  } else {
+    percent
+  }
+  if pct <= 0.0 {
+    return color_list[0].1
+  }
+  let mut i = 0
+  while i < color_list.length() {
+    let stop = color_list[i].0
+    let prev_stop = if i == 0 { 0.0 } else { color_list[i - 1].0 }
+    if stop >= pct && prev_stop < pct {
+      return color_list[i].1
+    }
+    i += 1
+  }
+  color_list[color_list.length() - 1].1
+}
+
+///|
+/// Convert a raw gauge value to the color stop at that value.
+fn gauge_color_for_value(
+  color_list : Array[(Double, String)],
+  min_v : Double,
+  max_v : Double,
+  value : Double,
+) -> String {
+  let pct = if max_v > min_v {
+    let p = (value - min_v) / (max_v - min_v)
+    if p < 0.0 {
+      0.0
+    } else if p > 1.0 {
+      1.0
+    } else {
+      p
+    }
+  } else {
+    0.0
+  }
+  gauge_color_for_percent(color_list, pct)
+}
+
+///|
 /// Approximate bounding box of an SVG path by scanning all numeric tokens.
 /// Returns (min_x, min_y, width, height). Treats alternating token pairs as (x,y).
 /// Corresponds to: zrender getBoundingRect for icons used by createSymbol.
@@ -290,6 +345,7 @@ pub fn render_gauge_series(
   // colorList = [[offset, color], ...] each sector spans prevEnd..startAngle+span*offset
   {
     let color_list = series.gauge_axis_line_colors
+    let sector_elems : Array[@graphic.Element] = []
     let mut prev_end = start_rad
     for entry in color_list {
       let (pct, seg_color) = entry
@@ -302,8 +358,13 @@ pub fn render_gauge_series(
       }
       let seg_end = start_rad + angle_span * pct_clamped
       let arc = gauge_sector_path(cx, cy, track_inner_r, r, prev_end, seg_end)
-      elems.push(@graphic.Element::path_filled(arc, seg_color, 1.0))
+      sector_elems.push(@graphic.Element::path_filled(arc, seg_color, 1.0))
       prev_end = seg_end
+    }
+    let mut si = sector_elems.length()
+    while si > 0 {
+      si -= 1
+      elems.push(sector_elems[si])
     }
     if series.gauge_round_cap {
       let last_color = if color_list.length() > 0 {
@@ -416,6 +477,14 @@ pub fn render_gauge_series(
     let a = start_rad + angle_span * ssi.to_double() / split_n.to_double()
     let ux = @math.cos(a)
     let uy = @math.sin(a)
+    let split_val = min_v +
+      (max_v - min_v) * ssi.to_double() / split_n.to_double()
+    let split_auto_color = gauge_color_for_value(
+      series.gauge_axis_line_colors,
+      min_v,
+      max_v,
+      split_val,
+    )
     if series.gauge_split_line_show {
       let sl_outer_r = r - sl_offset
       let sl_inner_r = r - split_len - sl_offset
@@ -423,18 +492,26 @@ pub fn render_gauge_series(
       let oy = cy + sl_outer_r * uy
       let ix = cx + sl_inner_r * ux
       let iy = cy + sl_inner_r * uy
+      let sl_color = if split_color == "auto" {
+        split_auto_color
+      } else {
+        split_color
+      }
       elems.push(
         @graphic.Element::line_colored(
-          ox, oy, ix, iy, split_color, split_line_width,
+          ox, oy, ix, iy, sl_color, split_line_width,
         ),
       )
     }
     if series.gauge_axis_label_show {
-      let split_val = min_v +
-        (max_v - min_v) * ssi.to_double() / split_n.to_double()
       let lbl_r = r - split_len - lbl_dist_total
       let lx = cx + lbl_r * ux
       let ly = cy + lbl_r * uy
+      let lbl_color = if label_color == "inherit" {
+        split_auto_color
+      } else {
+        label_color
+      }
       elems.push(
         @graphic.Element::text_custom(
           lx,
@@ -442,7 +519,7 @@ pub fn render_gauge_series(
           fmt_gauge_val(split_val),
           @graphic.TextAnchor::Middle,
           @graphic.TextBaseline::Middle,
-          label_color,
+          lbl_color,
           label_font_size,
           "sans-serif",
           "normal",
@@ -476,9 +553,21 @@ pub fn render_gauge_series(
       let oy = cy + tk_outer_r * uy
       let ix = cx + tk_inner_r * ux
       let iy = cy + tk_inner_r * uy
+      let tk_color = if tick_color == "auto" {
+        let minor_val = min_v +
+          (max_v - min_v) * ti.to_double() / minor_total.to_double()
+        gauge_color_for_value(
+          series.gauge_axis_line_colors,
+          min_v,
+          max_v,
+          minor_val,
+        )
+      } else {
+        tick_color
+      }
       elems.push(
         @graphic.Element::line_colored(
-          ox, oy, ix, iy, tick_color, tick_line_width,
+          ox, oy, ix, iy, tk_color, tick_line_width,
         ),
       )
       ti += 1
@@ -512,8 +601,14 @@ pub fn render_gauge_series(
       0.0
     }
     let value_rad = start_rad + angle_span * ptr_pct
+    let ptr_auto_color = gauge_color_for_value(
+      series.gauge_axis_line_colors,
+      min_v,
+      max_v,
+      ptr_value,
+    )
     let ptr_color = match series.gauge_pointer_color {
-      Some(c) => c
+      Some(c) => if c == "auto" { ptr_auto_color } else { c }
       None => @visual.palette_color(series_index)
     }
     // offsetCenter in pixels relative to cx/cy
@@ -641,6 +736,12 @@ pub fn render_gauge_series(
       @option.Null => min_v
     }
     let item_color = @visual.palette_color(di)
+    let item_auto_color = gauge_color_for_value(
+      series.gauge_axis_line_colors,
+      min_v,
+      max_v,
+      value,
+    )
 
     // Title text (item name)
     let title_oc : Array[String] = match item.title_offset_center {
@@ -697,8 +798,8 @@ pub fn render_gauge_series(
       None => val_str
     }
     let detail_color = match series.gauge_detail_color {
-      Some(c) => if c == "inherit" { item_color } else { c }
-      None => item_color
+      Some(c) => if c == "inherit" { item_auto_color } else { c }
+      None => "#3c3c41"
     }
     elems.push(
       @graphic.Element::text_custom(
