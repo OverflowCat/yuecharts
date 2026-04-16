@@ -343,14 +343,14 @@ pub fn PathData::new(d : String) -> PathData {
 pub struct TextData {
   x : Double
   y : Double
-  content : String
+  content : StringView
   style : TextStyle
   opacity : Double
   meta : DisplayableMeta
 }
 
 ///|
-pub fn TextData::new(x : Double, y : Double, content : String) -> TextData {
+pub fn TextData::new(x : Double, y : Double, content : StringView) -> TextData {
   {
     x,
     y,
@@ -658,7 +658,7 @@ pub fn Element::line_colored_dashed(
 pub fn Element::text_colored(
   x : Double,
   y : Double,
-  content : String,
+  content : StringView,
   anchor : TextAnchor,
   baseline : TextBaseline,
   color_str : String,

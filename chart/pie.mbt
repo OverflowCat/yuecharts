@@ -39,6 +39,22 @@ fn parse_pct_or_px(s : String, reference : Double) -> Double {
 }
 
 ///|
+/// <=> echarts/src/util/number.ts:linearMap (subset)
+fn pie_linear_map(
+  value : Double,
+  in_min : Double,
+  in_max : Double,
+  out_min : Double,
+  out_max : Double,
+) -> Double {
+  let in_span = in_max - in_min
+  if in_span == 0.0 {
+    return out_min
+  }
+  out_min + (value - in_min) / in_span * (out_max - out_min)
+}
+
+///|
 /// <=> echarts/src/util/layout.ts:getLayoutRect (subset for pie box layout)
 fn pie_layout_value(value : String, total : Double) -> Double {
   if value == "center" ||
@@ -194,6 +210,47 @@ fn r4(v : Double) -> String {
 }
 
 ///|
+/// <=> echarts/src/chart/pie/pieLayout.ts
+/// Compute clockwise/counterclockwise directed sweep in [0, 2π].
+fn pie_directed_sweep(
+  start_angle : Double,
+  end_angle : Double,
+  clockwise : Bool,
+) -> Double {
+  let pi2 = @math.PI * 2.0
+  let mut delta = if clockwise {
+    end_angle - start_angle
+  } else {
+    start_angle - end_angle
+  }
+  while delta < 0.0 {
+    delta = delta + pi2
+  }
+  while delta > pi2 {
+    delta = delta - pi2
+  }
+  delta
+}
+
+///|
+/// <=> echarts/src/util/number.ts (percent precision rounding behavior subset)
+fn pie_format_percent(value : Double, precision : Int) -> String {
+  let p = if precision < 0 { 0 } else { precision }
+  let mut scale = 1.0
+  let mut i = 0
+  while i < p {
+    scale = scale * 10.0
+    i = i + 1
+  }
+  let rounded = (value * scale).round() / scale
+  if rounded.to_int().to_double() == rounded {
+    rounded.to_int().to_string()
+  } else {
+    rounded.to_string()
+  }
+}
+
+///|
 /// Render all pie/donut series in the option to scene graph elements.
 pub fn render_pies(
   opt : @option.ChartOption,
@@ -269,21 +326,40 @@ pub fn render_pie_series(
     0.0
   }
 
-  // --- Compute total ---
-  let mut total = 0.0
+  // --- Compute totals ---
+  let mut total_positive = 0.0
+  let mut positive_count = 0
+  let mut non_negative_count = 0
+  let mut max_value = 0.0
   let mut di = 0
   while di < nd {
     let item = series.data[di]
     di += 1
     match item.value {
-      Num(n) if n > 0.0 => total = total + n
+      Num(n) if n > 0.0 => {
+        total_positive = total_positive + n
+        positive_count = positive_count + 1
+        non_negative_count = non_negative_count + 1
+        if n > max_value {
+          max_value = n
+        }
+      }
+      Num(n) if n >= 0.0 => non_negative_count = non_negative_count + 1
       _ => ()
     }
   }
-  if total <= 0.0 {
+
+  let zero_sum_mode = total_positive <= 0.0 &&
+    series.pie_still_show_zero_sum &&
+    non_negative_count > 0
+
+  if total_positive <= 0.0 && !zero_sum_mode {
+    if !series.pie_show_empty_circle {
+      return elems
+    }
     // Empty-circle fallback: render a gray ring when there is no data.
     // Corresponds to: PieView.ts emptyCircle handling (emptyCircleStyle).
-    let empty_color = "#e0e2e5"
+    let empty_color = series.pie_empty_circle_color.unwrap_or("#e0e2e5")
     let empty_path = if r_inner <= 0.5 {
       "M \{r4(cx)} \{r4(cy - r_outer)} A \{r4(r_outer)} \{r4(r_outer)} 0 1 1 \{r4(cx - 0.001)} \{r4(cy - r_outer)} Z"
     } else {
@@ -295,28 +371,130 @@ pub fn render_pie_series(
     return elems
   }
 
-  // --- ECharts defaults ---
-  // startAngle option default = 90, converted: startAngle = -90 * π/180 = -π/2
-  // clockwise = true → SVG sweep-flag = 1
-  let start_angle = -@math.PI / 2.0 // = -90° in screen coords
+  // --- ECharts pie layout controls ---
+  // startAngle/endAngle options are in degrees and converted by negative sign.
+  let clockwise = series.clockwise
+  let dir = if clockwise { 1.0 } else { -1.0 }
+  let start_angle = -series.start_angle / 180.0 * @math.PI
+  let end_angle = if series.end_angle.is_nan() {
+    0.0 / 0.0
+  } else {
+    -series.end_angle / 180.0 * @math.PI
+  }
   let pi2 = @math.PI * 2.0
   let selected_offset = series.pie_selected_offset
-
-  let mut current_angle = start_angle
-
+  let rose_type = series.pie_rose_type
+  let min_angle_rad = if series.min_angle > 0.0 {
+    series.min_angle / 180.0 * @math.PI
+  } else {
+    0.0
+  }
+  let pad_angle_rad = if series.pad_angle > 0.0 {
+    series.pad_angle / 180.0 * @math.PI
+  } else {
+    0.0
+  }
+  let min_show_label_angle = if series.pie_min_show_label_angle > 0.0 {
+    series.pie_min_show_label_angle
+  } else {
+    0.0
+  }
+  let rose_enabled = match rose_type {
+    Some("radius") => true
+    Some("area") => true
+    _ => false
+  }
+  let rose_area_mode = rose_type == Some("area")
+  let render_indices : Array[Int] = []
+  let render_values : Array[Double] = []
+  let angle_weights : Array[Double] = []
   let mut di2 = 0
   while di2 < nd {
     let item = series.data[di2]
-    let slice_color = @visual.palette_color(series_index + di2)
-    di2 = di2 + 1
-    let value = match item.value {
-      Num(n) if n > 0.0 => n
-      _ => continue
+    match item.value {
+      Num(n) if n > 0.0 => {
+        render_indices.push(di2)
+        render_values.push(n)
+        angle_weights.push(if rose_area_mode { 1.0 } else { n })
+      }
+      Num(n) if zero_sum_mode && n >= 0.0 => {
+        render_indices.push(di2)
+        render_values.push(n)
+        angle_weights.push(1.0)
+      }
+      _ => ()
     }
-    let span = value / total * pi2
+    di2 = di2 + 1
+  }
+
+  if render_indices.length() == 0 {
+    return elems
+  }
+
+  let total_weight = angle_weights.fold(init=0.0, fn(acc, v) { acc + v })
+  let total_sweep = if end_angle.is_nan() {
+    pi2
+  } else {
+    pie_directed_sweep(start_angle, end_angle, clockwise)
+  }
+
+  let n_slices = render_indices.length().to_double()
+  let pad_total = if n_slices > 0.0 { pad_angle_rad * n_slices } else { 0.0 }
+  let available_sweep = if total_sweep > pad_total {
+    total_sweep - pad_total
+  } else {
+    0.0
+  }
+  let effective_min_angle = if n_slices > 0.0 &&
+    min_angle_rad * n_slices > available_sweep {
+    available_sweep / n_slices
+  } else {
+    min_angle_rad
+  }
+
+  let spans : Array[Double] = []
+  for i, _ in angle_weights {
+    let w = angle_weights[i]
+    let raw = if total_weight > 0.0 {
+      available_sweep * w / total_weight
+    } else {
+      0.0
+    }
+    spans.push(
+      if raw >= effective_min_angle {
+        raw
+      } else {
+        effective_min_angle
+      },
+    )
+  }
+  let span_sum = spans.fold(init=0.0, fn(acc, v) { acc + v })
+  if span_sum > 0.0 {
+    let scale = available_sweep / span_sum
+    for i, _ in spans {
+      spans[i] = spans[i] * scale
+    }
+  }
+
+  let mut current_angle = start_angle
+
+  for k, _ in render_indices {
+    let data_idx = render_indices[k]
+    let item = series.data[data_idx]
+    let value = render_values[k]
+    let span = spans[k]
+    let slice_color = @visual.palette_color(series_index + data_idx)
+
+    // <=> echarts/src/chart/pie/pieLayout.ts
+    // r = roseType ? linearMap(value, [0, max], [r0, r]) : r
+    let slice_r_outer = if rose_enabled && max_value > 0.0 {
+      pie_linear_map(value, 0.0, max_value, r_inner, r_outer)
+    } else {
+      r_outer
+    }
     let a0 = current_angle
-    let a1 = current_angle + span
-    current_angle = a1
+    let a1 = current_angle + dir * span
+    current_angle = a1 + dir * pad_angle_rad
     let mid_angle = (a0 + a1) / 2.0
 
     // selected offset: shift slice outward from center.
@@ -327,23 +505,25 @@ pub fn render_pie_series(
     let slice_cy = cy + off * @math.sin(mid_angle)
 
     let large_arc = if span > @math.PI { 1 } else { 0 }
+    let outer_sweep = if clockwise { 1 } else { 0 }
+    let inner_sweep = if clockwise { 0 } else { 1 }
 
     // Outer arc points (relative to possibly-offset slice center)
-    let x0 = slice_cx + r_outer * @math.cos(a0)
-    let y0 = slice_cy + r_outer * @math.sin(a0)
-    let x1 = slice_cx + r_outer * @math.cos(a1)
-    let y1 = slice_cy + r_outer * @math.sin(a1)
+    let x0 = slice_cx + slice_r_outer * @math.cos(a0)
+    let y0 = slice_cy + slice_r_outer * @math.sin(a0)
+    let x1 = slice_cx + slice_r_outer * @math.cos(a1)
+    let y1 = slice_cy + slice_r_outer * @math.sin(a1)
 
     let path_d = if r_inner <= 0.5 {
       // Full pie: M cx cy L x0 y0 A R R 0 large 1 x1 y1 Z
-      "M \{r4(slice_cx)} \{r4(slice_cy)} L \{r4(x0)} \{r4(y0)} A \{r4(r_outer)} \{r4(r_outer)} 0 \{large_arc} 1 \{r4(x1)} \{r4(y1)} Z"
+      "M \{r4(slice_cx)} \{r4(slice_cy)} L \{r4(x0)} \{r4(y0)} A \{r4(slice_r_outer)} \{r4(slice_r_outer)} 0 \{large_arc} \{outer_sweep} \{r4(x1)} \{r4(y1)} Z"
     } else {
       // Donut ring: outer arc forward, inner arc backward
       let xi0 = slice_cx + r_inner * @math.cos(a0)
       let yi0 = slice_cy + r_inner * @math.sin(a0)
       let xi1 = slice_cx + r_inner * @math.cos(a1)
       let yi1 = slice_cy + r_inner * @math.sin(a1)
-      "M \{r4(x0)} \{r4(y0)} A \{r4(r_outer)} \{r4(r_outer)} 0 \{large_arc} 1 \{r4(x1)} \{r4(y1)} L \{r4(xi1)} \{r4(yi1)} A \{r4(r_inner)} \{r4(r_inner)} 0 \{large_arc} 0 \{r4(xi0)} \{r4(yi0)} Z"
+      "M \{r4(x0)} \{r4(y0)} A \{r4(slice_r_outer)} \{r4(slice_r_outer)} 0 \{large_arc} \{outer_sweep} \{r4(x1)} \{r4(y1)} L \{r4(xi1)} \{r4(yi1)} A \{r4(r_inner)} \{r4(r_inner)} 0 \{large_arc} \{inner_sweep} \{r4(xi0)} \{r4(yi0)} Z"
     }
 
     elems.push(
@@ -365,14 +545,12 @@ pub fn render_pie_series(
     } else {
       value.to_string()
     }
-    let pct_raw = value / total * 100.0
-    let pct_int = (pct_raw * 100.0).round().to_int()
-    let pct_f = pct_int.to_double() / 100.0
-    let percent_str = if pct_f.to_int().to_double() == pct_f {
-      pct_f.to_int().to_string()
+    let pct_raw = if total_weight > 0.0 {
+      angle_weights[k] / total_weight * 100.0
     } else {
-      pct_f.to_string()
+      0.0
     }
+    let percent_str = pie_format_percent(pct_raw, series.pie_percent_precision)
     let label_text = @option.apply_label_formatter(
       series.label,
       series_name,
@@ -381,10 +559,51 @@ pub fn render_pie_series(
       Some(percent_str),
     )
     if label_text != "" {
+      let span_deg = span / @math.PI * 180.0
+      if span_deg < min_show_label_angle {
+        continue
+      }
+      let label_position = match series.label {
+        Some({ position: Some(pos), .. }) => pos
+        _ => "outside"
+      }
+      if label_position == "inside" ||
+        label_position == "inner" ||
+        label_position == "center" {
+        let inside_r = if label_position == "center" {
+          (r_inner + slice_r_outer) / 2.0
+        } else {
+          (r_inner + slice_r_outer) / 2.0
+        }
+        let lx = slice_cx + inside_r * @math.cos(mid_angle)
+        let ly = slice_cy + inside_r * @math.sin(mid_angle)
+        let normalized_label = label_text.replace(old="\\n", new="\n")
+        let label_lines = normalized_label
+          .split("\n")
+          // .map(StringView::to_string)
+          .collect()
+        let line_height = 14.0
+        for line_idx, line in label_lines {
+          if line != "" {
+            elems.push(
+              @graphic.Element::text_colored(
+                lx,
+                ly + line_height * line_idx.to_double(),
+                line,
+                @graphic.TextAnchor::Middle,
+                @graphic.TextBaseline::Middle,
+                "#333333",
+              ),
+            )
+          }
+        }
+        continue
+      }
+
       // labelLine (polyline from arc edge to label).
       // Corresponds to: PieView.ts LabelLine + pieLayout labelLineTarget.
-      let line_r1 = r_outer + 6.0 // arc edge outward extension
-      let line_r2 = r_outer + 20.0 // elbow point
+      let line_r1 = slice_r_outer + series.pie_label_line_length
+      let line_r2 = line_r1 + series.pie_label_line_length2
       let elbow_x = slice_cx + line_r2 * @math.cos(mid_angle)
       let elbow_y = slice_cy + line_r2 * @math.sin(mid_angle)
       let edge_x = slice_cx + line_r1 * @math.cos(mid_angle)
@@ -395,17 +614,19 @@ pub fn render_pie_series(
       let stub_x = elbow_x +
         (if goes_right { label_stub_len } else { -label_stub_len })
       let stub_y = elbow_y
-      elems.push(
-        @graphic.Element::line_colored(
-          edge_x, edge_y, elbow_x, elbow_y, slice_color, 1.0,
-        ),
-      )
-      elems.push(
-        @graphic.Element::line_colored(
-          elbow_x, elbow_y, stub_x, stub_y, slice_color, 1.0,
-        ),
-      )
-      let label_r = r_outer + 20.0
+      if series.pie_label_line_show {
+        elems.push(
+          @graphic.Element::line_colored(
+            edge_x, edge_y, elbow_x, elbow_y, slice_color, 1.0,
+          ),
+        )
+        elems.push(
+          @graphic.Element::line_colored(
+            elbow_x, elbow_y, stub_x, stub_y, slice_color, 1.0,
+          ),
+        )
+      }
+      let label_r = line_r2
       let lx = slice_cx +
         label_r * @math.cos(mid_angle) +
         (if goes_right {

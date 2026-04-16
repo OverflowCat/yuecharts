@@ -807,6 +807,16 @@ pub(all) struct SeriesOption {
   // Pie-specific options
   // Corresponds to: echarts/src/chart/pie/PieSeries.ts
   pie_selected_offset : Double // selectedOffset, default 10.0
+  pie_rose_type : String? // roseType: "radius" | "area"
+  pie_min_show_label_angle : Double // minShowLabelAngle, default 0
+  pie_avoid_label_overlap : Bool // avoidLabelOverlap, default true
+  pie_percent_precision : Int // percentPrecision, default 2
+  pie_still_show_zero_sum : Bool // stillShowZeroSum, default true
+  pie_show_empty_circle : Bool // showEmptyCircle, default true
+  pie_empty_circle_color : String? // emptyCircleStyle.color
+  pie_label_line_show : Bool // labelLine.show, default true
+  pie_label_line_length : Double // labelLine.length, default 15
+  pie_label_line_length2 : Double // labelLine.length2, default 15
 }
 
 ///|
@@ -993,6 +1003,16 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     graph_force_repulsion: 50.0,
     graph_force_gravity: 0.1,
     pie_selected_offset: 10.0,
+    pie_rose_type: None,
+    pie_min_show_label_angle: 0.0,
+    pie_avoid_label_overlap: true,
+    pie_percent_precision: 2,
+    pie_still_show_zero_sum: true,
+    pie_show_empty_circle: true,
+    pie_empty_circle_color: None,
+    pie_label_line_show: true,
+    pie_label_line_length: 15.0,
+    pie_label_line_length2: 15.0,
   }
 }
 
@@ -1132,6 +1152,11 @@ pub fn SeriesOption::default_pie() -> SeriesOption {
     series_type: SeriesType::Pie,
     radius: ["0%", "75%"],
     center: ["50%", "50%"],
+    start_angle: 90.0,
+    end_angle: 0.0 / 0.0,
+    clockwise: true,
+    min_angle: 0.0,
+    pad_angle: 0.0,
   }
 }
 

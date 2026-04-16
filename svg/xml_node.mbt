@@ -70,12 +70,12 @@ pub fn XmlNode::empty(tag : String, attrs : Array[XmlAttr]) -> XmlNode {
 }
 
 ///|
-pub fn XmlNode::text_escaped(content : String) -> XmlNode {
+pub fn XmlNode::text_escaped(content : StringView) -> XmlNode {
   Text(Escaped(content))
 }
 
 ///|
-pub fn XmlNode::text_raw(content : String) -> XmlNode {
+pub fn XmlNode::text_raw(content : StringView) -> XmlNode {
   Text(Raw(content))
 }
 

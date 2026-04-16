@@ -2281,6 +2281,61 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(f) => j_number(f, "gravity", base.graph_force_gravity)
     None => base.graph_force_gravity
   }
+  let pie_rose_type = match j_string_opt(j, "roseType") {
+    Some("radius") => Some("radius")
+    Some("area") => Some("area")
+    _ => base.pie_rose_type
+  }
+  let end_angle = match j_field(j, "endAngle") {
+    Some(Number(n, ..)) => n
+    Some(String("auto")) => 0.0 / 0.0
+    _ => end_angle
+  }
+  let pie_min_show_label_angle = j_number(
+    j,
+    "minShowLabelAngle",
+    base.pie_min_show_label_angle,
+  )
+  let pie_avoid_label_overlap = j_bool(
+    j,
+    "avoidLabelOverlap",
+    base.pie_avoid_label_overlap,
+  )
+  let pie_percent_precision = j_int(
+    j,
+    "percentPrecision",
+    base.pie_percent_precision,
+  )
+  let pie_still_show_zero_sum = j_bool(
+    j,
+    "stillShowZeroSum",
+    base.pie_still_show_zero_sum,
+  )
+  let pie_show_empty_circle = j_bool(
+    j,
+    "showEmptyCircle",
+    base.pie_show_empty_circle,
+  )
+  let pie_empty_circle_color = match j_field(j, "emptyCircleStyle") {
+    Some(v) =>
+      match j_color_opt(v, "color") {
+        Some(c) => Some(c)
+        None => base.pie_empty_circle_color
+      }
+    None => base.pie_empty_circle_color
+  }
+  let pie_label_line_show = match j_field(j, "labelLine") {
+    Some(v) => j_bool(v, "show", base.pie_label_line_show)
+    None => base.pie_label_line_show
+  }
+  let pie_label_line_length = match j_field(j, "labelLine") {
+    Some(v) => j_number(v, "length", base.pie_label_line_length)
+    None => base.pie_label_line_length
+  }
+  let pie_label_line_length2 = match j_field(j, "labelLine") {
+    Some(v) => j_number(v, "length2", base.pie_label_line_length2)
+    None => base.pie_label_line_length2
+  }
   {
     series_type,
     name,
@@ -2462,6 +2517,16 @@ fn parse_series_option(j : Json) -> SeriesOption {
     graph_force_repulsion,
     graph_force_gravity,
     pie_selected_offset: j_number(j, "selectedOffset", base.pie_selected_offset),
+    pie_rose_type,
+    pie_min_show_label_angle,
+    pie_avoid_label_overlap,
+    pie_percent_precision,
+    pie_still_show_zero_sum,
+    pie_show_empty_circle,
+    pie_empty_circle_color,
+    pie_label_line_show,
+    pie_label_line_length,
+    pie_label_line_length2,
   }
 }
 
@@ -3130,11 +3195,9 @@ fn parse_symbol_offset(j : Json) -> Array[String]? {
 ///|
 fn parse_visual_map(j : Json) -> VisualMapOption {
   let base = VisualMapOption::default()
-  let controller_inrange = match j_field(j, "controller") {
-    Some(ctrl) =>
-      Some(parse_visual_map_in_range(j_field_or_self(ctrl, "inRange")))
-    None => None
-  }
+  let controller_inrange = j_field(j, "controller")
+    .map(ctrl => j_field_or_self(ctrl, "inRange"))
+    .map(parse_visual_map_in_range)
   let pieces = match j_field(j, "pieces") {
     Some(Array(arr)) => arr.map(parse_visual_map_piece)
     _ =>
@@ -3257,7 +3320,6 @@ fn parse_visual_map_selected(j : Json) -> Array[VisualMapSelection] {
       let result : Array[VisualMapSelection] = []
       for key, value in map {
         let selected = match value {
-          True => true
           False => false
           _ => true
         }
@@ -3298,10 +3360,7 @@ fn parse_number_pair(j : Json?) -> Array[Double] {
 
 ///|
 fn[T] j_parse_optional(j : Json, key : String, parse_one : (Json) -> T) -> T? {
-  match j_field(j, key) {
-    Some(value) => Some(parse_one(value))
-    None => None
-  }
+  j_field(j, key).map(parse_one)
 }
 
 ///|

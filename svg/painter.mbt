@@ -1019,7 +1019,7 @@ fn css_nodes_to_string(css_nodes : Array[CssNode]) -> String {
 }
 
 ///|
-fn painter_xml_escape(s : String) -> String {
+fn painter_xml_escape(s : StringView) -> String {
   let buf = StringBuilder::new()
   for c in s {
     match c {

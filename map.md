@@ -817,7 +817,7 @@ E:\recharts\echarts\src
 │   ├── pie
 │   │   ├── install.ts => chart/pie.mbt [partial] Feature: pie install
 │   │   ├── labelLayout.ts => chart/pie.mbt [partial] Feature: pie label layout
-│   │   ├── pieLayout.ts => chart/pie.mbt [translated] Feature: pie layout
+│   │   ├── pieLayout.ts => chart/pie.mbt [translated] Feature: pie layout (includes roseType radius/area, start/end angle, clockwise, minAngle, padAngle, zero-sum/empty-circle subset)
 │   │   ├── PieSeries.ts => chart/pie.mbt [partial] Feature: pie series model
 │   │   └── PieView.ts => chart/pie.mbt [translated] Feature: pie renderer
 │   │

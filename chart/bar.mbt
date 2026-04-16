@@ -388,9 +388,7 @@ fn bar_finalize_category_axis_layout(
   } else {
     0.0
   }
-  let mut i = 0
-  while i < result.stacks.length() {
-    let stack = result.stacks[i]
+  for i, stack in result.stacks {
     if stack.width == 0.0 {
       let mut final_width = auto_width
       if stack.max_width > 0.0 && stack.max_width < final_width {
@@ -430,7 +428,6 @@ fn bar_finalize_category_axis_layout(
       remained_width -= final_width + bar_gap_percent * final_width
       auto_width_count -= 1
     }
-    i += 1
   }
   auto_width = if auto_width_count > 0 {
     let denom = auto_width_count.to_double() +
@@ -823,6 +820,126 @@ fn bar_resolve_background_style(
     border_width: background_style.border_width.unwrap_or(0.0),
     border_radius: None,
   }
+}
+
+///|
+/// <=> echarts/src/chart/bar/BarView.ts:updateStyle (polar label)
+/// <=> echarts/src/label/sectorLabel.ts:createSectorCalculateTextPosition
+/// <=> echarts/src/label/sectorLabel.ts:setSectorTextRotation
+fn bar_render_polar_middle_label(
+  series : @option.SeriesOption,
+  item : @option.DataItem,
+  base_axis : @coord.PolarAxis,
+  data_index : Int,
+  value : Double,
+  cx : Double,
+  cy : Double,
+  r0 : Double,
+  r1 : Double,
+  start_angle_deg : Double,
+  end_angle_deg : Double,
+) -> @graphic.Element? {
+  let series_label = series.label.unwrap_or(@option.GeoLabelOption::default())
+  let item_label = item.label
+  let show = item_label.bind(l => l.show).unwrap_or(series_label.show)
+  if !show {
+    return None
+  }
+
+  let position = item_label
+    .bind(l => l.position)
+    .unwrap_or(series_label.position.unwrap_or("outside"))
+  if position != "middle" {
+    return None
+  }
+
+  let formatter = match item_label.bind(l => l.formatter) {
+    Some(value) => Some(value)
+    None => series_label.formatter
+  }
+
+  let item_name = match item.name {
+    Some(name) => name
+    None =>
+      match base_axis.scale {
+        Ordinal(scale) =>
+          if data_index >= 0 && data_index < scale.categories.length() {
+            scale.categories[data_index]
+          } else {
+            ""
+          }
+        _ => ""
+      }
+  }
+  let value_str = if value.to_int().to_double() == value {
+    value.to_int().to_string()
+  } else {
+    value.to_string()
+  }
+  let text = @option.apply_label_formatter(
+    Some({ ..series_label, formatter, }),
+    series.name.unwrap_or(""),
+    item_name,
+    value_str,
+    None,
+  )
+  if text == "" {
+    return None
+  }
+
+  let middle_r = (r0 + r1) / 2.0
+  let middle_angle_deg = (start_angle_deg + end_angle_deg) / 2.0
+  let middle_angle = -middle_angle_deg / 180.0 * @math.PI
+  let x = cx + middle_r * @math.cos(middle_angle)
+  let y = cy + middle_r * @math.sin(middle_angle)
+
+  let start_angle = -start_angle_deg / 180.0 * @math.PI
+  let end_angle = -end_angle_deg / 180.0 * @math.PI
+  let clockwise = start_angle_deg >= end_angle_deg
+  let start_for_rot = if clockwise { start_angle } else { end_angle }
+  let end_for_rot = if clockwise { end_angle } else { start_angle }
+  let middle_angle = (start_for_rot + end_for_rot) / 2.0
+  let mut rotate = @math.PI * 1.5 - middle_angle
+  if rotate > @math.PI / 2.0 && rotate < @math.PI * 1.5 {
+    rotate -= @math.PI
+  }
+
+  let color = match item_label.bind(l => l.color) {
+    Some(c) => c
+    None =>
+      if series_label.color == "#54555a" {
+        "#eee"
+      } else {
+        series_label.color
+      }
+  }
+  let font_size = item_label
+    .bind(l => l.font_size)
+    .unwrap_or(series_label.font_size)
+  let font_family = item_label
+    .bind(l => l.font_family)
+    .unwrap_or(series_label.font_family)
+  let font_weight = item_label
+    .bind(l => l.font_weight)
+    .unwrap_or(series_label.font_weight.unwrap_or("normal"))
+
+  let text_elem = @graphic.Element::text_custom(
+    0.0,
+    0.0,
+    text,
+    @graphic.TextAnchor::Middle,
+    @graphic.TextBaseline::Central,
+    color,
+    font_size,
+    font_family,
+    font_weight,
+  )
+  Some(
+    @graphic.Element::group_transformed(
+      [text_elem],
+      @graphic.Matrix::translate(x, y).then(@graphic.Matrix::rotate(rotate)),
+    ),
+  )
 }
 
 ///|
@@ -1614,6 +1731,7 @@ fn bar_render_series_polar_impl(
             },
           }
         }
+        let style = bar_resolve_data_style(series, item, series_index)
         let d = bar_sector_path(
           polar.cx,
           polar.cy,
@@ -1622,9 +1740,24 @@ fn bar_render_series_polar_impl(
           start_angle,
           end_angle,
         )
-        elems.push(
-          bar_render_path(d, bar_resolve_data_style(series, item, series_index)),
-        )
+        elems.push(bar_render_path(d, style))
+        match
+          bar_render_polar_middle_label(
+            series,
+            item,
+            base_axis,
+            di,
+            data1,
+            polar.cx,
+            polar.cy,
+            r0,
+            r1,
+            start_angle,
+            end_angle,
+          ) {
+          Some(label_elem) => elems.push(label_elem)
+          None => ()
+        }
       }
     } else {
       let mut angle_span = value_axis.data_to_coord(Num(data1), di) -
@@ -1649,6 +1782,7 @@ fn bar_render_series_polar_impl(
         )
       }
       if draw_bars {
+        let style = bar_resolve_data_style(series, item, series_index)
         if stacked && stack_state_index >= 0 {
           let stack_coord = polar_stack_states[stack_state_index].coords[di]
           polar_stack_states[stack_state_index].coords[di] = {
@@ -1669,9 +1803,24 @@ fn bar_render_series_polar_impl(
         } else {
           bar_sector_path(polar.cx, polar.cy, r0, r1, start_angle, end_angle)
         }
-        elems.push(
-          bar_render_path(d, bar_resolve_data_style(series, item, series_index)),
-        )
+        elems.push(bar_render_path(d, style))
+        match
+          bar_render_polar_middle_label(
+            series,
+            item,
+            base_axis,
+            di,
+            data1,
+            polar.cx,
+            polar.cy,
+            r0,
+            r1,
+            start_angle,
+            end_angle,
+          ) {
+          Some(label_elem) => elems.push(label_elem)
+          None => ()
+        }
       }
     }
     di += 1
@@ -1706,11 +1855,7 @@ fn bar_render_series_cartesian_impl(
     Ordinal(s) => {
       let band_step = s.band_step()
       let n = if total_bars > 0 { total_bars } else { 1 }
-      let cat_gap_pct = if 35 - n * 4 > 15 {
-        (35 - n * 4).to_double()
-      } else {
-        15.0
-      }
+      let cat_gap_pct = (35 - n * 4).max(15).to_double()
       let total_span = band_step * (1.0 - cat_gap_pct / 100.0)
       let bar_w = total_span / n.to_double()
       let nd = series.data.length()
@@ -1733,17 +1878,11 @@ fn bar_render_series_cartesian_impl(
             cat_px - total_span / 2.0 + bar_index.to_double() * bar_w * 1.3
         }
         if draw_background && series.show_background {
-          elems.push(
-            bar_render_path(
-              bar_rect_path(
-                bar_x,
-                coord.bbox.y,
-                render_bar_w,
-                coord.bbox.height,
-              ),
-              bar_resolve_background_style(series),
-            ).with_silent(true),
-          )
+          let p = bar_render_path(
+            bar_rect_path(bar_x, coord.bbox.y, render_bar_w, coord.bbox.height),
+            bar_resolve_background_style(series),
+          ).with_silent(true)
+          elems.push(p)
         }
         if !draw_bars {
           continue
