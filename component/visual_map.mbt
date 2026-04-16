@@ -227,17 +227,6 @@ fn vm_format_number(n : Double) -> String {
 }
 
 ///|
-fn vm_reverse_strings(items : Array[String]) -> Array[String] {
-  let result : Array[String] = []
-  let mut i = items.length()
-  while i > 0 {
-    i -= 1
-    result.push(items[i])
-  }
-  result
-}
-
-///|
 priv struct VmPiecewiseViewItem {
   text : String
   color : String
@@ -547,7 +536,7 @@ fn vm_build_piecewise_items(
   if reverse_view {
     content_items = vm_reverse_items(content_items)
   } else if show_ends {
-    ends_text = vm_reverse_strings(ends_text)
+    ends_text = ends_text.rev()
   }
 
   if show_ends {

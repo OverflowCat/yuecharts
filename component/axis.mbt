@@ -423,6 +423,50 @@ fn render_y_axis_break(
 }
 
 ///|
+/// Deterministic stand-in for the cached `Math.random()` sequence used by the
+/// upstream axis break helper. This keeps static SVG output stable while still
+/// producing irregular zigzag spacing.
+/// <=> echarts/src/component/axis/axisBreakHelperImpl.ts:addZigzagShapes
+fn break_zigzag_next_random(seed : Double) -> (Double, Double) {
+  let next_seed = (seed * 1103515245.0 + 12345.0) % 2147483647.0
+  (next_seed, next_seed / 2147483647.0)
+}
+
+///|
+/// Build a deterministic seed for the static zigzag sequence.
+/// <=> echarts/src/component/axis/axisBreakHelperImpl.ts:addZigzagShapes
+fn break_zigzag_seed(
+  bbox : @graphic.BBox,
+  y_top : Double,
+  y_bot : Double,
+  break_area : @option.BreakAreaOption,
+) -> Double {
+  let raw = bbox.x * 13.0 +
+    bbox.y * 17.0 +
+    bbox.width * 19.0 +
+    bbox.height * 23.0 +
+    y_top * 29.0 +
+    y_bot * 31.0 +
+    break_area.zigzag_amplitude * 37.0 +
+    break_area.zigzag_min_span * 41.0 +
+    break_area.zigzag_max_span * 43.0
+  if raw < 1.0 {
+    1.0
+  } else {
+    raw
+  }
+}
+
+///|
+/// <=> echarts/src/component/axis/axisBreakHelperImpl.ts:addZigzagShapes
+fn break_zigzag_polyline(
+  points : Array[@graphic.Point],
+  stroke_color : String,
+) -> @graphic.Element {
+  @graphic.Element::polyline_custom(points, stroke_color, 2.0, "round", "round")
+}
+
+///|
 /// Foreground pass: draw the filled polygon + zigzag polylines for one break.
 /// Must run AFTER bar/line series so the overlay covers bar segments in the break.
 /// <=> echarts/src/component/axis/axisBreakHelperImpl.ts addZigzagShapes (Foreground z)
@@ -434,7 +478,16 @@ pub fn render_break_polygon_overlay(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let amp = break_area.zigzag_amplitude
-  let span = break_area.zigzag_max_span.max(break_area.zigzag_min_span)
+  let min_span = if break_area.zigzag_min_span < 2.0 {
+    2.0
+  } else {
+    break_area.zigzag_min_span
+  }
+  let max_span = if break_area.zigzag_max_span < min_span {
+    min_span
+  } else {
+    break_area.zigzag_max_span
+  }
   let fill = break_area.color.unwrap_or("#ffffff")
   let opacity = break_area.opacity
   let x_start = bbox.x
@@ -444,6 +497,7 @@ pub fn render_break_polygon_overlay(
   let mut x = x_start
   let mut swap = true
   let mut first = true
+  let mut seed = break_zigzag_seed(bbox, y_top, y_bot, break_area)
   while x <= x_end + 0.001 {
     let cx = if x > x_end { x_end } else { x }
     let ya : Double = if first || cx == x_end {
@@ -464,6 +518,9 @@ pub fn render_break_polygon_overlay(
     points_b.push({ x: cx, y: yb })
     first = false
     swap = !swap
+    let next = break_zigzag_next_random(seed)
+    seed = next.0
+    let span = next.1 * (max_span - min_span) + min_span
     if cx >= x_end {
       break
     }
@@ -484,8 +541,8 @@ pub fn render_break_polygon_overlay(
     None => @graphic.white
   }
   elems.push(@graphic.Element::polygon_filled(polygon_pts, fill_color, opacity))
-  elems.push(@graphic.Element::polyline_stroked(points_a, "#aaaaaa"))
-  elems.push(@graphic.Element::polyline_stroked(points_b, "#aaaaaa"))
+  elems.push(break_zigzag_polyline(points_a, "#aaaaaa"))
+  elems.push(break_zigzag_polyline(points_b, "#aaaaaa"))
   elems
 }
 

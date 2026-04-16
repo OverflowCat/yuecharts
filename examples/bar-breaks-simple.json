@@ -3,13 +3,17 @@
   "height": 500,
   "title": {
     "text": "Bar Chart with Axis Breaks",
-    "subtext": "Axis break compresses large gaps in data",
+    "subtext": "Click the break area to expand it",
     "left": "center",
-    "textStyle": { "fontSize": 18 },
-    "subtextStyle": { "color": "#175ce5", "fontSize": 13, "fontWeight": "bold" }
+    "textStyle": { "fontSize": 20 },
+    "subtextStyle": { "color": "#175ce5", "fontSize": 15, "fontWeight": "bold" }
+  },
+  "tooltip": {
+    "trigger": "axis",
+    "axisPointer": { "type": "shadow" }
   },
   "legend": {},
-  "grid": { "top": 110 },
+  "grid": { "top": 120 },
   "xAxis": [
     {
       "type": "category",
@@ -27,6 +31,7 @@
         "zigzagAmplitude": 4,
         "zigzagMinSpan": 10,
         "zigzagMaxSpan": 20,
+        "zigzagZ": 200,
         "itemStyle": { "opacity": 1 }
       }
     }
@@ -35,21 +40,25 @@
     {
       "name": "Data A",
       "type": "bar",
+      "emphasis": { "focus": "series" },
       "data": [1500, 2032, 2001, 3154, 2190, 4330, 2410]
     },
     {
       "name": "Data B",
       "type": "bar",
+      "emphasis": { "focus": "series" },
       "data": [1200, 1320, 1010, 1340, 900, 2300, 2100]
     },
     {
       "name": "Data C",
       "type": "bar",
+      "emphasis": { "focus": "series" },
       "data": [103200, 100320, 103010, 102340, 103900, 103300, 103200]
     },
     {
       "name": "Data D",
       "type": "bar",
+      "emphasis": { "focus": "series" },
       "data": [3106212, 3102118, 3102643, 3104631, 3106679, 3100130, 3107022]
     }
   ]
