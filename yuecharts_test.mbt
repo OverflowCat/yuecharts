@@ -894,6 +894,73 @@ test "pie legend selection and negative filter affect rendered slices" {
 }
 
 ///|
+test "dataset filter transform partitions data to multiple pies" {
+  let json_str =
+    #|{
+    #|  "width": 600,
+    #|  "height": 400,
+    #|  "dataset": [
+    #|    {
+    #|      "source": [
+    #|        ["Product", "Sales", "Price", "Year"],
+    #|        ["Cake", 123, 32, 2011],
+    #|        ["Cereal", 231, 14, 2011],
+    #|        ["Tofu", 235, 5, 2011],
+    #|        ["Dumpling", 341, 25, 2011],
+    #|        ["Biscuit", 122, 29, 2011],
+    #|        ["Cake", 143, 30, 2012],
+    #|        ["Cereal", 201, 19, 2012],
+    #|        ["Tofu", 255, 7, 2012],
+    #|        ["Dumpling", 241, 27, 2012],
+    #|        ["Biscuit", 102, 34, 2012],
+    #|        ["Cake", 153, 28, 2013],
+    #|        ["Cereal", 181, 21, 2013],
+    #|        ["Tofu", 395, 4, 2013],
+    #|        ["Dumpling", 281, 31, 2013],
+    #|        ["Biscuit", 92, 39, 2013],
+    #|        ["Cake", 223, 29, 2014],
+    #|        ["Cereal", 211, 17, 2014],
+    #|        ["Tofu", 345, 3, 2014],
+    #|        ["Dumpling", 211, 35, 2014],
+    #|        ["Biscuit", 72, 24, 2014]
+    #|      ]
+    #|    },
+    #|    {
+    #|      "transform": {
+    #|        "type": "filter",
+    #|        "config": {"dimension": "Year", "value": 2011}
+    #|      }
+    #|    },
+    #|    {
+    #|      "transform": {
+    #|        "type": "filter",
+    #|        "config": {"dimension": "Year", "value": 2012}
+    #|      }
+    #|    },
+    #|    {
+    #|      "transform": {
+    #|        "type": "filter",
+    #|        "config": {"dimension": "Year", "value": 2013}
+    #|      }
+    #|    }
+    #|  ],
+    #|  "series": [
+    #|    {"type": "pie", "radius": 50, "center": ["50%", "25%"], "datasetIndex": 1},
+    #|    {"type": "pie", "radius": 50, "center": ["50%", "50%"], "datasetIndex": 2},
+    #|    {"type": "pie", "radius": 50, "center": ["50%", "75%"], "datasetIndex": 3}
+    #|  ]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  // 3 pies * 5 products = 15 sectors in this fixture.
+  assert_eq(count_substring(svg, "stroke=\"#ffffff\""), 15)
+  // Ensure labels from dataset rows are visible.
+  assert_true(svg.contains(">Cake</text>"))
+  assert_true(svg.contains(">Tofu</text>"))
+  // No 2014 values should leak into the rendered pies.
+  assert_true(!svg.contains(">223</text>"))
+}
+
+///|
 test "geo map and scatter render with visual map" {
   let json_str =
     #|{

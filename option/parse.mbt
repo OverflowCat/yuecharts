@@ -103,7 +103,8 @@ fn parse_chart_option(j : Json) -> ChartOption {
     parse_single_axis_option,
     [],
   )
-  let series = j_parse_one_or_many(j, "series", parse_series_option, [])
+  let dataset_tables = parse_dataset_tables(j)
+  let series = parse_series_options_with_dataset(j, dataset_tables)
   let map_registry = j_parse_one_or_many(j, "maps", parse_map_registry_option, [])
   let visual_map = j_parse_one_or_many(j, "visualMap", parse_visual_map, [])
   trim_large_bar_chart_option({
@@ -131,6 +132,459 @@ fn parse_chart_option(j : Json) -> ChartOption {
     aria,
     visual_map,
   })
+}
+
+///|
+/// <=> echarts/src/component/dataset/install.ts
+/// <=> echarts/src/component/transform/install.ts
+/// Parsed in parser fallback only; this does not implement the full component
+/// lifecycle, but lets `dataset + filter transform + datasetIndex` feed series.
+priv struct DatasetTable {
+  dimensions : Array[String]
+  rows : Array[Array[Json]]
+}
+
+///|
+/// <=> echarts/src/component/dataset/install.ts
+fn parse_series_options_with_dataset(
+  j : Json,
+  dataset_tables : Array[DatasetTable],
+) -> Array[SeriesOption] {
+  let mut series_json_arr : Array[Json] = []
+  match j_field(j, "series") {
+    Some(Array(arr)) => series_json_arr = arr
+    Some(one) => series_json_arr = [one]
+    None => ()
+  }
+  let series : Array[SeriesOption] = []
+  for i, _ in series_json_arr {
+    let series_j = series_json_arr[i]
+    let parsed = parse_series_option(series_j)
+    let dataset_index = j_int(series_j, "datasetIndex", 0)
+    let patched = if parsed.data.length() == 0 &&
+      dataset_index >= 0 &&
+      dataset_index < dataset_tables.length() {
+      match parsed.series_type {
+        Pie => {
+          let data = dataset_table_to_pie_data(
+            dataset_tables[dataset_index],
+            series_j,
+          )
+          { ..parsed, data, }
+        }
+        _ => parsed
+      }
+    } else {
+      parsed
+    }
+    series.push(patched)
+  }
+  series
+}
+
+///|
+/// <=> echarts/src/component/dataset/install.ts
+/// <=> echarts/src/data/Source.ts
+fn parse_dataset_tables(j : Json) -> Array[DatasetTable] {
+  let tables : Array[DatasetTable] = []
+  match j_field(j, "dataset") {
+    Some(Array(dataset_arr)) =>
+      for i, _ in dataset_arr {
+        let dataset = dataset_arr[i]
+        match parse_dataset_source_table(dataset) {
+          Some(table) => tables.push(table)
+          None =>
+            match parse_dataset_filter_transform_table(dataset, tables) {
+              Some(table) => tables.push(table)
+              None => tables.push({ dimensions: [], rows: [] })
+            }
+        }
+      }
+    Some(one) =>
+      match parse_dataset_source_table(one) {
+        Some(table) => tables.push(table)
+        None =>
+          match parse_dataset_filter_transform_table(one, tables) {
+            Some(table) => tables.push(table)
+            None => ()
+          }
+      }
+    None => ()
+  }
+  tables
+}
+
+///|
+/// <=> echarts/src/data/Source.ts
+fn parse_dataset_source_table(dataset : Json) -> DatasetTable? {
+  match j_field(dataset, "source") {
+    Some(Array(source_rows)) =>
+      Some(dataset_table_from_source_rows(source_rows))
+    _ => None
+  }
+}
+
+///|
+/// <=> echarts/src/component/transform/filterTransform.ts
+fn parse_dataset_filter_transform_table(
+  dataset : Json,
+  tables : Array[DatasetTable],
+) -> DatasetTable? {
+  let transform = j_field(dataset, "transform")
+  match transform {
+    Some(transform_json) => {
+      if j_string(transform_json, "type", "") != "filter" {
+        return None
+      }
+      let source_idx = j_int(dataset, "fromDatasetIndex", 0)
+      if source_idx < 0 || source_idx >= tables.length() {
+        return None
+      }
+      let source_table = tables[source_idx]
+      let config = j_field(transform_json, "config")
+      let dim_idx = match config {
+        Some(cfg) =>
+          parse_dataset_filter_dimension(cfg, source_table.dimensions)
+        None => None
+      }
+      let filter_value = config.bind(cfg => j_field(cfg, "value"))
+      match (dim_idx, filter_value) {
+        (Some(idx), Some(target)) => {
+          let rows : Array[Array[Json]] = []
+          for i, _ in source_table.rows {
+            let row = source_table.rows[i]
+            if idx < row.length() &&
+              dataset_filter_value_match(row[idx], target) {
+              rows.push(row)
+            }
+          }
+          Some({ dimensions: source_table.dimensions, rows })
+        }
+        _ => Some(source_table)
+      }
+    }
+    None => None
+  }
+}
+
+///|
+/// <=> echarts/src/component/transform/filterTransform.ts
+fn parse_dataset_filter_dimension(
+  cfg : Json,
+  dimensions : Array[String],
+) -> Int? {
+  match j_field(cfg, "dimension") {
+    Some(Number(n, ..)) => {
+      let idx = n.to_int()
+      if idx >= 0 && idx.to_double() == n {
+        Some(idx)
+      } else {
+        None
+      }
+    }
+    Some(String(name)) => dataset_dimension_index(dimensions, name)
+    _ => None
+  }
+}
+
+///|
+/// <=> echarts/src/component/transform/filterTransform.ts
+fn dataset_filter_value_match(cell : Json, target : Json) -> Bool {
+  match (cell, target) {
+    (Number(a, ..), Number(b, ..)) => a == b
+    (String(a), String(b)) => a == b
+    (True, True) => true
+    (False, False) => true
+    (Null, Null) => true
+    (String(a), Number(b, ..)) => {
+      let parsed = try? @string.parse_double(a)
+      match parsed {
+        Ok(v) => v == b
+        Err(_) => false
+      }
+    }
+    (Number(a, ..), String(b)) => {
+      let parsed = try? @string.parse_double(b)
+      match parsed {
+        Ok(v) => v == a
+        Err(_) => false
+      }
+    }
+    _ => false
+  }
+}
+
+///|
+/// <=> echarts/src/data/helper/sourceHelper.ts
+fn dataset_table_from_source_rows(source_rows : Array[Json]) -> DatasetTable {
+  let mut dimensions : Array[String] = []
+  let rows : Array[Array[Json]] = []
+  let mut start_idx = 0
+  if source_rows.is_empty() {
+    return { dimensions, rows }
+  }
+  match source_rows[0] {
+    Array(header_or_row) =>
+      if dataset_row_all_strings(header_or_row) {
+        for i, _ in header_or_row {
+          match header_or_row[i] {
+            String(s) => dimensions.push(s)
+            _ => dimensions.push("dim\{i}")
+          }
+        }
+        start_idx = 1
+      } else {
+        dimensions = dataset_default_dimensions(header_or_row.length())
+      }
+    _ => return { dimensions, rows }
+  }
+  let mut i = start_idx
+  while i < source_rows.length() {
+    match source_rows[i] {
+      Array(row) => rows.push(row)
+      _ => ()
+    }
+    i += 1
+  }
+  if dimensions.is_empty() && !rows.is_empty() {
+    dimensions = dataset_default_dimensions(rows[0].length())
+  }
+  { dimensions, rows }
+}
+
+///|
+/// <=> echarts/src/data/helper/sourceHelper.ts
+fn dataset_row_all_strings(row : Array[Json]) -> Bool {
+  for i, _ in row {
+    if !(row[i] is String(_)) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// <=> echarts/src/data/helper/sourceHelper.ts
+fn dataset_default_dimensions(count : Int) -> Array[String] {
+  let dims : Array[String] = []
+  let mut i = 0
+  while i < count {
+    dims.push("dim\{i}")
+    i += 1
+  }
+  dims
+}
+
+///|
+/// <=> echarts/src/chart/pie/PieSeries.ts
+/// Static subset: convert bound dataset rows into pie data items.
+fn dataset_table_to_pie_data(
+  table : DatasetTable,
+  series_j : Json,
+) -> Array[DataItem] {
+  if table.rows.is_empty() {
+    return []
+  }
+  let name_dim_idx = dataset_resolve_encode_dimension(
+    series_j,
+    table.dimensions,
+    "itemName",
+    0,
+  )
+  let value_dim_idx = dataset_resolve_encode_value_dimension(
+    series_j,
+    table.dimensions,
+    table.rows,
+  )
+  let data : Array[DataItem] = []
+  for i, _ in table.rows {
+    let row = table.rows[i]
+    if value_dim_idx < 0 || value_dim_idx >= row.length() {
+      continue
+    }
+    let name = if name_dim_idx >= 0 && name_dim_idx < row.length() {
+      Some(dataset_cell_to_string(row[name_dim_idx]))
+    } else {
+      None
+    }
+    let value = dataset_cell_to_number(row[value_dim_idx])
+    data.push(make_data_item_num_name(value, name))
+  }
+  data
+}
+
+///|
+/// <=> echarts/src/chart/pie/PieSeries.ts
+fn dataset_resolve_encode_value_dimension(
+  series_j : Json,
+  dimensions : Array[String],
+  rows : Array[Array[Json]],
+) -> Int {
+  let explicit = dataset_resolve_encode_dimension_opt(
+    series_j, dimensions, "value",
+  )
+  match explicit {
+    Some(idx) => idx
+    None => {
+      if rows.is_empty() {
+        return 0
+      }
+      let row = rows[0]
+      let mut i = if row.length() > 1 { 1 } else { 0 }
+      while i < row.length() {
+        if dataset_cell_is_numeric(row[i]) {
+          return i
+        }
+        i += 1
+      }
+      0
+    }
+  }
+}
+
+///|
+/// <=> echarts/src/chart/pie/PieSeries.ts
+fn dataset_resolve_encode_dimension(
+  series_j : Json,
+  dimensions : Array[String],
+  key : String,
+  fallback : Int,
+) -> Int {
+  match dataset_resolve_encode_dimension_opt(series_j, dimensions, key) {
+    Some(idx) => idx
+    None => fallback
+  }
+}
+
+///|
+/// <=> echarts/src/util/types.ts (encode dimension resolving)
+fn dataset_resolve_encode_dimension_opt(
+  series_j : Json,
+  dimensions : Array[String],
+  key : String,
+) -> Int? {
+  let encode = j_field(series_j, "encode")
+  match encode {
+    Some(encode_obj) => {
+      let encoded = j_field(encode_obj, key)
+      match encoded {
+        Some(spec) => dataset_encode_spec_to_dimension_index(spec, dimensions)
+        None => None
+      }
+    }
+    None => None
+  }
+}
+
+///|
+/// <=> echarts/src/util/types.ts (dimension loose spec)
+fn dataset_encode_spec_to_dimension_index(
+  spec : Json,
+  dimensions : Array[String],
+) -> Int? {
+  match spec {
+    Number(n, ..) => {
+      let idx = n.to_int()
+      if idx >= 0 && idx.to_double() == n {
+        Some(idx)
+      } else {
+        None
+      }
+    }
+    String(name) => dataset_dimension_index(dimensions, name)
+    Array(arr) =>
+      if arr.is_empty() {
+        None
+      } else {
+        dataset_encode_spec_to_dimension_index(arr[0], dimensions)
+      }
+    _ => None
+  }
+}
+
+///|
+/// <=> echarts/src/data/helper/sourceHelper.ts
+fn dataset_dimension_index(dimensions : Array[String], name : String) -> Int? {
+  for i, _ in dimensions {
+    if dimensions[i] == name {
+      return Some(i)
+    }
+  }
+  None
+}
+
+///|
+fn dataset_cell_is_numeric(cell : Json) -> Bool {
+  match cell {
+    Number(_, ..) => true
+    String(s) => {
+      let parsed = try? @string.parse_double(s)
+      parsed is Ok(_)
+    }
+    _ => false
+  }
+}
+
+///|
+fn dataset_cell_to_number(cell : Json) -> Double {
+  match cell {
+    Number(n, ..) => n
+    String(s) => {
+      let parsed = try? @string.parse_double(s)
+      match parsed {
+        Ok(v) => v
+        Err(_) => 0.0
+      }
+    }
+    True => 1.0
+    False => 0.0
+    _ => 0.0
+  }
+}
+
+///|
+fn dataset_cell_to_string(cell : Json) -> String {
+  match cell {
+    String(s) => s
+    Number(n, ..) =>
+      if n.to_int().to_double() == n {
+        n.to_int().to_string()
+      } else {
+        n.to_string()
+      }
+    True => "true"
+    False => "false"
+    Null => ""
+    _ => ""
+  }
+}
+
+///|
+fn make_data_item_num_name(value : Double, name : String?) -> DataItem {
+  {
+    value: DataValue::Num(value),
+    raw_value_parts: None,
+    raw_item: None,
+    id: None,
+    name,
+    depth: None,
+    source: None,
+    target: None,
+    symbol: None,
+    coords: None,
+    from_name: None,
+    to_name: None,
+    cursor: None,
+    selected: None,
+    silent: None,
+    label: None,
+    item_style: None,
+    states: GeoStatesOption::default(),
+    children: [],
+    collapsed: None,
+    title_offset_center: None,
+    detail_offset_center: None,
+  }
 }
 
 ///|
