@@ -129,7 +129,6 @@ fn chord_node_key(item : @option.DataItem, index : Int) -> String {
 
 ///|
 fn chord_find_node_index(lookup : Array[(String, Int)], key : String) -> Int? {
-  let mut i = 0
   for i, _ in lookup {
     let (candidate, index) = lookup[i]
     if candidate == key {
@@ -347,7 +346,7 @@ fn chord_build_graph(
   }
 
   let edges : Array[ChordEdgeLayout] = []
-  let mut edge_index = 0
+
   for edge_index, _ in series.link_data {
     let item = series.link_data[edge_index]
     match (item.source, item.target) {
@@ -623,7 +622,6 @@ fn chord_render_labels(
   r0 : Double,
   r : Double,
 ) -> Unit {
-  let mut i = 0
   for i, _ in nodes {
     let node = nodes[i]
     if chord_label_show(series, node) && node.name != "" {
@@ -680,7 +678,7 @@ pub fn render_chords(
     match series.series_type {
       @option.SeriesType::Chord => {
         let series_elems = render_chord_series(opt, series, si)
-        let mut i = 0
+
         for i, _ in series_elems {
           elems.push(series_elems[i])
         }
@@ -718,7 +716,7 @@ pub fn render_chord_series(
 
   let edge_opacity = series.line_style_opacity.unwrap_or(0.2)
   let edge_width = series.line_style_width.unwrap_or(0.0)
-  let mut ei = 0
+
   for ei, _ in edges {
     let edge = edges[ei]
     let fill_color = chord_edge_fill_color(series, edge, node_colors)

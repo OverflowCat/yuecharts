@@ -5,7 +5,6 @@
 ///|
 /// Returns true if any series uses the Cartesian coordinate system.
 fn has_cartesian_series(opt : @option.ChartOption) -> Bool {
-  let mut i = 0
   for i, _ in opt.series {
     let s = opt.series[i]
     match s.series_type {
@@ -76,7 +75,6 @@ fn has_registered_series_type(
   match series_type {
     None => true
     Some(target) => {
-      let mut i = 0
       for i, _ in opt.series {
         if opt.series[i].series_type == target {
           return true
@@ -183,7 +181,7 @@ fn next_visual_index(
 ) -> Int? {
   let mut best_index = -1
   let mut best_priority = 0
-  let mut i = 0
+
   for i, _ in registry.visuals {
     let registration = registry.visuals[i]
     if !visited[i] && has_registered_series_type(opt, registration.series_type) {

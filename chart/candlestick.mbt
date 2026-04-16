@@ -115,7 +115,7 @@ pub fn render_candlesticks(
   coord : @coord.Cartesian2D,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     if series.series_type != Candlestick {

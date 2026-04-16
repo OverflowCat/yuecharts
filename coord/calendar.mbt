@@ -521,7 +521,7 @@ fn is_all_digits(value : String) -> Bool {
   if value == "" {
     return false
   }
-  let mut i = 0
+
   for i, _ in value {
     let c = value[i]
     if c < '0' || c > '9' {
@@ -544,7 +544,7 @@ fn to_int_or(value : String, fallback : Int) -> Int {
 fn split_date_parts(value : String) -> Array[String] {
   let parts : Array[String] = []
   let mut start = 0
-  let mut i = 0
+
   for i, _ in value {
     if value[i] == '-' {
       parts.push(value[start:i].to_string())

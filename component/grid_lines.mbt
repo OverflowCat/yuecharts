@@ -15,7 +15,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
     match coord.x_scales[i] {
       Linear(s) => {
         let ticks = s.ticks(5)
-        let mut ti = 0
+
         for ti, _ in ticks {
           let tick = ticks[ti]
           let px = s.data_to_pixel(tick.value)
@@ -33,7 +33,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
       }
       Ordinal(s) => {
         let ticks = s.ticks()
-        let mut ti = 0
+
         for ti, _ in ticks {
           let tick = ticks[ti]
           let px = tick.value
@@ -57,7 +57,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
     match coord.y_scales[i] {
       Linear(s) => {
         let ticks = s.ticks(5)
-        let mut ti = 0
+
         for ti, _ in ticks {
           let tick = ticks[ti]
           let py = s.data_to_pixel(tick.value)
@@ -75,7 +75,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
       }
       BreakLinear(s) => {
         let ticks = s.ticks(5)
-        let mut ti = 0
+
         for ti, _ in ticks {
           let tick = ticks[ti]
           let py = s.data_to_pixel(tick.value)
@@ -93,7 +93,7 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
       }
       Ordinal(s) => {
         let ticks = s.ticks()
-        let mut ti = 0
+
         for ti, _ in ticks {
           let tick = ticks[ti]
           let py = tick.value

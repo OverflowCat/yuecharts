@@ -66,7 +66,7 @@ fn TreeNode::new(name : String, item : @option.DataItem) -> TreeNode {
 fn TreeNode::update_depth_and_height(self : TreeNode, depth : Int) -> Unit {
   self.depth = depth
   let mut max_child_height = 0
-  let mut i = 0
+
   for i, _ in self.children {
     let child = self.children[i]
     child.update_depth_and_height(depth + 1)
@@ -128,7 +128,7 @@ fn tree_build_hierarchy(
   let name = item.name.unwrap_or("")
   let node = TreeNode::new(name, item)
   all_nodes.push(node)
-  let mut i = 0
+
   for i, _ in item.children {
     let child = tree_build_hierarchy(item.children[i], all_nodes)
     child.parent_node = Some(node)
@@ -148,7 +148,6 @@ fn tree_each_after(root : TreeNode, callback : (TreeNode) -> Unit) -> Unit {
     let node = nodes.pop().unwrap()
     next.push(node)
     if node.is_expand {
-      let mut i = 0
       for i, _ in node.children {
         nodes.push(node.children[i])
       }
@@ -472,7 +471,7 @@ fn tree_set_expand_state(
     if node.depth > max_depth {
       max_depth = node.depth
     }
-    let mut i = 0
+
     for i, _ in node.children {
       nodes.push(node.children[i])
     }
@@ -490,7 +489,7 @@ fn tree_set_expand_state(
       Some(c) => !c
       None => node.depth <= expand_depth
     }
-    let mut i = 0
+
     for i, _ in node.children {
       nodes2.push(node.children[i])
     }
@@ -1194,7 +1193,7 @@ pub fn render_trees(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut color_idx = 0
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     match series.series_type {
@@ -1210,7 +1209,7 @@ pub fn render_trees(
       opt.width,
       opt.height,
     )
-    let mut i = 0
+
     for i, _ in series_elems {
       elems.push(series_elems[i])
     }
@@ -1266,7 +1265,6 @@ fn render_tree_series(
   if edge_shape == "curve" {
     tree_each_before(real_root, fn(node) {
       if node.is_expand {
-        let mut ci = 0
         for ci, _ in node.children {
           let child = node.children[ci]
           let line_style = tree_resolve_line_style(series, child)
@@ -1311,7 +1309,7 @@ fn render_tree_series(
       if node.is_expand && node.children.length() > 0 {
         let line_style = tree_resolve_line_style(series, node)
         let child_points : Array[(Double, Double)] = []
-        let mut ci = 0
+
         for ci, _ in node.children {
           let c = node.children[ci]
           child_points.push((c.layout_x, c.layout_y))

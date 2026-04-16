@@ -10,7 +10,6 @@ fn geo_region_option_by_name(
   geo_opt : @option.GeoOption,
   name : String,
 ) -> @option.GeoRegionOption? {
-  let mut i = 0
   for i, _ in geo_opt.regions {
     let region_opt = geo_opt.regions[i]
     if region_opt.name == name {
@@ -226,7 +225,7 @@ fn render_geo_region_outline(
 ///|
 fn geo_rings_path_d(rings : Array[Array[@graphic.Point]]) -> String {
   let buf = StringBuilder::new()
-  let mut ring_index = 0
+
   for ring_index, _ in rings {
     let points = rings[ring_index]
     if points.length() > 0 {
@@ -259,7 +258,7 @@ pub fn render_geo_component(
   } else {
     @option.GeoOption::default()
   }
-  let mut region_index = 0
+
   for region_index, _ in geo.regions {
     let region = geo.regions[region_index]
     let region_opt = geo_region_option_by_name(geo_opt, region.name)
@@ -271,7 +270,7 @@ pub fn render_geo_component(
     let selected = geo_region_is_selected(region_opt)
     let emphasis_style = geo_region_state_style(geo_opt, region_opt, "emphasis")
     let select_style = geo_region_state_style(geo_opt, region_opt, "select")
-    let mut polygon_index = 0
+
     for polygon_index, _ in polygons {
       elems.push(
         render_geo_region_outline(

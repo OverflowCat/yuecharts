@@ -222,7 +222,6 @@ fn XmlText::write_to_buffer(
 
 ///|
 fn XmlNode::children_inline(children : Array[XmlNode]) -> Bool {
-  let mut i = 0
   for i, _ in children {
     match children[i] {
       Text(_) => ()
@@ -256,7 +255,7 @@ fn XmlNode::write_to_string(
       let inline_children = XmlNode::children_inline(element.children)
       if pretty && !inline_children {
         buf.write_char('\n')
-        let mut i = 0
+
         for i, _ in element.children {
           buf.write_xml_indent(depth + 1, indent_unit)
           element.children[i].write_to_string(

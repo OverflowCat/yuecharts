@@ -199,7 +199,7 @@ pub fn render_line_series(
         let base_y = coord.bbox.y + coord.bbox.height
         let path_buf = StringBuilder::new()
         path_buf.write_string("M \{points[0].x} \{base_y}")
-        let mut pi = 0
+
         for pi, _ in points {
           let p = points[pi]
           path_buf.write_string(" L \{p.x} \{p.y}")
@@ -221,7 +221,7 @@ pub fn render_line_series(
       stroke_opacity,
     ),
   )
-  let mut pi = 0
+
   for pi, _ in points {
     let p = points[pi]
     elems.push(
@@ -243,7 +243,7 @@ pub fn render_lines(
   polar? : @coord.Polar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
+
   let mut color_idx = 0
   for si, _ in opt.series {
     let series = opt.series[si]

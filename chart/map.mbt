@@ -147,7 +147,6 @@ fn map_value_list_by_name(
   values_list : Array[Array[Double]],
   name : String,
 ) -> Array[Double]? {
-  let mut i = 0
   for i, _ in names {
     if names[i] == name {
       return Some(values_list[i])
@@ -184,7 +183,7 @@ fn map_statistic_value(
   let mut sum = 0.0
   let mut min = values[0]
   let mut max = values[0]
-  let mut i = 0
+
   for i, _ in values {
     let value = values[i]
     if value < min {
@@ -212,10 +211,10 @@ fn map_aggregated_data_for_group(
   let names : Array[String] = []
   let values_list : Array[Array[Double]] = []
   let templates : Array[@option.DataItem] = []
-  let mut group_index = 0
+
   for group_index, _ in series_group {
     let series = series_group[group_index]
-    let mut item_index = 0
+
     for item_index, _ in series.data {
       let item = series.data[item_index]
       match item.name {
@@ -234,7 +233,7 @@ fn map_aggregated_data_for_group(
   }
   let statistic_type = series_group[0].map_value_calculation
   let aggregated : Array[@option.DataItem] = []
-  let mut i = 0
+
   for i, _ in names {
     let template = templates[i]
     let values = values_list[i]
@@ -255,7 +254,7 @@ fn map_series_group(
   let target = opt.series[start_index]
   let target_key = map_series_group_key(opt, target)
   let group : Array[@option.SeriesOption] = []
-  let mut i = 0
+
   for i, _ in opt.series {
     let series = opt.series[i]
     if series.series_type == Map &&
@@ -271,12 +270,12 @@ pub fn apply_map_data_statistic(
   opt : @option.ChartOption,
 ) -> @option.ChartOption {
   let next_series : Array[@option.SeriesOption] = []
-  let mut i = 0
+
   for i, _ in opt.series {
     next_series.push(opt.series[i])
   }
   let processed_groups : Array[String] = []
-  let mut series_index = 0
+
   for series_index, _ in opt.series {
     let series = opt.series[series_index]
     if series.series_type == Map {
@@ -285,7 +284,7 @@ pub fn apply_map_data_statistic(
         processed_groups.push(group_key)
         let group = map_series_group(opt, series_index)
         let aggregated = map_aggregated_data_for_group(group)
-        let mut j = 0
+
         for j, _ in opt.series {
           let candidate = opt.series[j]
           if candidate.series_type == Map &&
@@ -574,7 +573,6 @@ fn map_symbol_next_offset(
   offsets : Array[Int],
   name : String,
 ) -> Int {
-  let mut i = 0
   for i, _ in names {
     if names[i] == name {
       let offset = offsets[i]
@@ -623,7 +621,7 @@ fn render_map_region_polygon(
 ///|
 fn map_rings_path_d(rings : Array[Array[@graphic.Point]]) -> String {
   let buf = StringBuilder::new()
-  let mut ring_index = 0
+
   for ring_index, _ in rings {
     let points = rings[ring_index]
     if points.length() > 0 {
@@ -678,7 +676,7 @@ pub fn render_maps(
           } else {
             []
           }
-          let mut region_index = 0
+
           for region_index, _ in active_geo.regions {
             let region = active_geo.regions[region_index]
             let item = map_data_item_by_name(series, region.name)
@@ -724,7 +722,7 @@ pub fn render_maps(
               "select",
             )
             let polygons = region.screen_polygon_rings(active_geo)
-            let mut polygon_index = 0
+
             for polygon_index, _ in polygons {
               elems.push(
                 render_map_region_polygon(
@@ -769,14 +767,14 @@ pub fn render_maps(
           if has_legend {
             let symbol_offsets_names : Array[String] = []
             let symbol_offsets_counts : Array[Int] = []
-            let mut symbol_series_index = 0
+
             for symbol_series_index, _ in opt.series {
               let symbol_series = opt.series[symbol_series_index]
               if symbol_series.series_type == Map &&
                 map_series_group_key(opt, symbol_series) == group_key &&
                 symbol_series.show_legend_symbol {
                 let symbol_data = map_series_original_data(symbol_series)
-                let mut data_index = 0
+
                 for data_index, _ in symbol_data {
                   let data_item = symbol_data[data_index]
                   match data_item.name {

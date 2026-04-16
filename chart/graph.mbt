@@ -195,7 +195,7 @@ pub fn render_graphs(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut color_idx = 0
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     if series.series_type != @option.SeriesType::Graph {

@@ -14,7 +14,6 @@ pub fn render_parallel_series(
   )
   let width = series.line_style_width.unwrap_or(1.0)
   let opacity = series.line_style_opacity.unwrap_or(0.45)
-  let mut i = 0
   for i, _ in series.data {
     let item = series.data[i]
     let points = parallel_series_line_points(item, parallel)
@@ -41,7 +40,7 @@ pub fn render_parallels(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   guard parallel is Some(coord) else { elems }
-  let mut si = 0
+
   let mut color_index = 0
   for si, _ in opt.series {
     let series = opt.series[si]
@@ -59,7 +58,7 @@ fn parallel_series_line_points(
   parallel : @coord.Parallel,
 ) -> Array[@graphic.Point] {
   let points : Array[@graphic.Point] = []
-  let mut i = 0
+
   for i, _ in parallel.dimensions {
     let dim = parallel.dimensions[i]
     match parallel.data_to_point(item.value, dim) {

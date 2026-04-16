@@ -74,7 +74,6 @@ fn sankey_node_key(item : @option.DataItem, index : Int) -> String {
 
 ///|
 fn sankey_find_node_index(lookup : Array[(String, Int)], key : String) -> Int? {
-  let mut i = 0
   for i, _ in lookup {
     if lookup[i].0 == key {
       return Some(lookup[i].1)
@@ -275,7 +274,7 @@ fn sankey_adjust_node_align_right(
     while i < remain_nodes.length() {
       let node_index = remain_nodes[i]
       nodes[node_index].sk_node_height = node_height
-      let mut j = 0
+
       for j, _ in nodes[node_index].in_edges {
         let source_index = edges[nodes[node_index].in_edges[j]].source_index
         if !next_source_nodes.contains(source_index) {
@@ -300,7 +299,6 @@ fn sankey_adjust_node_align_right(
 
 ///|
 fn sankey_move_sinks_right(nodes : Array[SankeyNode], max_depth : Int) -> Unit {
-  let mut i = 0
   for i, _ in nodes {
     if !sankey_is_item_depth(nodes[i]) && nodes[i].out_edges.length() == 0 {
       nodes[i].depth = max_depth
@@ -322,7 +320,7 @@ fn sankey_compute_node_breadths(
   let mut zero_indegrees : Array[Int] = []
   let mut next_target_nodes : Array[Int] = []
   let mut i = 0
-  for i, _ in edges {
+  for _, _ in edges {
     remain_edges.push(1)
   }
   i = 0
@@ -351,7 +349,7 @@ fn sankey_compute_node_breadths(
       } else {
         nodes[node_index].dx = node_width
       }
-      let mut j = 0
+
       for j, _ in nodes[node_index].out_edges {
         let edge_index = nodes[node_index].out_edges[j]
         remain_edges[edge_index] = 0
@@ -450,7 +448,7 @@ fn sankey_initialize_node_depths(
   for i, _ in groups {
     let group = groups[i]
     let mut sum = 0.0
-    let mut j = 0
+
     for j, _ in group {
       sum = sum + nodes[group[j]].value
     }
@@ -470,7 +468,7 @@ fn sankey_initialize_node_depths(
   i = 0
   while i < groups.length() {
     let group = groups[i]
-    let mut j = 0
+
     for j, _ in group {
       let node_index = group[j]
       let node_extent = nodes[node_index].value * min_ky
@@ -532,17 +530,17 @@ fn sankey_resolve_collisions(
 ) -> Unit {
   let orient = series.sankey_orient
   let view_cross = if orient == "vertical" { box.width } else { box.height }
-  let mut i = 0
+
   for i, _ in groups {
     let group = groups[i]
     let ordered : Array[Int] = []
     let used : Array[Bool] = []
     let mut j = 0
-    for j, _ in group {
+    for _, _ in group {
       used.push(false)
     }
-    let mut picked = 0
-    for picked, _ in group {
+
+    for _, _ in group {
       let mut best = -1
       j = 0
       while j < group.length() {
@@ -625,7 +623,7 @@ fn sankey_sum_edge_values(
   edges : Array[SankeyEdge],
 ) -> Double {
   let mut sum = 0.0
-  let mut i = 0
+
   for i, _ in edge_indices {
     let value = edges[edge_indices[i]].value
     if value == value {
@@ -647,14 +645,14 @@ fn sankey_relax_right_to_left(
   let mut gi = groups.length()
   while gi > 0 {
     let group = groups[gi - 1]
-    let mut i = 0
+
     for i, _ in group {
       let node_index = group[i]
       if nodes[node_index].out_edges.length() > 0 {
         let out_sum = sankey_sum_edge_values(nodes[node_index].out_edges, edges)
         let weighted = if out_sum > 0.0 {
           let mut total = 0.0
-          let mut j = 0
+
           for j, _ in nodes[node_index].out_edges {
             let edge = edges[nodes[node_index].out_edges[j]]
             total = total +
@@ -693,17 +691,17 @@ fn sankey_relax_left_to_right(
   alpha : Double,
 ) -> Unit {
   let orient = series.sankey_orient
-  let mut gi = 0
+
   for gi, _ in groups {
     let group = groups[gi]
-    let mut i = 0
+
     for i, _ in group {
       let node_index = group[i]
       if nodes[node_index].in_edges.length() > 0 {
         let in_sum = sankey_sum_edge_values(nodes[node_index].in_edges, edges)
         let weighted = if in_sum > 0.0 {
           let mut total = 0.0
-          let mut j = 0
+
           for j, _ in nodes[node_index].in_edges {
             let edge = edges[nodes[node_index].in_edges[j]]
             total = total +
@@ -765,13 +763,13 @@ fn sankey_sort_edge_indices(
 ) -> Array[Int] {
   let ordered : Array[Int] = []
   let used : Array[Bool] = []
-  let mut i = 0
-  for i, _ in edge_indices {
+
+  for _, _ in edge_indices {
     used.push(false)
   }
-  for picked, _ in edge_indices {
+  for _, _ in edge_indices {
     let mut best = -1
-    let mut j = 0
+
     for j, _ in edge_indices {
       if !used[j] {
         let current_node = if use_target {
@@ -1325,13 +1323,13 @@ pub fn render_sankeys(
   views : Array[@coord.View],
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut i = 0
+
   for i, _ in opt.series {
     let series = opt.series[i]
     if series.series_type == @option.SeriesType::Sankey {
       let view = @coord.View::find_for_series(views, i)
       let series_elems = sankey_render_series(opt, series, view)
-      let mut j = 0
+
       for j, _ in series_elems {
         elems.push(series_elems[j])
       }

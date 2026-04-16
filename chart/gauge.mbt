@@ -192,7 +192,7 @@ fn svg_path_bbox(path_data : StringView) -> (Double, Double, Double, Double) {
 /// Render all gauge series in the chart option.
 pub fn render_gauges(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
+
   let mut color_idx = 0
   for si, _ in opt.series {
     let series = opt.series[si]
@@ -209,7 +209,7 @@ pub fn render_gauges(opt : @option.ChartOption) -> Array[@graphic.Element] {
       opt.width,
       opt.height,
     )
-    let mut i = 0
+
     for i, _ in gauge_elems {
       elems.push(gauge_elems[i])
     }

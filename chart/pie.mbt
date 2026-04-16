@@ -54,7 +54,7 @@ pub fn render_pies(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let mut color_idx = 0
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     match series.series_type {
@@ -70,7 +70,7 @@ pub fn render_pies(
       opt.width,
       opt.height,
     )
-    let mut i = 0
+
     for i, _ in series_elems {
       elems.push(series_elems[i])
     }

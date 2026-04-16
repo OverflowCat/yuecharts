@@ -244,7 +244,7 @@ pub fn GeoRegion::screen_polygon_rings(
         let rings : Array[Array[@graphic.Point]] = [
           polygon.exterior.map(fn(pt) { geo.data_to_point(pt.x, pt.y) }),
         ]
-        let mut j = 0
+
         for j, _ in polygon.interiors {
           rings.push(
             polygon.interiors[j].map(fn(pt) { geo.data_to_point(pt.x, pt.y) }),
@@ -871,7 +871,7 @@ fn decode_multi_polygon(
             }
           _ => []
         }
-        let mut j = 0
+
         for j, _ in decoded {
           result.push(decoded[j])
         }
@@ -969,7 +969,7 @@ fn parse_multi_polygon(polygons : Array[Json]) -> Array[GeoGeometry] {
     match polygons[i] {
       Array(rings) => {
         let parsed = parse_polygon_rings(rings)
-        let mut j = 0
+
         for j, _ in parsed {
           result.push(parsed[j])
         }
@@ -1056,7 +1056,7 @@ fn geo_geometries_bbox(geometries : Array[GeoGeometry]) -> @graphic.BBox {
           }
         }
       }
-      LineString(lines) => {
+      LineString(lines) =>
         for j, _ in lines.points {
           let points = lines.points[j]
           for k, _ in points {
@@ -1083,7 +1083,6 @@ fn geo_geometries_bbox(geometries : Array[GeoGeometry]) -> @graphic.BBox {
             }
           }
         }
-      }
     }
   }
   @graphic.BBox::new(min_x, min_y, max_x - min_x, max_y - min_y)

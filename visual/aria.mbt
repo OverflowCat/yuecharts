@@ -56,7 +56,7 @@ fn data_value_labels(
     @option.Num(n) => n.to_string()
     @option.Vec(arr) => {
       let labels : Array[String] = []
-      let mut i = 0
+
       for i, _ in arr {
         labels.push(arr[i].to_string())
       }

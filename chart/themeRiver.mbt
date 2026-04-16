@@ -206,11 +206,11 @@ fn theme_river_group_rows_by_name(
   rows : Array[TRDataRow],
 ) -> Array[TRLayerData] {
   let grouped : Array[TRLayerData] = []
-  let mut i = 0
+
   for i, _ in rows {
     let row = rows[i]
     let mut found = -1
-    let mut j = 0
+
     for j, _ in grouped {
       if grouped[j].name == row.name {
         found = j
@@ -252,7 +252,7 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
   let mut k = 0
   for k, _ in layers {
     let layer_name = layers[k].name
-    let mut t = 0
+
     for t, _ in time_keys {
       let time = time_keys[t]
       if !theme_river_layer_has_time(layers[k], time) {
@@ -263,7 +263,6 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
   let result : Array[TRDataRow] = []
   k = 0
   while k < layers.length() {
-    let mut j = 0
     for j, _ in layers[k].data_list {
       result.push(layers[k].data_list[j])
     }
@@ -274,7 +273,6 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
 
 ///|
 fn theme_river_contains_string(arr : Array[String], value : String) -> Bool {
-  let mut i = 0
   for i, _ in arr {
     if arr[i] == value {
       return true
@@ -285,7 +283,6 @@ fn theme_river_contains_string(arr : Array[String], value : String) -> Bool {
 
 ///|
 fn theme_river_layer_has_time(layer : TRLayerData, time : String) -> Bool {
-  let mut i = 0
   for i, _ in layer.data_list {
     if layer.data_list[i].time == time {
       return true
@@ -473,7 +470,7 @@ pub fn render_theme_rivers(
     None => return []
   }
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
+
   let mut color_offset = 0
   for si, _ in opt.series {
     let series = opt.series[si]
@@ -486,7 +483,7 @@ pub fn render_theme_rivers(
     }
     let layers = theme_river_get_layers(series, single, color_offset)
     // Render each layer as a filled polygon
-    let mut li = 0
+
     for li, _ in layers {
       let layer = layers[li]
       let path_data = theme_river_layer_path(layer)

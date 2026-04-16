@@ -134,7 +134,7 @@ pub fn render_boxplots(
   coord : @coord.Cartesian2D,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
+
   let mut color_idx = 0
   for si, _ in opt.series {
     let series = opt.series[si]

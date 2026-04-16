@@ -71,22 +71,19 @@ fn legend_data_item_color(
 
 ///|
 fn legend_find_data_color(opt : @option.ChartOption, name : String) -> String {
-  let mut si = 0
   for si, _ in opt.series {
     let series = opt.series[si]
     match series.series_type {
       @option.SeriesType::Pie
       | @option.SeriesType::Funnel
       | @option.SeriesType::Sunburst
-      | @option.SeriesType::Chord => {
-        let mut di = 0
+      | @option.SeriesType::Chord =>
         for di, _ in series.data {
           let item = series.data[di]
           if item.name.unwrap_or("") == name {
             return legend_data_item_color(series, item, si, di)
           }
         }
-      }
       _ =>
         if series.name.unwrap_or("") == name {
           return series.color.unwrap_or(@visual.palette_color(si))
@@ -103,7 +100,6 @@ fn append_data_legend_items(
   series : @option.SeriesOption,
   series_index : Int,
 ) -> Unit {
-  let mut i = 0
   for i, _ in series.data {
     let item = series.data[i]
     let name = item.name.unwrap_or("")

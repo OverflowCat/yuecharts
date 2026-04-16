@@ -166,7 +166,7 @@ fn polar_axis_series_range(
   let mut hi = if dim == "angle" { 360.0 } else { 1.0 }
   let mut first = true
   let range_stack_groups : Array[PolarRangeStackGroup] = []
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     if series.coordinate_system != Some("polar") ||
@@ -188,7 +188,7 @@ fn polar_axis_series_range(
     } else {
       -1
     }
-    let mut di = 0
+
     for di, _ in series.data {
       let item = series.data[di]
       let value_opt = polar_dimension_value(item.value, dim, axis_type, di)
@@ -231,10 +231,10 @@ fn polar_axis_series_range(
       }
     }
   }
-  let mut gi = 0
+
   for gi, _ in range_stack_groups {
     let bases = range_stack_groups[gi].bases
-    let mut bi = 0
+
     for bi, _ in bases {
       let entry = bases[bi]
       let range_pos = polar_update_range(lo, hi, entry.positive, first)
@@ -316,7 +316,6 @@ fn polar_find_range_stack_group_index(
   groups : Array[PolarRangeStackGroup],
   stack_id : String,
 ) -> Int {
-  let mut i = 0
   for i, _ in groups {
     if groups[i].stack_id == stack_id {
       return i

@@ -88,7 +88,7 @@ fn radar_parse_center(s : String, ref_val : Double) -> Double {
 pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   // Render each radar component background, then each series
-  let mut ri = 0
+
   for ri, _ in opt.radar {
     let radar_opt = opt.radar[ri]
     let bg_elems = render_radar_background(radar_opt, opt.width, opt.height)
@@ -97,7 +97,7 @@ pub fn render_radars(opt : @option.ChartOption) -> Array[@graphic.Element] {
   // Find first visualMap that applies to all series (series_index = None)
   // <=> echarts/src/component/visualMap/VisualMapModel.ts seriesIndex handling
   let mut vm_opt : @option.VisualMapOption? = None
-  let mut vmi = 0
+
   for vmi, _ in opt.visual_map {
     let v = opt.visual_map[vmi]
     match v.series_index {
@@ -331,7 +331,7 @@ pub fn render_radar_series(
   let line_width = series.line_style_width.unwrap_or(1.0)
 
   // For each data item — each gets its own palette color (series_index + data_index)
-  let mut di = 0
+
   for di, _ in series.data {
     let item = series.data[di]
     // Resolve item color: visualMap > series.color > palette

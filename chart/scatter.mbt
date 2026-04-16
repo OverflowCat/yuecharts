@@ -19,7 +19,6 @@ fn geo_visual_map_for_series(
   opt : @option.ChartOption,
   series_index : Int,
 ) -> @option.VisualMapOption? {
-  let mut i = 0
   for i, _ in opt.visual_map {
     let visual_map = opt.visual_map[i]
     // None means "apply to all series"; Some(n) means only series n
@@ -316,7 +315,7 @@ pub fn render_scatters(
   calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     match series.series_type {

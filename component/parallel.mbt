@@ -47,7 +47,7 @@ fn parallel_render_axis(
       ),
     )
     let ticks = axis.ticks()
-    let mut i = 0
+
     for i, _ in ticks {
       let tick = ticks[i]
       let x = parallel_tick_coord(axis, tick, i)
@@ -98,7 +98,7 @@ fn parallel_render_axis(
       ),
     )
     let ticks = axis.ticks()
-    let mut i = 0
+
     for i, _ in ticks {
       let tick = ticks[i]
       let y = parallel_tick_coord(axis, tick, i)

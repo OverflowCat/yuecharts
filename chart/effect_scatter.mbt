@@ -14,7 +14,7 @@ fn render_effect_ripple(
 ) -> Unit {
   let ripple_scales = [2.5, 1.8333333333333333, 1.1666666666666667]
   let ripple_opacities = [0.0, 0.33333333333333337, 0.6666666666666667]
-  let mut i = 0
+
   for i, _ in ripple_scales {
     elems.push(
       @graphic.Element::circle_colored_opacity(
@@ -40,7 +40,7 @@ pub fn render_effect_scatter_series(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let default_color = scatter_series_color(series, series_index)
-  let mut di = 0
+
   for di, _ in series.data {
     let item = series.data[di]
     match scatter_point(series, di, item, coord, polar~, geo~, calendar~) {
@@ -80,7 +80,7 @@ pub fn render_effect_scatters(
   calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     if series.series_type != EffectScatter {

@@ -884,10 +884,9 @@ fn matrix_build_corner_cells(
   y_depth : Int,
 ) -> MatrixBuiltArea {
   let defaults : Array[MatrixCell] = []
-  let mut yi = 0
+
   let mut y = rect.y
   for yi, _ in x_level_sizes {
-    let mut xi = 0
     let mut x = rect.x
     for xi, _ in y_level_sizes {
       defaults.push({

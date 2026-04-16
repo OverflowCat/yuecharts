@@ -10,7 +10,7 @@ fn data_item_value(item : @option.DataItem) -> Double {
     @option.DateValue(_, n) => n
     @option.Null => {
       let mut sum = 0.0
-      let mut i = 0
+
       for i, _ in item.children {
         sum = sum + complete_tree_value(item.children[i])
       }
@@ -27,7 +27,7 @@ fn data_item_value(item : @option.DataItem) -> Double {
 ///|
 fn complete_tree_value(item : @option.DataItem) -> Double {
   let mut child_sum = 0.0
-  let mut i = 0
+
   for i, _ in item.children {
     child_sum = child_sum + complete_tree_value(item.children[i])
   }
@@ -50,7 +50,7 @@ fn tree_height(item : @option.DataItem) -> Int {
     return 1
   }
   let mut max_child = 0
-  let mut i = 0
+
   for i, _ in item.children {
     let h = tree_height(item.children[i])
     if h > max_child {
@@ -225,7 +225,7 @@ fn render_sunburst_node(
   }
 
   let child_values : Array[Double] = []
-  let mut i = 0
+
   for i, _ in node.children {
     let v = complete_tree_value(node.children[i])
     child_values.push(v)
@@ -239,7 +239,7 @@ fn render_sunburst_node(
       pv
     } else {
       let mut s = 0.0
-      let mut fi = 0
+
       for fi, _ in child_values {
         s = s + child_values[fi]
       }
@@ -322,7 +322,7 @@ pub fn render_sunbursts(
     }
   }
   let mut color_idx = 0
-  let mut si = 0
+
   for si, _ in opt.series {
     let series = opt.series[si]
     match series.series_type {
@@ -341,7 +341,7 @@ pub fn render_sunbursts(
       vm_min,
       vm_max,
     )
-    let mut i = 0
+
     for i, _ in series_elems {
       elems.push(series_elems[i])
     }
@@ -397,7 +397,7 @@ pub fn render_sunburst_series(
   let mut total = 0.0
   let mut max_height = 0
   let root_values : Array[Double] = []
-  let mut i = 0
+
   for i, _ in series.data {
     let node = series.data[i]
     let v = data_item_value(node)

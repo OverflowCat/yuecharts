@@ -1157,9 +1157,9 @@ fn bar_render_series_cartesian_large_impl(
             } else {
               bar_h
             }
-            let base_x = coord.num_x(x_idx, 0.0)
-            let bar_fill = bar_fill_color(series, series_index)
-            let bar_opacity = bar_fill_opacity(series)
+            let _ = coord.num_x(x_idx, 0.0)
+            let _ = bar_fill_color(series, series_index)
+            let _ = bar_fill_opacity(series)
             let mut di = 0
             while di < render_nd {
               let item = series.data[di]
@@ -1822,7 +1822,7 @@ fn bar_render_series_cartesian_impl(
         match coord.y_scales[y_idx] {
           Ordinal(sy) => {
             let nd = series.data.length()
-            let bar_w = 10.0
+            let _ = 10.0
             let render_nd = if nd > bar_large_render_limit() {
               bar_large_render_limit()
             } else {
@@ -1853,7 +1853,7 @@ fn bar_render_series_cartesian_impl(
             } else {
               bar_h
             }
-            let base_x = coord.num_x(x_idx, 0.0)
+            let _ = coord.num_x(x_idx, 0.0)
             let mut di = 0
             while di < render_nd {
               let item = series.data[di]

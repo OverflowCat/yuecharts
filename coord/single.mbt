@@ -189,7 +189,7 @@ pub fn Single::build(opt : @option.ChartOption) -> Single? {
     let s = opt.series[i]
     if s.series_type == @option.SeriesType::ThemeRiver {
       let items = single_series_items(s)
-      let mut j = 0
+
       for j, _ in items {
         let item = items[j]
         match item.value {
@@ -527,13 +527,13 @@ pub fn Single::collect_time_values(
     let s = opt.series[i]
     if s.series_type == @option.SeriesType::ThemeRiver {
       let items = single_series_items(s)
-      let mut j = 0
+
       for j, _ in items {
         match items[j].value {
           @option.DataValue::DateValue(d, _) => {
             let v = self.val_to_num(d)
             let mut found = false
-            let mut k = 0
+
             for k, _ in vals {
               if vals[k] == v {
                 found = true

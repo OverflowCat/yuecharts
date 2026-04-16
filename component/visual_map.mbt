@@ -671,7 +671,7 @@ pub fn render_visual_map(opt : @option.ChartOption) -> Array[@graphic.Element] {
       let is_horizontal = vm.orient == "horizontal"
       let mut total_w = 0.0
       let mut total_h = 0.0
-      let mut j = 0
+
       for j, _ in view_items {
         let item = view_items[j]
         if is_horizontal {

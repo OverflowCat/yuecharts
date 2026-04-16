@@ -603,7 +603,6 @@ pub fn render_funnel_series(
     gap = -gap
   }
 
-  let mut i = 0
   for i, _ in indices {
     let idx = indices[i]
     let next_idx = if i + 1 < indices.length() {

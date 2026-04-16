@@ -201,7 +201,7 @@ fn view_build_sankey(
 ///|
 pub fn View::build(opt : @option.ChartOption) -> Array[View] {
   let views : Array[View] = []
-  let mut i = 0
+
   for i, _ in opt.series {
     let series = opt.series[i]
     if series.series_type == @option.SeriesType::Sankey &&
