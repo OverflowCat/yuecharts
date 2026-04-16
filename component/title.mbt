@@ -18,58 +18,130 @@
 /// Render the title and optional subtext to scene graph elements.
 /// Returns an empty array if there is no title option set.
 pub fn render_title(opt : @option.ChartOption) -> Array[@graphic.Element] {
-  let title = match opt.title {
-    None => return []
-    Some(t) => t
+  let title_items = if opt.titles.is_empty() {
+    match opt.title {
+      Some(t) => [t]
+      None => []
+    }
+  } else {
+    opt.titles
   }
-  if title.text == "" && title.subtext == "" {
+  if title_items.is_empty() {
     return []
   }
   let elems : Array[@graphic.Element] = []
-  let (tx, anchor) = match title.left {
-    "center" => (opt.width * 0.5, @graphic.TextAnchor::Middle)
-    "right" => (opt.width - 10.0, @graphic.TextAnchor::End)
-    _ => (10.0, @graphic.TextAnchor::Start)
-  }
-  let ty_title = 20.0 + 18.0 / 2.0
-  if title.text != "" {
-    elems.push(
-      @graphic.Element::text_custom(
-        tx,
-        ty_title,
-        title.text,
-        anchor,
-        @graphic.TextBaseline::Central,
-        title.text_style.color,
-        title.text_style.font_size,
-        title_font_family(
-          opt.text_style.font_family,
-          title.text_style.font_family,
+  for i, _ in title_items {
+    let title = title_items[i]
+    if title.text == "" && title.subtext == "" {
+      continue
+    }
+
+    let tx = resolve_title_x(title, opt.width)
+    let anchor = resolve_title_anchor(title)
+    let top = resolve_title_top(title, opt.height)
+
+    if title.text != "" {
+      let ty_title = top + title.text_style.font_size / 2.0
+      elems.push(
+        @graphic.Element::text_custom(
+          tx,
+          ty_title,
+          title.text,
+          anchor,
+          @graphic.TextBaseline::Central,
+          title.text_style.color,
+          title.text_style.font_size,
+          title_font_family(
+            opt.text_style.font_family,
+            title.text_style.font_family,
+          ),
+          title.text_style.font_weight,
         ),
-        title.text_style.font_weight,
-      ),
-    )
-  }
-  if title.subtext != "" {
-    let ty_sub = ty_title + 9.0 + 3.0 + 6.0
-    elems.push(
-      @graphic.Element::text_custom(
-        tx,
-        ty_sub,
-        title.subtext,
-        anchor,
-        @graphic.TextBaseline::Central,
-        title.subtext_style.color,
-        title.subtext_style.font_size,
-        title_font_family(
-          opt.text_style.font_family,
-          title.subtext_style.font_family,
+      )
+    }
+
+    if title.subtext != "" {
+      let ty_sub = if title.text != "" {
+        top +
+        title.text_style.font_size +
+        8.0 +
+        title.subtext_style.font_size / 2.0
+      } else {
+        top + title.subtext_style.font_size / 2.0
+      }
+      elems.push(
+        @graphic.Element::text_custom(
+          tx,
+          ty_sub,
+          title.subtext,
+          anchor,
+          @graphic.TextBaseline::Central,
+          title.subtext_style.color,
+          title.subtext_style.font_size,
+          title_font_family(
+            opt.text_style.font_family,
+            title.subtext_style.font_family,
+          ),
+          title.subtext_style.font_weight,
         ),
-        title.subtext_style.font_weight,
-      ),
-    )
+      )
+    }
   }
   elems
+}
+
+///|
+fn parse_pct_or_px(s : String, reference : Double) -> Double {
+  if s.has_suffix("%") {
+    let inner = s[:s.length() - 1]
+    let r = try? @string.parse_double(inner.to_string())
+    match r {
+      Ok(v) => v / 100.0 * reference
+      Err(_) => 0.0
+    }
+  } else {
+    let r = try? @string.parse_double(s)
+    match r {
+      Ok(v) => v
+      Err(_) => 0.0
+    }
+  }
+}
+
+///|
+fn resolve_title_x(title : @option.TitleOption, width : Double) -> Double {
+  match title.left {
+    "left" => 10.0
+    "center" => width * 0.5
+    "right" => width - 10.0
+    v => parse_pct_or_px(v, width)
+  }
+}
+
+///|
+fn resolve_title_top(title : @option.TitleOption, height : Double) -> Double {
+  match title.top {
+    "auto" => 20.0
+    "top" => 20.0
+    "center" | "middle" => height * 0.5
+    "bottom" => height - 20.0
+    v => parse_pct_or_px(v, height)
+  }
+}
+
+///|
+fn resolve_title_anchor(title : @option.TitleOption) -> @graphic.TextAnchor {
+  match title.text_align {
+    Some("left") => @graphic.TextAnchor::Start
+    Some("center") => @graphic.TextAnchor::Middle
+    Some("right") => @graphic.TextAnchor::End
+    _ =>
+      match title.left {
+        "center" => @graphic.TextAnchor::Middle
+        "right" => @graphic.TextAnchor::End
+        _ => @graphic.TextAnchor::Start
+      }
+  }
 }
 
 ///|

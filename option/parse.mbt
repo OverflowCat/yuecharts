@@ -61,7 +61,8 @@ fn parse_chart_option(j : Json) -> ChartOption {
     Some(style) => style
     None => ChartTextStyleOption::default()
   }
-  let title = j_parse_optional(j, "title", parse_title)
+  let titles = parse_titles(j_field(j, "title"))
+  let title = if titles.is_empty() { None } else { Some(titles[0]) }
   let legend = j_parse_optional(j, "legend", parse_legend)
   let aria = j_parse_optional(j, "aria", parse_aria_option)
   let x_axis = j_parse_one_or_many(j, "xAxis", parse_axis_option_x, [
@@ -112,6 +113,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     height,
     text_style,
     title,
+    titles,
     legend,
     x_axis,
     y_axis,
@@ -132,6 +134,28 @@ fn parse_chart_option(j : Json) -> ChartOption {
     aria,
     visual_map,
   })
+}
+
+///|
+fn parse_titles(j : Json?) -> Array[TitleOption] {
+  match j {
+    Some(Array(arr)) => {
+      let out : Array[TitleOption] = []
+      for item in arr {
+        match item {
+          Object(_) => out.push(parse_title(item))
+          _ => ()
+        }
+      }
+      out
+    }
+    Some(one) =>
+      match one {
+        Object(_) => [parse_title(one)]
+        _ => []
+      }
+    _ => []
+  }
 }
 
 ///|
@@ -596,8 +620,9 @@ fn parse_title(j : Json) -> TitleOption {
   {
     text: j_string(j, "text", base.text),
     subtext: j_string(j, "subtext", base.subtext),
-    left: j_string(j, "left", base.left),
-    top: j_string(j, "top", base.top),
+    left: j_string_or_number(j, "left", base.left),
+    top: j_string_or_number(j, "top", base.top),
+    text_align: j_string_opt(j, "textAlign"),
     text_style: parse_title_text_style_option(
       j_field_or_self(j, "textStyle"),
       base.text_style,
@@ -3367,6 +3392,7 @@ fn j_stringish_array(
   match j_field(j, key) {
     Some(Array(arr)) => arr.map(json_to_stringish_empty)
     Some(String(s)) => [s]
+    Some(Number(n, ..)) => ["\{n}"]
     _ => default_val
   }
 }

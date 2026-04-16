@@ -39,6 +39,153 @@ fn parse_pct_or_px(s : String, reference : Double) -> Double {
 }
 
 ///|
+/// <=> echarts/src/util/layout.ts:getLayoutRect (subset for pie box layout)
+fn pie_layout_value(value : String, total : Double) -> Double {
+  if value == "center" ||
+    value == "middle" ||
+    value == "right" ||
+    value == "bottom" {
+    return 0.0 / 0.0
+  }
+  if value.has_suffix("%") {
+    let pct = value[:value.length() - 1]
+    let parsed = try? @string.parse_double(pct.to_string())
+    match parsed {
+      Ok(v) => v / 100.0 * total
+      Err(_) => 0.0 / 0.0
+    }
+  } else {
+    let parsed = try? @string.parse_double(value)
+    match parsed {
+      Ok(v) => v
+      Err(_) => 0.0 / 0.0
+    }
+  }
+}
+
+///|
+fn pie_layout_value_opt(value : String?, total : Double) -> Double {
+  match value {
+    Some(v) => pie_layout_value(v, total)
+    None => 0.0 / 0.0
+  }
+}
+
+///|
+/// <=> echarts/src/util/layout.ts:getLayoutRect
+fn pie_get_layout_rect(
+  series : @option.SeriesOption,
+  container : @graphic.BBox,
+) -> @graphic.BBox {
+  let container_width = container.width
+  let container_height = container.height
+
+  let mut left = pie_layout_value_opt(series.left, container_width)
+  let mut top = pie_layout_value_opt(series.top, container_height)
+  let right = pie_layout_value_opt(series.right, container_width)
+  let bottom = pie_layout_value_opt(series.bottom, container_height)
+  let mut width = pie_layout_value_opt(series.width, container_width)
+  let mut height = pie_layout_value_opt(series.height, container_height)
+
+  if width.is_nan() {
+    width = container_width - right - left
+  }
+  if height.is_nan() {
+    height = container_height - bottom - top
+  }
+
+  match series.left.unwrap_or(series.right.unwrap_or("")) {
+    "center" => left = container_width / 2.0 - width / 2.0
+    "right" => left = container_width - width - right
+    _ => ()
+  }
+  match series.top.unwrap_or(series.bottom.unwrap_or("")) {
+    "center" | "middle" => top = container_height / 2.0 - height / 2.0
+    "bottom" => top = container_height - height - bottom
+    _ => ()
+  }
+
+  if left.is_nan() {
+    left = container_width - right - width
+  }
+  if top.is_nan() {
+    top = container_height - bottom - height
+  }
+
+  left = if left.is_nan() { 0.0 } else { left }
+  top = if top.is_nan() { 0.0 } else { top }
+  if width.is_nan() {
+    width = container_width - left - (if right.is_nan() { 0.0 } else { right })
+  }
+  if height.is_nan() {
+    height = container_height -
+      top -
+      (if bottom.is_nan() { 0.0 } else { bottom })
+  }
+
+  @graphic.BBox::new(container.x + left, container.y + top, width, height)
+}
+
+///|
+/// <=> echarts/src/core/CoordinateSystem.ts:getCoordForBoxCoordSys
+///    + echarts/src/chart/pie/PieSeries.ts registerLayOutOnCoordSysUsage(getCoord2=center)
+fn pie_parse_matrix_coord_value(value : String) -> @option.MatrixCoordValue {
+  let parsed = try? @string.parse_int(value, base=10)
+  match parsed {
+    Ok(v) => @option.MatrixCoordValue::Locator(v)
+    Err(_) => @option.MatrixCoordValue::Name(value)
+  }
+}
+
+///|
+/// <=> echarts/src/util/layout.ts:getViewRectAndCenterForCircleLayout
+/// Matrix branch: when `center` is used as `coord2`, center equals refContainer center.
+fn pie_resolve_view_rect_and_center(
+  opt : @option.ChartOption,
+  series : @option.SeriesOption,
+) -> (@graphic.BBox, Double, Double) {
+  let full = @graphic.BBox::new(0.0, 0.0, opt.width, opt.height)
+
+  if series.coordinate_system == Some("matrix") && series.center.length() >= 2 {
+    match @coord.Matrix::build(opt) {
+      Some(matrix) => {
+        let x_coord = pie_parse_matrix_coord_value(series.center[0])
+        let y_coord = pie_parse_matrix_coord_value(series.center[1])
+        match (matrix.resolve_x(x_coord), matrix.resolve_y(y_coord)) {
+          (Some(xi), Some(yi)) => {
+            let cell_layout = matrix.data_to_layout(xi, yi, clamp=false)
+            let ref_container = cell_layout.content_rect
+            if !ref_container.x.is_nan() && !ref_container.y.is_nan() {
+              let view_rect = pie_get_layout_rect(series, ref_container)
+              return (
+                view_rect,
+                ref_container.center_x(),
+                ref_container.center_y(),
+              )
+            }
+          }
+          _ => ()
+        }
+      }
+      None => ()
+    }
+  }
+
+  let view_rect = pie_get_layout_rect(series, full)
+  let cx = if series.center.length() >= 1 {
+    parse_pct_or_px(series.center[0], view_rect.width) + view_rect.x
+  } else {
+    view_rect.center_x()
+  }
+  let cy = if series.center.length() >= 2 {
+    parse_pct_or_px(series.center[1], view_rect.height) + view_rect.y
+  } else {
+    view_rect.center_y()
+  }
+  (view_rect, cx, cy)
+}
+
+///|
 /// Round a Double to 4 decimal places for clean SVG output.
 fn r4(v : Double) -> String {
   // Multiply by 10000, round, divide back, format
@@ -64,12 +211,7 @@ pub fn render_pies(
         continue
       }
     }
-    let series_elems = render_pie_series(
-      series,
-      color_idx,
-      opt.width,
-      opt.height,
-    )
+    let series_elems = render_pie_series(opt, series, color_idx)
 
     for i, _ in series_elems {
       elems.push(series_elems[i])
@@ -82,10 +224,9 @@ pub fn render_pies(
 ///|
 /// Render a single pie series.
 pub fn render_pie_series(
+  opt : @option.ChartOption,
   series : @option.SeriesOption,
   series_index : Int,
-  chart_width : Double,
-  chart_height : Double,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let nd = series.data.length()
@@ -93,37 +234,39 @@ pub fn render_pie_series(
     return elems
   }
 
-  // --- Parse center ---
-  let cx = if series.center.length() >= 1 {
-    parse_pct_or_px(series.center[0], chart_width)
-  } else {
-    chart_width * 0.5
-  }
-  let cy = if series.center.length() >= 2 {
-    parse_pct_or_px(series.center[1], chart_height)
-  } else {
-    chart_height * 0.5
-  }
+  // --- Parse viewRect + center ---
+  let (view_rect, cx, cy) = pie_resolve_view_rect_and_center(opt, series)
 
   // --- Parse radius ---
-  // ECharts: percentage relative to min(width, height) / 2
-  let ref_r = (if chart_width < chart_height {
-      chart_width
+  // ECharts: percentage relative to min(viewRect.width, viewRect.height) / 2
+  let ref_r = (if view_rect.width < view_rect.height {
+      view_rect.width
     } else {
-      chart_height
+      view_rect.height
     }) /
     2.0
-  let r_inner = if series.radius.length() >= 1 {
-    parse_pct_or_px(series.radius[0], ref_r)
+  let (r_inner, r_outer) = if series.radius.length() >= 2 {
+    (
+      parse_pct_or_px(series.radius[0], ref_r),
+      parse_pct_or_px(series.radius[1], ref_r),
+    )
+  } else if series.radius.length() == 1 {
+    // <=> echarts/src/util/layout.ts:getCircleLayout
+    // scalar radius means [0, radius]
+    (0.0, parse_pct_or_px(series.radius[0], ref_r))
+  } else {
+    (0.0, ref_r * 0.75)
+  }
+
+  let r_outer = if r_outer >= 0.0 { r_outer } else { 0.0 }
+  let r_inner = if r_inner >= 0.0 {
+    if r_inner <= r_outer {
+      r_inner
+    } else {
+      r_outer
+    }
   } else {
     0.0
-  }
-  let r_outer = if series.radius.length() >= 2 {
-    parse_pct_or_px(series.radius[1], ref_r)
-  } else if series.radius.length() == 1 {
-    parse_pct_or_px(series.radius[0], ref_r)
-  } else {
-    ref_r * 0.75 // ECharts default: 75%
   }
 
   // --- Compute total ---
@@ -277,16 +420,27 @@ pub fn render_pie_series(
       } else {
         @graphic.TextAnchor::End
       }
-      elems.push(
-        @graphic.Element::text_colored(
-          lx,
-          ly,
-          label_text,
-          anchor,
-          @graphic.TextBaseline::Middle,
-          "#333333",
-        ),
-      )
+      let normalized_label = label_text.replace(old="\\n", new="\n")
+      let label_lines : Array[String] = normalized_label
+        .split("\n")
+        .map(StringView::to_string)
+        .collect()
+      let line_height = 14.0
+      for line_idx, line in label_lines {
+        if line != "" {
+          let line_color = if line_idx == 0 { "#333333" } else { "#999999" }
+          elems.push(
+            @graphic.Element::text_colored(
+              lx,
+              ly + line_height * line_idx.to_double(),
+              line,
+              anchor,
+              @graphic.TextBaseline::Middle,
+              line_color,
+            ),
+          )
+        }
+      }
     }
   }
   elems

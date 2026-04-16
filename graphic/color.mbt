@@ -190,7 +190,8 @@ fn parse_css_rgba_like(text : StringView, has_alpha : Bool) -> Color? {
       Some(i) => second_comma + 1 + i
       None => return None
     }
-    guard parse_css_rgb_component(inner[second_comma + 1:third_comma]) is Some(b) else {
+    guard parse_css_rgb_component(inner[second_comma + 1:third_comma])
+      is Some(b) else {
       return None
     }
     guard parse_css_alpha_component(inner[third_comma + 1:]) is Some(a) else {

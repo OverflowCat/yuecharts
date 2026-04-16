@@ -500,7 +500,7 @@ pub(all) enum DataValue {
   Vec(Array[Double])
   DateValue(String, Double)
   Null
-}
+} derive(Default)
 
 ///|
 /// One item in a series data array.
@@ -1275,6 +1275,7 @@ pub struct TitleOption {
   subtext : String
   left : String // "left" | "center" | "right" | pixel
   top : String
+  text_align : String?
   text_style : TitleTextStyleOption
   subtext_style : TitleTextStyleOption
 }
@@ -1296,6 +1297,7 @@ pub impl Default for TitleOption with default() {
     subtext: "",
     left: "center",
     top: "auto",
+    text_align: None,
     text_style: TitleTextStyleOption::default(),
     subtext_style: TitleTextStyleOption::default_subtext(),
   }
@@ -2016,6 +2018,7 @@ pub(all) struct ChartOption {
   height : Double
   text_style : ChartTextStyleOption
   title : TitleOption?
+  titles : Array[TitleOption]
   legend : LegendOption?
   x_axis : Array[AxisOption]
   y_axis : Array[AxisOption]
@@ -2046,6 +2049,7 @@ pub impl Default for ChartOption with default() {
     height: 400.0,
     text_style: ChartTextStyleOption::default(),
     title: None,
+    titles: [],
     legend: None,
     x_axis: [],
     y_axis: [],
@@ -2099,7 +2103,69 @@ pub fn format_label_tpl(
   }
   // {value} for axis-label style templates (axisHelper.ts:makeLabelFormatter)
   result = result.replace(old="{value}", new=value)
-  result
+  strip_rich_text_style(result)
+}
+
+///|
+/// Rich text template branch in ECharts supports style wrappers like
+/// `{name|text}`. Since style-token rendering is not yet implemented in
+/// MoonBit SVG text, keep text content and drop wrapper markers.
+/// <=> echarts/src/label/labelStyle.ts + format.ts rich text pipeline
+fn strip_rich_text_style(text : String) -> String {
+  let out = StringBuilder::new()
+  let mut in_brace = false
+  let mut seen_pipe = false
+  let mut head = StringBuilder::new()
+  let mut body = StringBuilder::new()
+
+  for ch in text {
+    if !in_brace {
+      if ch == '{' {
+        in_brace = true
+        seen_pipe = false
+        head = StringBuilder::new()
+        body = StringBuilder::new()
+      } else {
+        out.write_char(ch)
+      }
+      continue
+    }
+
+    if ch == '}' {
+      if seen_pipe {
+        out.write_string(body.to_string())
+      } else {
+        out.write_char('{')
+        out.write_string(head.to_string())
+        out.write_char('}')
+      }
+      in_brace = false
+      continue
+    }
+
+    if ch == '|' && !seen_pipe {
+      seen_pipe = true
+      continue
+    }
+
+    if seen_pipe {
+      body.write_char(ch)
+    } else {
+      head.write_char(ch)
+    }
+  }
+
+  // Keep unfinished template text as-is when missing closing brace.
+  if in_brace {
+    out.write_char('{')
+    out.write_string(head.to_string())
+    if seen_pipe {
+      out.write_char('|')
+    }
+    out.write_string(body.to_string())
+  }
+
+  out.to_string()
 }
 
 ///|
