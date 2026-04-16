@@ -222,17 +222,16 @@ pub fn render_line_series(
     ),
   )
 
-  for pi, _ in points {
-    let p = points[pi]
-    elems.push(
+  elems.append(
+    points.map(p => {
       @graphic.Element::circle_colored(
         p.x,
         p.y,
         series.symbol_size * 0.5,
         stroke_color,
-      ),
-    )
-  }
+      )
+    }),
+  )
   elems
 }
 

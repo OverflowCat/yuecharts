@@ -251,8 +251,7 @@ fn parse_dataset_filter_transform_table(
       match (dim_idx, filter_value) {
         (Some(idx), Some(target)) => {
           let rows : Array[Array[Json]] = []
-          for i, _ in source_table.rows {
-            let row = source_table.rows[i]
+          for row in source_table.rows {
             if idx < row.length() &&
               dataset_filter_value_match(row[idx], target) {
               rows.push(row)
@@ -298,17 +297,11 @@ fn dataset_filter_value_match(cell : Json, target : Json) -> Bool {
     (Null, Null) => true
     (String(a), Number(b, ..)) => {
       let parsed = try? @string.parse_double(a)
-      match parsed {
-        Ok(v) => v == b
-        Err(_) => false
-      }
+      parsed.map(v => v == b).unwrap_or(false)
     }
     (Number(a, ..), String(b)) => {
       let parsed = try? @string.parse_double(b)
-      match parsed {
-        Ok(v) => v == a
-        Err(_) => false
-      }
+      parsed.map(v => v == a).unwrap_or(false)
     }
     _ => false
   }

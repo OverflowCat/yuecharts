@@ -235,8 +235,7 @@ fn polar_axis_series_range(
   for gi, _ in range_stack_groups {
     let bases = range_stack_groups[gi].bases
 
-    for bi, _ in bases {
-      let entry = bases[bi]
+    for entry in bases {
       let range_pos = polar_update_range(lo, hi, entry.positive, first)
       lo = range_pos.0
       hi = range_pos.1
@@ -248,11 +247,7 @@ fn polar_axis_series_range(
     }
   }
   if first {
-    if dim == "angle" {
-      (0.0, 360.0)
-    } else {
-      (0.0, 1.0)
-    }
+    (0.0, if dim == "angle" { 360.0 } else { 1.0 })
   } else {
     (lo, hi)
   }

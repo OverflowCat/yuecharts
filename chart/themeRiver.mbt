@@ -243,7 +243,7 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
   i = 0
   while i < filtered.length() {
     let time = filtered[i].time
-    if !theme_river_contains_string(time_keys, time) {
+    if !time_keys.contains(time) {
       time_keys.push(time)
     }
     i += 1
@@ -253,8 +253,7 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
   for k, _ in layers {
     let layer_name = layers[k].name
 
-    for t, _ in time_keys {
-      let time = time_keys[t]
+    for time in time_keys {
       if !theme_river_layer_has_time(layers[k], time) {
         layers[k].data_list.push({ time, value: 0.0, name: layer_name })
       }
@@ -269,16 +268,6 @@ fn theme_river_fix_rows(series : @option.SeriesOption) -> Array[TRDataRow] {
     k += 1
   }
   result
-}
-
-///|
-fn theme_river_contains_string(arr : Array[String], value : String) -> Bool {
-  for i, _ in arr {
-    if arr[i] == value {
-      return true
-    }
-  }
-  false
 }
 
 ///|

@@ -3,33 +3,33 @@
 
 ///|
 pub struct XmlAttr {
-  name : String
-  value : String?
+  name : StringView
+  value : StringView?
 }
 
 ///|
-pub fn XmlAttr::new(name : String, value : String) -> XmlAttr {
+pub fn XmlAttr::new(name : StringView, value : StringView) -> XmlAttr {
   { name, value: Some(value) }
 }
 
 ///|
-pub fn XmlAttr::flag(name : String) -> XmlAttr {
+pub fn XmlAttr::flag(name : StringView) -> XmlAttr {
   { name, value: None }
 }
 
 ///|
 pub enum XmlText {
-  Escaped(String)
-  Raw(String)
+  Escaped(StringView)
+  Raw(StringView)
 }
 
 ///|
-pub fn XmlText::escaped(content : String) -> XmlText {
+pub fn XmlText::escaped(content : StringView) -> XmlText {
   Escaped(content)
 }
 
 ///|
-pub fn XmlText::raw(content : String) -> XmlText {
+pub fn XmlText::raw(content : StringView) -> XmlText {
   Raw(content)
 }
 
@@ -109,7 +109,7 @@ fn @buffer.Buffer::write_xml_indent(
 ///|
 fn @buffer.Buffer::write_xml_literal(
   self : Self,
-  s : String,
+  s : StringView,
   utf16le : Bool,
 ) -> Unit {
   if utf16le {
@@ -120,7 +120,7 @@ fn @buffer.Buffer::write_xml_literal(
 }
 
 ///|
-fn StringBuilder::write_xml_escaped(self : Self, s : String) -> Unit {
+fn StringBuilder::write_xml_escaped(self : Self, s : StringView) -> Unit {
   for c in s {
     match c {
       '&' => self.write_string("&amp;")
@@ -136,7 +136,7 @@ fn StringBuilder::write_xml_escaped(self : Self, s : String) -> Unit {
 ///|
 fn @buffer.Buffer::write_xml_escaped(
   self : Self,
-  s : String,
+  s : StringView,
   utf16le : Bool,
 ) -> Unit {
   for c in s {
@@ -171,7 +171,7 @@ pub fn xml_escape(s : String) -> String {
 ///|
 fn XmlAttr::write_to_string(self : Self, buf : StringBuilder) -> Unit {
   buf.write_char(' ')
-  buf.write_string(self.name)
+  buf.write_string(self.name.to_string())
   match self.value {
     Some(value) => {
       buf.write_string("=\"")
@@ -204,7 +204,7 @@ fn XmlAttr::write_to_buffer(
 fn XmlText::write_to_string(self : Self, buf : StringBuilder) -> Unit {
   match self {
     Escaped(content) => buf.write_xml_escaped(content)
-    Raw(content) => buf.write_string(content)
+    Raw(content) => buf.write_string(content.to_string())
   }
 }
 

@@ -271,20 +271,14 @@ pub fn render_geo_component(
     let emphasis_style = geo_region_state_style(geo_opt, region_opt, "emphasis")
     let select_style = geo_region_state_style(geo_opt, region_opt, "select")
 
-    for polygon_index, _ in polygons {
-      elems.push(
+    elems.append(
+      polygons.map(p => {
         render_geo_region_outline(
-          polygons[polygon_index],
-          fill,
-          border_color,
-          border_width,
-          silent,
-          selected,
-          emphasis_style,
+          p, fill, border_color, border_width, silent, selected, emphasis_style,
           select_style,
-        ),
-      )
-    }
+        )
+      }),
+    )
     if geo_region_label_show(geo_opt, region_opt) {
       let center = region.screen_center(geo)
       let label = @graphic.Element::text_colored(

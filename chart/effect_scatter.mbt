@@ -15,12 +15,12 @@ fn render_effect_ripple(
   let ripple_scales = [2.5, 1.8333333333333333, 1.1666666666666667]
   let ripple_opacities = [0.0, 0.33333333333333337, 0.6666666666666667]
 
-  for i, _ in ripple_scales {
+  for i, sc in ripple_scales {
     elems.push(
       @graphic.Element::circle_colored_opacity(
         px,
         py,
-        symbol_radius * ripple_scales[i],
+        symbol_radius * sc,
         color,
         ripple_opacities[i],
       ),
@@ -80,23 +80,20 @@ pub fn render_effect_scatters(
   calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
-
-  for si, _ in opt.series {
-    let series = opt.series[si]
+  for si, series in opt.series {
     if series.series_type != EffectScatter {
       continue
     }
-    elems.append(
-      render_effect_scatter_series(
-        opt,
-        series,
-        si,
-        coord,
-        polar~,
-        geo~,
-        calendar~,
-      ),
+    let r = render_effect_scatter_series(
+      opt,
+      series,
+      si,
+      coord,
+      polar~,
+      geo~,
+      calendar~,
     )
+    elems.append(r)
   }
   elems
 }

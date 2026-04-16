@@ -70,14 +70,14 @@ pub fn Color::lift(self : Color, level : Double) -> Color {
 
 ///|
 /// Corresponds to: zrender/src/tool/color.ts liftColor
-pub fn Color::lift_color_string(color_str : String) -> String? {
+pub fn Color::lift_color_string(color_str : StringView) -> String? {
   Color::from_string(color_str).map(color => color.lift(-0.1).to_svg())
 }
 
 ///|
 /// Parse a hex color string like "#rgb", "#rrggbb", or "#rrggbbaa".
 /// Returns None if the string is not a valid hex color.
-pub fn Color::from_hex(s : String) -> Color? {
+pub fn Color::from_hex(s : StringView) -> Color? {
   let off = if s.has_prefix("#") { 1 } else { 0 }
   let len = s.length() - off
   if len == 3 {
@@ -115,7 +115,7 @@ pub fn Color::from_hex(s : String) -> Color? {
 
 ///|
 /// Parse a CSS named color or hex string.
-pub fn Color::from_string(s : String) -> Color? {
+pub fn Color::from_string(s : StringView) -> Color? {
   let compact = strip_ascii_spaces(s)
   if compact.has_prefix("rgba(") && compact.has_suffix(")") {
     parse_css_rgba_like(compact, true)
@@ -153,21 +153,21 @@ pub fn Color::from_string(s : String) -> Color? {
 }
 
 ///|
-fn strip_ascii_spaces(text : String) -> String {
+fn strip_ascii_spaces(text : StringView) -> String {
   let next = text.replace(old=" ", new="")
   if next == text {
-    text
+    text.to_string()
   } else {
     strip_ascii_spaces(next)
   }
 }
 
 ///|
-fn parse_css_rgba_like(text : String, has_alpha : Bool) -> Color? {
+fn parse_css_rgba_like(text : StringView, has_alpha : Bool) -> Color? {
   let inner = if has_alpha {
-    text[5:text.length() - 1].to_string()
+    text[5:text.length() - 1]
   } else {
-    text[4:text.length() - 1].to_string()
+    text[4:text.length() - 1]
   }
   let first_comma = match inner.find(",") {
     Some(i) => i
@@ -178,14 +178,11 @@ fn parse_css_rgba_like(text : String, has_alpha : Bool) -> Color? {
     Some(i) => first_comma + 1 + i
     None => return None
   }
-  let r = match parse_css_rgb_component(inner[0:first_comma].to_string()) {
-    Some(v) => v
-    None => return None
+  guard parse_css_rgb_component(inner[0:first_comma]) is Some(r) else {
+    return None
   }
-  let g = match
-    parse_css_rgb_component(inner[first_comma + 1:second_comma].to_string()) {
-    Some(v) => v
-    None => return None
+  guard parse_css_rgb_component(inner[first_comma + 1:second_comma]) is Some(g) else {
+    return None
   }
   if has_alpha {
     let third_part = inner[second_comma + 1:]
@@ -193,29 +190,23 @@ fn parse_css_rgba_like(text : String, has_alpha : Bool) -> Color? {
       Some(i) => second_comma + 1 + i
       None => return None
     }
-    let b = match
-      parse_css_rgb_component(inner[second_comma + 1:third_comma].to_string()) {
-      Some(v) => v
-      None => return None
+    guard parse_css_rgb_component(inner[second_comma + 1:third_comma]) is Some(b) else {
+      return None
     }
-    let a = match
-      parse_css_alpha_component(inner[third_comma + 1:].to_string()) {
-      Some(v) => v
-      None => return None
+    guard parse_css_alpha_component(inner[third_comma + 1:]) is Some(a) else {
+      return None
     }
     Some({ r, g, b, a })
   } else {
-    let b = match
-      parse_css_rgb_component(inner[second_comma + 1:].to_string()) {
-      Some(v) => v
-      None => return None
+    guard parse_css_rgb_component(inner[second_comma + 1:]) is Some(b) else {
+      return None
     }
     Some({ r, g, b, a: 255 })
   }
 }
 
 ///|
-fn parse_css_rgb_component(value : String) -> Int? {
+fn parse_css_rgb_component(value : StringView) -> Int? {
   let parsed = try? @string.parse_double(value)
   match parsed {
     Ok(v) => Some(color_channel_from_double(v))
@@ -224,12 +215,9 @@ fn parse_css_rgb_component(value : String) -> Int? {
 }
 
 ///|
-fn parse_css_alpha_component(value : String) -> Int? {
+fn parse_css_alpha_component(value : StringView) -> Int? {
   let parsed = try? @string.parse_double(value)
-  match parsed {
-    Ok(v) => Some(color_alpha_from_double(v))
-    Err(_) => None
-  }
+  parsed.map(color_alpha_from_double).to_option()
 }
 
 ///|
@@ -341,7 +329,7 @@ fn hex_digit(code : Int) -> Int {
 }
 
 ///|
-fn hex_byte(s : String, offset : Int) -> Int {
+fn hex_byte(s : StringView, offset : Int) -> Int {
   let hi = hex_digit(s[offset].to_int())
   let lo = hex_digit(s[offset + 1].to_int())
   if hi < 0 || lo < 0 {

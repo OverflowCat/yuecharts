@@ -114,17 +114,6 @@ fn funnel_sorted_indices(
 }
 
 ///|
-fn funnel_reverse_indices(indices : Array[Int]) -> Array[Int] {
-  let out : Array[Int] = []
-  let mut i = indices.length()
-  while i > 0 {
-    i -= 1
-    out.push(indices[i])
-  }
-  out
-}
-
-///|
 fn funnel_series_fill_color(
   series : @option.SeriesOption,
   index : Int,
@@ -560,11 +549,7 @@ pub fn render_funnel_series(
   let mut gap = series.funnel_gap
 
   let indices0 = funnel_sorted_indices(series.data, sort)
-  let indices = if sort == "ascending" {
-    funnel_reverse_indices(indices0)
-  } else {
-    indices0
-  }
+  let indices = if sort == "ascending" { indices0.rev() } else { indices0 }
 
   let (data_min, data_max) = funnel_data_extent(series.data)
   let min_val = series.funnel_min.unwrap_or(

@@ -40,13 +40,13 @@ fn pictorial_margin_px(series : @option.SeriesOption, unit : Double) -> Double {
   match series.symbol_margin {
     Some(margin) => {
       let margin_value = if margin.has_suffix("!") {
-        margin[:margin.length() - 1].to_string()
+        margin[:margin.length() - 1]
       } else {
-        margin
+        margin[:]
       }
       if margin_value.has_suffix("%") {
         let pct_str = margin_value[:margin_value.length() - 1]
-        let parsed = try? @string.parse_double(pct_str.to_string())
+        let parsed = try? @string.parse_double(pct_str)
         match parsed {
           Ok(pct) => unit * pct / 100.0
           Err(_) => unit * 0.15

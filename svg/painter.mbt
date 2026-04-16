@@ -24,7 +24,7 @@ pub struct CssStyleCacheEntry {
 ///|
 pub struct SvgLinearGradientStop {
   offset : Double
-  color : String
+  color : StringView
 }
 
 ///|
@@ -204,8 +204,8 @@ fn active_line_width_value(
 }
 
 ///|
-fn lift_color_or_self(color : String) -> String {
-  @graphic.Color::lift_color_string(color).unwrap_or(color)
+fn lift_color_or_self(color : StringView) -> String {
+  @graphic.Color::lift_color_string(color).unwrap_or(color.to_string())
 }
 
 ///|
@@ -226,25 +226,25 @@ fn resolve_gradient_spec(
   while i < parts.length() {
     let part = parts[i].to_string()
     if part.has_prefix("x=") {
-      let parsed = try? @string.parse_double(part[2:].to_string())
+      let parsed = try? @string.parse_double(part[2:])
       match parsed {
         Ok(v) => x1 = v
         Err(_) => ()
       }
     } else if part.has_prefix("y=") {
-      let parsed = try? @string.parse_double(part[2:].to_string())
+      let parsed = try? @string.parse_double(part[2:])
       match parsed {
         Ok(v) => y1 = v
         Err(_) => ()
       }
     } else if part.has_prefix("x2=") {
-      let parsed = try? @string.parse_double(part[3:].to_string())
+      let parsed = try? @string.parse_double(part[3:])
       match parsed {
         Ok(v) => x2 = v
         Err(_) => ()
       }
     } else if part.has_prefix("y2=") {
-      let parsed = try? @string.parse_double(part[3:].to_string())
+      let parsed = try? @string.parse_double(part[3:])
       match parsed {
         Ok(v) => y2 = v
         Err(_) => ()
@@ -256,8 +256,8 @@ fn resolve_gradient_spec(
         let stop_sep = stop_spec_str.find(":")
         match stop_sep {
           Some(idx) => {
-            let offset_text = stop_spec_str[:idx].to_string()
-            let color_text = stop_spec_str[idx + 1:].to_string()
+            let offset_text = stop_spec_str[:idx]
+            let color_text = stop_spec_str[idx + 1:]
             let parsed = try? @string.parse_double(offset_text)
             match parsed {
               Ok(offset) => stops.push({ offset, color: color_text })

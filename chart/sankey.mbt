@@ -89,8 +89,7 @@ fn sankey_build_graph(
   let nodes : Array[SankeyNode] = []
   let lookup : Array[(String, Int)] = []
   let mut i = 0
-  for i, _ in series.data {
-    let item = series.data[i]
+  for i, item in series.data {
     let key = sankey_node_key(item, i)
     let name = item.name.unwrap_or(key)
     let index = nodes.length()
@@ -262,46 +261,36 @@ fn sankey_adjust_node_align_right(
   edges : Array[SankeyEdge],
   max_depth : Int,
 ) -> Unit {
-  let mut remain_nodes : Array[Int] = []
-  let mut i = 0
-  for i, _ in nodes {
-    remain_nodes.push(i)
-  }
+  let mut remain_nodes : Array[Int] = nodes.mapi((i, _sankey_node) => i)
   let mut next_source_nodes : Array[Int] = []
   let mut node_height = 0
   while remain_nodes.length() > 0 {
-    i = 0
-    while i < remain_nodes.length() {
-      let node_index = remain_nodes[i]
+    for node_index in remain_nodes {
       nodes[node_index].sk_node_height = node_height
-
-      for j, _ in nodes[node_index].in_edges {
-        let source_index = edges[nodes[node_index].in_edges[j]].source_index
+      for edge_index in nodes[node_index].in_edges {
+        let source_index = edges[edge_index].source_index
         if !next_source_nodes.contains(source_index) {
           next_source_nodes.push(source_index)
         }
       }
-      i += 1
     }
     remain_nodes = next_source_nodes
     next_source_nodes = []
     node_height += 1
   }
-  i = 0
-  while i < nodes.length() {
-    if !sankey_is_item_depth(nodes[i]) {
-      let depth = max_depth - nodes[i].sk_node_height
-      nodes[i].depth = if depth < 0 { 0 } else { depth }
+  for n in nodes {
+    if !sankey_is_item_depth(n) {
+      let depth = max_depth - n.sk_node_height
+      n.depth = if depth < 0 { 0 } else { depth }
     }
-    i += 1
   }
 }
 
 ///|
 fn sankey_move_sinks_right(nodes : Array[SankeyNode], max_depth : Int) -> Unit {
-  for i, _ in nodes {
-    if !sankey_is_item_depth(nodes[i]) && nodes[i].out_edges.length() == 0 {
-      nodes[i].depth = max_depth
+  for n in nodes {
+    if !sankey_is_item_depth(n) && n.out_edges.length() == 0 {
+      n.depth = max_depth
     }
   }
 }
@@ -315,27 +304,21 @@ fn sankey_compute_node_breadths(
 ) -> Bool {
   let node_width = series.sankey_node_width
   let orient = series.sankey_orient
-  let remain_edges : Array[Int] = []
   let indegrees : Array[Int] = []
   let mut zero_indegrees : Array[Int] = []
   let mut next_target_nodes : Array[Int] = []
-  let mut i = 0
-  for _, _ in edges {
-    remain_edges.push(1)
-  }
-  i = 0
-  while i < nodes.length() {
-    let indegree = nodes[i].in_edges.length()
+  let remain_edges = edges.map(_ => 1)
+  for i, n in nodes {
+    let indegree = n.in_edges.length()
     indegrees.push(indegree)
     if indegree == 0 {
       zero_indegrees.push(i)
     }
-    i += 1
   }
   let mut breadth = 0
   let mut max_node_depth = -1
   while zero_indegrees.length() > 0 {
-    i = 0
+    let mut i = 0
     while i < zero_indegrees.length() {
       let node_index = zero_indegrees[i]
       let item_depth = nodes[node_index].item.depth.unwrap_or(-1)
@@ -366,12 +349,8 @@ fn sankey_compute_node_breadths(
     zero_indegrees = next_target_nodes
     next_target_nodes = []
   }
-  i = 0
-  while i < remain_edges.length() {
-    if remain_edges[i] == 1 {
-      return false
-    }
-    i += 1
+  if remain_edges.contains(1) {
+    return false
   }
   let max_depth = if max_node_depth > breadth - 1 {
     max_node_depth
@@ -406,9 +385,9 @@ fn sankey_prepare_nodes_by_breadth(
 ) -> Array[Array[Int]] {
   let mut max_depth = 0
   let mut i = 0
-  for i, _ in nodes {
-    if nodes[i].depth > max_depth {
-      max_depth = nodes[i].depth
+  for n in nodes {
+    if n.depth > max_depth {
+      max_depth = n.depth
     }
   }
   let groups : Array[Array[Int]] = []
@@ -534,11 +513,8 @@ fn sankey_resolve_collisions(
   for i, _ in groups {
     let group = groups[i]
     let ordered : Array[Int] = []
-    let used : Array[Bool] = []
     let mut j = 0
-    for _, _ in group {
-      used.push(false)
-    }
+    let used : Array[Bool] = group.map(_ => false)
 
     for _, _ in group {
       let mut best = -1
@@ -623,11 +599,10 @@ fn sankey_sum_edge_values(
   edges : Array[SankeyEdge],
 ) -> Double {
   let mut sum = 0.0
-
-  for i, _ in edge_indices {
-    let value = edges[edge_indices[i]].value
+  for idc in edge_indices {
+    let value = edges[idc].value
     if value == value {
-      sum = sum + value
+      sum += value
     }
   }
   sum
@@ -828,14 +803,12 @@ fn sankey_compute_edge_depths(
   i = 0
   while i < nodes.length() {
     let mut sy = 0.0
-    let mut j = 0
-    for j, _ in nodes[i].out_edges {
-      let edge_index = nodes[i].out_edges[j]
+    for edge_index in nodes[i].out_edges {
       edges[edge_index].sy = sy
-      sy = sy + edges[edge_index].dy
+      sy += edges[edge_index].dy
     }
     let mut ty = 0.0
-    j = 0
+    let mut j = 0
     while j < nodes[i].in_edges.length() {
       let edge_index = nodes[i].in_edges[j]
       edges[edge_index].ty = ty

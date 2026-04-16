@@ -19,19 +19,6 @@ fn heatmap_default_gradient_colors() -> Array[String] {
 }
 
 ///|
-/// Reverse a color stop array to match `visualMap.color` compatibility.
-/// Corresponds to: echarts/src/component/visualMap/VisualMapModel.ts completeSingle()
-fn heatmap_reverse_colors(colors : Array[String]) -> Array[String] {
-  let result : Array[String] = []
-  let mut i = colors.length()
-  while i > 0 {
-    i -= 1
-    result.push(colors[i])
-  }
-  result
-}
-
-///|
 /// Clamp t to [0, 1].
 fn heatmap_clamp01(t : Double) -> Double {
   if t < 0.0 {
@@ -53,7 +40,7 @@ fn heatmap_vm_in_range_colors(vm : @option.VisualMapOption?) -> Array[String] {
       if vm_opt.in_range.color.length() > 0 {
         vm_opt.in_range.color
       } else if vm_opt.color.length() > 0 {
-        heatmap_reverse_colors(vm_opt.color)
+        vm_opt.color.rev()
       } else {
         heatmap_default_gradient_colors()
       }
