@@ -3142,6 +3142,22 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(Null) => base.area_style
     Some(_) => true
   }
+  let area_style_color = match j_field(j, "areaStyle") {
+    Some(area_style) =>
+      match j_color_opt(area_style, "color") {
+        Some(color) => Some(color)
+        None => base.area_style_color
+      }
+    None => base.area_style_color
+  }
+  let area_style_opacity = match j_field(j, "areaStyle") {
+    Some(area_style) =>
+      match j_number_opt(area_style, "opacity") {
+        Some(opacity) => Some(opacity)
+        None => base.area_style_opacity
+      }
+    None => base.area_style_opacity
+  }
   let stack = j_string_opt(j, "stack")
   // smooth may be bool or number (0-1 curvature factor)
   let smooth = match j_field(j, "smooth") {
@@ -3747,6 +3763,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     line_style_curveness,
     item_style,
     item_opacity,
+    area_style_color,
+    area_style_opacity,
     label,
     geo_item_style,
     background_style,

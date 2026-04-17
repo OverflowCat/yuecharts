@@ -721,6 +721,8 @@ pub(all) struct SeriesOption {
   line_style_curveness : Double?
   item_style : String? // color override
   item_opacity : Double?
+  area_style_color : String?
+  area_style_opacity : Double?
   // colorBy: "series" (default) | "data" — each data item gets its own palette color
   // Corresponds to: echarts/src/visual/style.ts dataColorPaletteTask
   color_by : String
@@ -968,6 +970,8 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     line_style_curveness: None,
     item_style: None,
     item_opacity: None,
+    area_style_color: None,
+    area_style_opacity: None,
     label: None,
     geo_item_style: None,
     background_style: None,

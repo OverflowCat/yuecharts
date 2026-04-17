@@ -5,7 +5,10 @@
       "Bash(find:*)",
       "mcp__zread__read_file",
       "mcp__zread__search_doc",
-      "Bash(moon build:*)"
+      "Bash(moon build:*)",
+      "Bash(moon doc:*)",
+      "Bash(wasm-objdump:*)",
+      "Bash(grep:*)"
     ]
   }
 }
