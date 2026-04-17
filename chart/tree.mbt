@@ -790,10 +790,7 @@ fn tree_json_field(j : Json, key : String) -> Json? {
 
 ///|
 fn tree_raw_field(item : @option.DataItem, key : String) -> Json? {
-  match item.raw_item {
-    Some(raw) => tree_json_field(raw, key)
-    None => None
-  }
+  item.raw_item.bind(r_item => tree_json_field(r_item, key))
 }
 
 ///|

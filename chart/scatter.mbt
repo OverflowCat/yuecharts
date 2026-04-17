@@ -333,6 +333,9 @@ pub fn render_scatter_series(
   } else {
     0.0
   }
+  // colorBy: "data" means each data item gets its own palette color by data index
+  // Corresponds to: echarts/src/visual/style.ts dataColorPaletteTask
+  let color_by_data = series.color_by == "data"
 
   // Check if any point is highlighted; if so apply emphasis/blur states to all points.
   let any_highlighted = @visual.has_any_highlighted(series.data)
@@ -351,8 +354,13 @@ pub fn render_scatter_series(
         x_jitter~,
       )
       is Some(point) {
+      let series_default_color = if color_by_data {
+        @visual.palette_color(di)
+      } else {
+        default_color
+      }
       let color = geo_visual_map_color(opt, series_index, item).unwrap_or(
-        default_color,
+        series_default_color,
       )
       let symbol_size = geo_visual_map_symbol_size(
         opt,

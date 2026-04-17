@@ -721,6 +721,9 @@ pub(all) struct SeriesOption {
   line_style_curveness : Double?
   item_style : String? // color override
   item_opacity : Double?
+  // colorBy: "series" (default) | "data" — each data item gets its own palette color
+  // Corresponds to: echarts/src/visual/style.ts dataColorPaletteTask
+  color_by : String
   label : GeoLabelOption?
   geo_item_style : GeoItemStylePatchOption?
   background_style : GeoItemStylePatchOption?
@@ -1101,6 +1104,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     pie_animation_duration_update: None,
     pie_animation_easing_update: None,
     label_line_show: true,
+    color_by: "series",
   }
 }
 

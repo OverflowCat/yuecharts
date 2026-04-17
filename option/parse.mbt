@@ -3890,6 +3890,9 @@ fn parse_series_option(j : Json) -> SeriesOption {
       Some(v) => j_bool(v, "show", base.label_line_show)
       None => base.label_line_show
     },
+    // colorBy: "series" (default) | "data" — per-data-item palette coloring
+    // Corresponds to: echarts/src/visual/style.ts dataColorPaletteTask
+    color_by: j_string(j, "colorBy", base.color_by),
   }
 }
 
