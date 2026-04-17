@@ -1,6 +1,10 @@
+<img width="2562" height="1413" alt="frontend" src="https://github.com/user-attachments/assets/246c8b1c-9615-472f-8b9e-ad546080ed76" />
+
+[![WASM live demo](https://img.shields.io/badge/WASM-live_demo-2ea44f?style=for-the-badge&logo=webassembly&logoColor=white)](https://yue.overflow.cat/) Check web demo at https://yue.overflow.cat/!
+
 # yuecharts
 
-`yuecharts` (pronounced as /yɛ.tʃɑɹts/) is a MoonBit port of [Apache ECharts](Apache ECharts) with the help of large language models. The project targets parity with upstream ECharts behavior where feasible in a non-interactive pipeline, with a strong emphasis on direct source mapping from ECharts TS/JS into MoonBit.
+`yuecharts` (pronounced as /yɛ.tʃɑɹts/) is a MoonBit port of [Apache ECharts](https://github.com/apache/echarts) with the help of large language models. The project targets parity with upstream ECharts behavior where feasible in a non-interactive pipeline, with a strong emphasis on direct source mapping from ECharts TS/JS into MoonBit.
 
 The project currently contains:
 
