@@ -622,15 +622,40 @@ pub fn render_funnel_series(
     let border_color = funnel_item_border_color(series, item)
     let border_width = funnel_item_border_width(series, item)
     let opacity = funnel_item_opacity(series, item)
-    elems.push(
-      @graphic.Element::polygon_fill_stroke(
-        points,
-        @graphic.Color::from_string(fill_color).unwrap_or(@graphic.black),
-        @graphic.Color::from_string(border_color).unwrap_or(@graphic.white),
-        border_width,
-        opacity,
-      ),
+
+    // Apply emphasis/blur state if highlighting
+    let emphasis_fill = if @visual.has_any_highlighted(series.data) &&
+      item.highlighted == Some(true) {
+      @visual.lift_hex_color(fill_color)
+    } else {
+      fill_color
+    }
+    let emphasis_style : @graphic.DisplayStateStyle = {
+      fill: Some(emphasis_fill),
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
+    let blur_style : @graphic.DisplayStateStyle = {
+      fill: None,
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
+
+    let polygon = @graphic.Element::polygon_fill_stroke(
+      points,
+      @graphic.Color::from_string(fill_color).unwrap_or(@graphic.black),
+      @graphic.Color::from_string(border_color).unwrap_or(@graphic.white),
+      border_width,
+      opacity,
     )
+    let polygon_elem = if @visual.has_any_highlighted(series.data) {
+      polygon.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+    } else {
+      polygon
+    }
+    elems.push(polygon_elem)
 
     if funnel_label_show(series, item) {
       let label_text = item.name.unwrap_or("")

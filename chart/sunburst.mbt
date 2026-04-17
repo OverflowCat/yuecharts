@@ -144,6 +144,19 @@ fn sunburst_color_at_ratio(colors : Array[String], ratio : Double) -> String {
 }
 
 ///|
+fn sunburst_has_any_highlighted(nodes : Array[@option.DataItem]) -> Bool {
+  for node in nodes {
+    if node.highlighted == Some(true) {
+      return true
+    }
+    if node.children.length() > 0 && sunburst_has_any_highlighted(node.children) {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn render_sunburst_node(
   elems : Array[@graphic.Element],
   node : @option.DataItem,
@@ -160,6 +173,7 @@ fn render_sunburst_node(
   vm_colors : Array[String],
   vm_min : Double,
   vm_max : Double,
+  any_highlighted : Bool,
 ) -> Unit {
   let r0 = inner_radius + depth.to_double() * radius_per_level
   let r1 = r0 + radius_per_level
@@ -189,10 +203,35 @@ fn render_sunburst_node(
     start_angle - sweep_angle
   }
   let path_d = sector_path(cx, cy, r0, r1, start_angle, end_angle, clockwise)
+  let item_highlighted = node.highlighted == Some(true)
+  let emphasis_fill = if item_highlighted {
+    @visual.lift_hex_color(fill_color)
+  } else {
+    fill_color
+  }
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: Some(emphasis_fill),
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let sector_elem = @graphic.Element::path_fill_stroke(
+    path_d, fill_color, "#ffffff", 1.0, opacity,
+  )
   elems.push(
-    @graphic.Element::path_fill_stroke(
-      path_d, fill_color, "#ffffff", 1.0, opacity,
-    ),
+    if any_highlighted {
+      sector_elem
+      .with_emphasis_style(emphasis_style)
+      .with_blur_style(blur_style)
+    } else {
+      sector_elem
+    },
   )
 
   let label = match node.name {
@@ -291,6 +330,7 @@ fn render_sunburst_node(
         vm_colors,
         vm_min,
         vm_max,
+        any_highlighted,
       )
       child_angle = if clockwise {
         child_angle + child_span
@@ -364,6 +404,7 @@ pub fn render_sunburst_series(
   if series.data.length() == 0 {
     return elems
   }
+  let any_highlighted = sunburst_has_any_highlighted(series.data)
 
   let cx = if series.center.length() >= 1 {
     parse_pct_or_px(series.center[0], chart_width)
@@ -457,6 +498,7 @@ pub fn render_sunburst_series(
         vm_colors,
         vm_min,
         vm_max,
+        any_highlighted,
       )
       current_angle = if series.clockwise {
         current_angle + sweep

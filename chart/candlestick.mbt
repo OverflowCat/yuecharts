@@ -32,6 +32,7 @@ pub fn render_candlestick_series(
   } else {
     8.0
   }
+  let any_highlighted = @visual.has_any_highlighted(series.data)
   let nd = series.data.length()
   let mut di = 0
   while di < nd {
@@ -86,33 +87,72 @@ pub fn render_candlestick_series(
           series.candle_border_color_down.unwrap_or(color)
         }
         let border_width = series.candle_border_width
+
+        // Apply emphasis state if highlighting
+        let emphasis_fill = if any_highlighted && item.highlighted == Some(true) {
+          @visual.lift_hex_color(color)
+        } else {
+          color
+        }
+        let emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+
         // Body rect with fill and border
-        elems.push(
-          @graphic.Element::rect_border(
-            cx - candle_w * 0.5,
-            body_top,
-            candle_w,
-            body_h,
-            color,
-            border_color,
-            border_width,
-          ),
+        let body_rect = @graphic.Element::rect_border(
+          cx - candle_w * 0.5,
+          body_top,
+          candle_w,
+          body_h,
+          color,
+          border_color,
+          border_width,
         )
+        let body_elem = if any_highlighted {
+          body_rect
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          body_rect
+        }
+        elems.push(body_elem)
+
         // Upper wick: from body_top to high_y (high_y < body_top in pixel coords)
         if high_y < body_top {
-          elems.push(
-            @graphic.Element::line_colored(
-              cx, high_y, cx, body_top, border_color, 1.0,
-            ),
+          let wick_line = @graphic.Element::line_colored(
+            cx, high_y, cx, body_top, border_color, 1.0,
           )
+          let wick_elem = if any_highlighted {
+            wick_line
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            wick_line
+          }
+          elems.push(wick_elem)
         }
         // Lower wick: from body_bot to low_y (low_y > body_bot in pixel coords)
         if low_y > body_bot {
-          elems.push(
-            @graphic.Element::line_colored(
-              cx, body_bot, cx, low_y, border_color, 1.0,
-            ),
+          let wick_line = @graphic.Element::line_colored(
+            cx, body_bot, cx, low_y, border_color, 1.0,
           )
+          let wick_elem = if any_highlighted {
+            wick_line
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            wick_line
+          }
+          elems.push(wick_elem)
         }
       }
       _ => ()

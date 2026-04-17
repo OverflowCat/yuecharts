@@ -471,6 +471,19 @@ fn treemap_upper_label_height(series : @option.SeriesOption) -> Double {
 }
 
 ///|
+fn treemap_has_any_highlighted(nodes : Array[@option.DataItem]) -> Bool {
+  for node in nodes {
+    if node.highlighted == Some(true) {
+      return true
+    }
+    if node.children.length() > 0 && treemap_has_any_highlighted(node.children) {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn render_treemap_children(
   series : @option.SeriesOption,
   elems : Array[@graphic.Element],
@@ -478,6 +491,7 @@ fn render_treemap_children(
   rect : TreemapRect,
   depth : Int,
   color_seed : Int,
+  any_highlighted : Bool,
 ) -> Unit {
   if children.length() == 0 || rect.width <= 1.0 || rect.height <= 1.0 {
     return
@@ -519,6 +533,7 @@ fn render_treemap_children(
     let node = sorted[ri]
     let child_rect = rects[ri]
     let node_value = sibling_values[ri]
+    let node_highlighted = node.highlighted == Some(true)
     if child_rect.width > 0.5 && child_rect.height > 0.5 {
       let label = match node.name {
         Some(s) => s
@@ -529,14 +544,38 @@ fn render_treemap_children(
         let parent_fill = treemap_parent_fill_color(series, depth)
         let border_color = treemap_border_color(series, depth)
         let border_width = treemap_border_width(series, depth)
+        let parent_emphasis_fill = if node_highlighted {
+          @visual.lift_hex_color(parent_fill)
+        } else {
+          parent_fill
+        }
+        let parent_emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(parent_emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let parent_rect = @graphic.Element::rect_colored(
+          child_rect.x,
+          child_rect.y,
+          child_rect.width,
+          child_rect.height,
+          parent_fill,
+        )
         elems.push(
-          @graphic.Element::rect_colored(
-            child_rect.x,
-            child_rect.y,
-            child_rect.width,
-            child_rect.height,
-            parent_fill,
-          ),
+          if any_highlighted {
+            parent_rect
+            .with_emphasis_style(parent_emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            parent_rect
+          },
         )
         elems.push(
           @graphic.Element::rect_outlined(
@@ -567,14 +606,38 @@ fn render_treemap_children(
           let content_fill = treemap_leaf_fill_color(
             series, depth, color_seed, ri, node_value, sibling_min, sibling_max,
           )
+          let content_emphasis_fill = if node_highlighted {
+            @visual.lift_hex_color(content_fill)
+          } else {
+            content_fill
+          }
+          let content_emphasis_style : @graphic.DisplayStateStyle = {
+            fill: Some(content_emphasis_fill),
+            stroke: None,
+            line_width: None,
+            stroke_no_scale: false,
+          }
+          let blur_style : @graphic.DisplayStateStyle = {
+            fill: None,
+            stroke: None,
+            line_width: None,
+            stroke_no_scale: false,
+          }
+          let content_elem = @graphic.Element::rect_colored(
+            content_rect.x,
+            content_rect.y,
+            content_rect.width,
+            content_rect.height,
+            content_fill,
+          )
           elems.push(
-            @graphic.Element::rect_colored(
-              content_rect.x,
-              content_rect.y,
-              content_rect.width,
-              content_rect.height,
-              content_fill,
-            ),
+            if any_highlighted {
+              content_elem
+              .with_emphasis_style(content_emphasis_style)
+              .with_blur_style(blur_style)
+            } else {
+              content_elem
+            },
           )
         }
         if label != "" &&
@@ -614,6 +677,7 @@ fn render_treemap_children(
             content_rect,
             depth + 1,
             color_seed + ri,
+            any_highlighted,
           )
         }
       } else {
@@ -622,14 +686,38 @@ fn render_treemap_children(
         )
         let border_color = treemap_border_color(series, depth)
         let border_width = treemap_border_width(series, depth)
+        let leaf_emphasis_fill = if node_highlighted {
+          @visual.lift_hex_color(fill_color)
+        } else {
+          fill_color
+        }
+        let leaf_emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(leaf_emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let leaf_elem = @graphic.Element::rect_colored(
+          child_rect.x,
+          child_rect.y,
+          child_rect.width,
+          child_rect.height,
+          fill_color,
+        )
         elems.push(
-          @graphic.Element::rect_colored(
-            child_rect.x,
-            child_rect.y,
-            child_rect.width,
-            child_rect.height,
-            fill_color,
-          ),
+          if any_highlighted {
+            leaf_elem
+            .with_emphasis_style(leaf_emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            leaf_elem
+          },
         )
         elems.push(
           @graphic.Element::rect_outlined(
@@ -717,6 +805,7 @@ pub fn render_treemap_series(
     root_rect,
     0,
     series_index,
+    treemap_has_any_highlighted(series.data),
   )
   elems
 }

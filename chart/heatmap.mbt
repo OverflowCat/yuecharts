@@ -225,6 +225,10 @@ pub fn render_heatmap_series(
   } else {
     10.0
   }
+
+  // Check if any cell is highlighted; if so apply emphasis/blur states to all cells.
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
@@ -252,15 +256,37 @@ pub fn render_heatmap_series(
         } else {
           coord.bbox.y + (yi.to_double() + 0.5) * cell_h
         }
-        elems.push(
-          @graphic.Element::rect_colored(
-            cx - cell_w * 0.5,
-            cy - cell_h * 0.5,
-            cell_w,
-            cell_h,
-            color_str,
-          ),
+        let rect = @graphic.Element::rect_colored(
+          cx - cell_w * 0.5,
+          cy - cell_h * 0.5,
+          cell_w,
+          cell_h,
+          color_str,
         )
+
+        // Apply emphasis/blur states if any cell is highlighted
+        let result = if any_highlighted {
+          let emphasis_fill = match item.highlighted {
+            Some(true) => @visual.lift_hex_color(color_str)
+            _ => color_str
+          }
+          let emphasis_style : @graphic.DisplayStateStyle = {
+            fill: Some(emphasis_fill),
+            stroke: None,
+            line_width: None,
+            stroke_no_scale: false,
+          }
+          let blur_style : @graphic.DisplayStateStyle = {
+            fill: None,
+            stroke: None,
+            line_width: None,
+            stroke_no_scale: false,
+          }
+          rect.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+        } else {
+          rect
+        }
+        elems.push(result)
       }
       _ => ()
     }

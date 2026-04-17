@@ -260,16 +260,43 @@ pub fn render_line_series(
   )
 
   if series.show_symbol {
-    elems.append(
-      points.map(p => {
-        @graphic.Element::circle_colored(
-          p.x,
-          p.y,
-          series.symbol_size * 0.5,
-          stroke_color,
-        )
-      }),
-    )
+    // Check if any point is highlighted; if so apply emphasis/blur states to all symbols.
+    let any_highlighted = @visual.has_any_highlighted(series.data)
+
+    for pi, _ in points {
+      let p = points[pi]
+      let item = series.data[pi]
+      let circle = @graphic.Element::circle_colored(
+        p.x,
+        p.y,
+        series.symbol_size * 0.5,
+        stroke_color,
+      )
+
+      // Apply emphasis/blur states if any point is highlighted
+      let result = if any_highlighted {
+        let emphasis_fill = match item.highlighted {
+          Some(true) => @visual.lift_hex_color(stroke_color)
+          _ => stroke_color
+        }
+        let emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        circle.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+      } else {
+        circle
+      }
+      elems.push(result)
+    }
   }
   elems
 }

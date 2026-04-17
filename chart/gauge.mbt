@@ -71,17 +71,50 @@ fn gauge_round_cap_circles(
   a0 : Double,
   a1 : Double,
   color : String,
+  any_highlighted? : Bool = false,
+  highlighted? : Bool = false,
 ) -> Unit {
   let cap_r = (r - r0) / 2.0
   let r_mid = (r + r0) / 2.0
+  let emphasis_fill = if highlighted {
+    @visual.lift_hex_color(color)
+  } else {
+    color
+  }
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: Some(emphasis_fill),
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
   // Start cap
   let sc_x = cx + r_mid * @math.cos(a0)
   let sc_y = cy + r_mid * @math.sin(a0)
-  elems.push(@graphic.Element::circle_colored(sc_x, sc_y, cap_r, color))
+  let sc = @graphic.Element::circle_colored(sc_x, sc_y, cap_r, color)
+  elems.push(
+    if any_highlighted {
+      sc.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+    } else {
+      sc
+    },
+  )
   // End cap
   let ec_x = cx + r_mid * @math.cos(a1)
   let ec_y = cy + r_mid * @math.sin(a1)
-  elems.push(@graphic.Element::circle_colored(ec_x, ec_y, cap_r, color))
+  let ec = @graphic.Element::circle_colored(ec_x, ec_y, cap_r, color)
+  elems.push(
+    if any_highlighted {
+      ec.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+    } else {
+      ec
+    },
+  )
 }
 
 ///|
@@ -381,6 +414,7 @@ pub fn render_gauge_series(
   // --- 2. Progress arcs (one per data item) ---
   // Corresponds to: GaugeView.ts _renderPointer createProgress()
   let data_count = series.data.length()
+  let any_highlighted = @visual.has_any_highlighted(series.data)
   if series.gauge_progress_show && data_count > 0 {
     // Render in reverse order so higher-value arcs appear on top (overlap mode)
     // Corresponds to: z2 = linearMap(value, [min, max], [100, 0]) in GaugeView.ts
@@ -407,6 +441,7 @@ pub fn render_gauge_series(
         0.0
       }
       if pct > 0.0 {
+        let item_highlighted = item.highlighted == Some(true)
         let value_rad = start_rad + angle_span * pct
         // overlap=true: all arcs share the same r0..r band (just stacked by z2)
         // overlap=false: each arc gets a narrower sub-band
@@ -423,12 +458,47 @@ pub fn render_gauge_series(
         let prog_arc = gauge_sector_path(
           cx, cy, arc_r0, arc_r, start_rad, value_rad,
         )
-        elems.push(@graphic.Element::path_filled(prog_arc, prog_color, 1.0))
+        let emphasis_fill = if item_highlighted {
+          @visual.lift_hex_color(prog_color)
+        } else {
+          prog_color
+        }
+        let emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let arc_elem = @graphic.Element::path_filled(prog_arc, prog_color, 1.0)
+        elems.push(
+          if any_highlighted {
+            arc_elem
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            arc_elem
+          },
+        )
         // progress.roundCap: add circles at arc endpoints.
         // Corresponds to: GaugeView.ts Sausage shape for progress.
         if series.gauge_progress_round_cap {
           gauge_round_cap_circles(
-            elems, cx, cy, arc_r0, arc_r, start_rad, value_rad, prog_color,
+            elems,
+            cx,
+            cy,
+            arc_r0,
+            arc_r,
+            start_rad,
+            value_rad,
+            prog_color,
+            any_highlighted~,
+            highlighted=item_highlighted,
           )
         }
       }
@@ -436,6 +506,7 @@ pub fn render_gauge_series(
     }
   } else if data_count > 0 && !series.gauge_progress_show {
     // Legacy single-value progress (backwards compat when progress.show=false)
+    let item = series.data[0]
     let value = match series.data[0].value {
       @option.Num(n) => n
       @option.Vec(arr) => if arr.length() > 0 { arr[0] } else { min_v }
@@ -455,12 +526,39 @@ pub fn render_gauge_series(
       0.0
     }
     if pct > 0.0 {
+      let item_highlighted = item.highlighted == Some(true)
       let value_rad = start_rad + angle_span * pct
       let prog_color = @visual.palette_color(0)
       let prog_arc = gauge_sector_path(
         cx, cy, track_inner_r, r, start_rad, value_rad,
       )
-      elems.push(@graphic.Element::path_filled(prog_arc, prog_color, 1.0))
+      let emphasis_fill = if item_highlighted {
+        @visual.lift_hex_color(prog_color)
+      } else {
+        prog_color
+      }
+      let emphasis_style : @graphic.DisplayStateStyle = {
+        fill: Some(emphasis_fill),
+        stroke: None,
+        line_width: None,
+        stroke_no_scale: false,
+      }
+      let blur_style : @graphic.DisplayStateStyle = {
+        fill: None,
+        stroke: None,
+        line_width: None,
+        stroke_no_scale: false,
+      }
+      let arc_elem = @graphic.Element::path_filled(prog_arc, prog_color, 1.0)
+      elems.push(
+        if any_highlighted {
+          arc_elem
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          arc_elem
+        },
+      )
     }
   }
 
@@ -578,6 +676,11 @@ pub fn render_gauge_series(
   // Corresponds to: echarts/src/chart/gauge/GaugeView.ts _renderPointer createPointer()
   // pointer.show=false => skip
   if series.gauge_pointer_show {
+    let ptr_item_highlighted = if data_count > 0 {
+      series.data[0].highlighted == Some(true)
+    } else {
+      false
+    }
     let ptr_value = if data_count > 0 {
       match series.data[0].value {
         @option.Num(n) => n
@@ -672,7 +775,33 @@ pub fn render_gauge_series(
         let m_e = cos_r * tx - sin_r * ty + cx
         let m_f = sin_r * tx + cos_r * ty + cy
         let mat = @graphic.Matrix::from_values(m_a, m_b, m_c, m_d, m_e, m_f)
-        let path_elem = @graphic.Element::path_filled(path_data, ptr_color, 1.0)
+        let emphasis_fill = if ptr_item_highlighted {
+          @visual.lift_hex_color(ptr_color)
+        } else {
+          ptr_color
+        }
+        let emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let path_elem0 = @graphic.Element::path_filled(
+          path_data, ptr_color, 1.0,
+        )
+        let path_elem = if any_highlighted {
+          path_elem0
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          path_elem0
+        }
         elems.push(@graphic.Element::group_transformed([path_elem], mat))
       }
       _ => {
@@ -698,7 +827,32 @@ pub fn render_gauge_series(
         let back_y = cy + r * 0.1 * @math.sin(value_rad)
         let _ = (back_x, back_y)
         let ptr_d = "M \{r4(tx0)} \{r4(ty0)} L \{r4(tx1)} \{r4(ty1)} L \{r4(tx2)} \{r4(ty2)} Z"
-        elems.push(@graphic.Element::path_filled(ptr_d, ptr_color, 1.0))
+        let emphasis_fill = if ptr_item_highlighted {
+          @visual.lift_hex_color(ptr_color)
+        } else {
+          ptr_color
+        }
+        let emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let ptr_elem0 = @graphic.Element::path_filled(ptr_d, ptr_color, 1.0)
+        let ptr_elem = if any_highlighted {
+          ptr_elem0
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          ptr_elem0
+        }
+        elems.push(ptr_elem)
       }
     }
   }

@@ -277,6 +277,10 @@ pub fn render_scatter_series(
   calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
   let default_color = scatter_series_color(series, series_index)
+
+  // Check if any point is highlighted; if so apply emphasis/blur states to all points.
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+
   series.data
   .iter()
   .mapi(fn(di, item) {
@@ -302,7 +306,30 @@ pub fn render_scatter_series(
         item_color,
         item_opacity,
       )
-      Some(e)
+
+      // Apply emphasis/blur states if any point is highlighted
+      let result = if any_highlighted {
+        let emphasis_fill = match item.highlighted {
+          Some(true) => @visual.lift_hex_color(item_color)
+          _ => item_color
+        }
+        let emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        e.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+      } else {
+        e
+      }
+      Some(result)
     } else {
       None
     }

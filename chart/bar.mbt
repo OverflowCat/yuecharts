@@ -1044,6 +1044,47 @@ fn bar_render_path(d : String, style : BarResolvedStyle) -> @graphic.Element {
 }
 
 ///|
+/// <=> echarts/src/util/states.ts:createEmphasisDefaultState / createBlurDefaultState
+/// Apply emphasis/blur state styles to a bar element based on highlight status.
+/// If item is highlighted: emphasis with lifted color
+/// If any sibling is highlighted: blur with reduced opacity
+fn bar_render_path_with_emphasis(
+  d : String,
+  style : BarResolvedStyle,
+  item : @option.DataItem,
+  any_highlighted : Bool,
+) -> @graphic.Element {
+  let element = bar_render_path(d, style)
+
+  if !any_highlighted {
+    return element
+  }
+
+  // Build emphasis style: lighter color if this item is highlighted
+  let emphasis_fill = match item.highlighted {
+    Some(true) => @visual.lift_hex_color(style.fill_color)
+    _ => style.fill_color
+  }
+
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: Some(emphasis_fill),
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+
+  // Build blur style: apply to blurred elements (opacity control via CSS)
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+
+  element.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+}
+
+///|
 /// <=> echarts/src/core/Scheduler.ts
 fn bar_series_is_large(series : @option.SeriesOption) -> Bool {
   series.large && series.data.length() >= series.large_threshold
@@ -1658,6 +1699,10 @@ fn bar_render_series_polar_impl(
   } else {
     -1
   }
+
+  // Check if any bar is highlighted; if so apply emphasis/blur states to all bars.
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+
   let mut di = 0
   while di < series.data.length() {
     let item = series.data[di]
@@ -1731,7 +1776,9 @@ fn bar_render_series_polar_impl(
           start_angle,
           end_angle,
         )
-        elems.push(bar_render_path(d, style))
+        elems.push(
+          bar_render_path_with_emphasis(d, style, item, any_highlighted),
+        )
         match
           bar_render_polar_middle_label(
             series,
@@ -1794,7 +1841,9 @@ fn bar_render_series_polar_impl(
         } else {
           bar_sector_path(polar.cx, polar.cy, r0, r1, start_angle, end_angle)
         }
-        elems.push(bar_render_path(d, style))
+        elems.push(
+          bar_render_path_with_emphasis(d, style, item, any_highlighted),
+        )
         match
           bar_render_polar_middle_label(
             series,
@@ -1850,6 +1899,11 @@ fn bar_render_series_cartesian_impl(
       let total_span = band_step * (1.0 - cat_gap_pct / 100.0)
       let bar_w = total_span / n.to_double()
       let nd = series.data.length()
+
+      // Check if any bar is highlighted; if so apply emphasis/blur states to all bars.
+      // <=> echarts/src/util/states.ts:createBlurDefaultState
+      let any_highlighted = @visual.has_any_highlighted(series.data)
+
       let mut di = 0
       while di < nd {
         let item = series.data[di]
@@ -1938,7 +1992,7 @@ fn bar_render_series_cartesian_impl(
           }
         }
         elems.push(
-          bar_render_path(
+          bar_render_path_with_emphasis(
             bar_style_rect_path(
               bar_x,
               base_coord,
@@ -1947,6 +2001,8 @@ fn bar_render_series_cartesian_impl(
               style.border_radius,
             ),
             style,
+            item,
+            any_highlighted,
           )
           .with_ecmeta_attr("series_index", series_order.to_string())
           .with_ecmeta_attr("data_index", (di - 1).to_string())
@@ -1991,6 +2047,10 @@ fn bar_render_series_cartesian_impl(
               bar_h
             }
             let _ = coord.num_x(x_idx, 0.0)
+
+            // Check if any bar is highlighted; if so apply emphasis/blur states to all bars.
+            let any_highlighted = @visual.has_any_highlighted(series.data)
+
             let mut di = 0
             while di < render_nd {
               let item = series.data[di]
@@ -2089,7 +2149,7 @@ fn bar_render_series_cartesian_impl(
                 }
               }
               elems.push(
-                bar_render_path(
+                bar_render_path_with_emphasis(
                   bar_style_rect_path(
                     base_coord,
                     bar_y,
@@ -2098,6 +2158,8 @@ fn bar_render_series_cartesian_impl(
                     style.border_radius,
                   ),
                   style,
+                  item,
+                  any_highlighted,
                 )
                 .with_ecmeta_attr("series_index", series_order.to_string())
                 .with_ecmeta_attr("data_index", (di - 1).to_string())

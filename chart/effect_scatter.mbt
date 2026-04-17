@@ -11,19 +11,43 @@ fn render_effect_ripple(
   py : Double,
   color : String,
   symbol_radius : Double,
+  any_highlighted? : Bool = false,
+  highlighted? : Bool = false,
 ) -> Unit {
   let ripple_scales = [2.5, 1.8333333333333333, 1.1666666666666667]
   let ripple_opacities = [0.0, 0.33333333333333337, 0.6666666666666667]
+  let emphasis_fill = if highlighted {
+    @visual.lift_hex_color(color)
+  } else {
+    color
+  }
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: Some(emphasis_fill),
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
 
   for i, sc in ripple_scales {
+    let circle = @graphic.Element::circle_colored_opacity(
+      px,
+      py,
+      symbol_radius * sc,
+      color,
+      ripple_opacities[i],
+    )
     elems.push(
-      @graphic.Element::circle_colored_opacity(
-        px,
-        py,
-        symbol_radius * sc,
-        color,
-        ripple_opacities[i],
-      ),
+      if any_highlighted {
+        circle.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+      } else {
+        circle
+      },
     )
   }
 }
@@ -40,6 +64,7 @@ pub fn render_effect_scatter_series(
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   let default_color = scatter_series_color(series, series_index)
+  let any_highlighted = @visual.has_any_highlighted(series.data)
 
   for di, _ in series.data {
     let item = series.data[di]
@@ -55,14 +80,45 @@ pub fn render_effect_scatter_series(
             series.symbol_size,
           ) *
           0.5
-        render_effect_ripple(elems, point.x, point.y, color, symbol_radius)
+        let item_highlighted = item.highlighted == Some(true)
+        render_effect_ripple(
+          elems,
+          point.x,
+          point.y,
+          color,
+          symbol_radius,
+          any_highlighted~,
+          highlighted=item_highlighted,
+        )
+        let emphasis_fill = if item_highlighted {
+          @visual.lift_hex_color(color)
+        } else {
+          color
+        }
+        let emphasis_style : @graphic.DisplayStateStyle = {
+          fill: Some(emphasis_fill),
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let blur_style : @graphic.DisplayStateStyle = {
+          fill: None,
+          stroke: None,
+          line_width: None,
+          stroke_no_scale: false,
+        }
+        let core = @graphic.Element::circle_colored(
+          point.x,
+          point.y,
+          symbol_radius,
+          color,
+        )
         elems.push(
-          @graphic.Element::circle_colored(
-            point.x,
-            point.y,
-            symbol_radius,
-            color,
-          ),
+          if any_highlighted {
+            core.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+          } else {
+            core
+          },
         )
       }
       None => ()

@@ -308,6 +308,7 @@ pub fn render_radar_series(
   if n == 0 {
     return elems
   }
+  let any_highlighted = @visual.has_any_highlighted(series.data)
   let ref_r = (if chart_width < chart_height {
       chart_width
     } else {
@@ -401,24 +402,69 @@ pub fn render_radar_series(
     if pts.length() < 2 {
       continue
     }
+    let item_highlighted = item.highlighted == Some(true)
+    let emphasis_color = if item_highlighted {
+      @visual.lift_hex_color(data_color_str)
+    } else {
+      data_color_str
+    }
+    let emphasis_style : @graphic.DisplayStateStyle = {
+      fill: Some(emphasis_color),
+      stroke: Some(emphasis_color),
+      line_width: None,
+      stroke_no_scale: false,
+    }
+    let blur_style : @graphic.DisplayStateStyle = {
+      fill: None,
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
     // Fill polygon only when areaStyle is specified (area_style = true)
     // ECharts: areaStyle.opacity defaults to 0 (no fill unless areaStyle is set)
     // <=> echarts/src/chart/radar/RadarView.ts polygon.useStyle({fill:..., opacity:...})
     if series.area_style {
-      elems.push(@graphic.Element::polygon_filled(pts, color, 0.7))
+      let fill_elem = @graphic.Element::polygon_filled(pts, color, 0.7)
+      elems.push(
+        if any_highlighted {
+          fill_elem
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          fill_elem
+        },
+      )
     }
     // Border polyline (opacity 1.0) — matches polyline.useStyle({stroke: color, fill: 'none'})
-    elems.push(@graphic.Element::polygon_stroked_round(pts, color, line_width))
+    let stroke_elem = @graphic.Element::polygon_stroked_round(
+      pts, color, line_width,
+    )
+    elems.push(
+      if any_highlighted {
+        stroke_elem
+        .with_emphasis_style(emphasis_style)
+        .with_blur_style(blur_style)
+      } else {
+        stroke_elem
+      },
+    )
     // Symbols at each vertex — ECharts renders 'emptyCircle' by default at symbolSize=8
     // <=> echarts/src/chart/radar/RadarView.ts SymbolDraw.updateData()
     for pt in pts {
+      let symbol_elem = @graphic.Element::circle_colored(
+        pt.x,
+        pt.y,
+        series.symbol_size * 0.5,
+        data_color_str,
+      )
       elems.push(
-        @graphic.Element::circle_colored(
-          pt.x,
-          pt.y,
-          series.symbol_size * 0.5,
-          data_color_str,
-        ),
+        if any_highlighted {
+          symbol_elem
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          symbol_elem
+        },
       )
     }
   }

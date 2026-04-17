@@ -509,6 +509,51 @@ pub fn Element::with_select_style(
 }
 
 ///|
+pub fn Element::with_blur_style(
+  self : Element,
+  style : DisplayStateStyle,
+) -> Element {
+  match self {
+    Group(g) => Group(g)
+    Rect(r) =>
+      Rect({
+        ..r,
+        meta: { ..r.meta, states: { ..r.meta.states, blur: Some(style) } },
+      })
+    Circle(c) =>
+      Circle({
+        ..c,
+        meta: { ..c.meta, states: { ..c.meta.states, blur: Some(style) } },
+      })
+    Line(l) =>
+      Line({
+        ..l,
+        meta: { ..l.meta, states: { ..l.meta.states, blur: Some(style) } },
+      })
+    Polyline(pl) =>
+      Polyline({
+        ..pl,
+        meta: { ..pl.meta, states: { ..pl.meta.states, blur: Some(style) } },
+      })
+    Polygon(pg) =>
+      Polygon({
+        ..pg,
+        meta: { ..pg.meta, states: { ..pg.meta.states, blur: Some(style) } },
+      })
+    Path(p) =>
+      Path({
+        ..p,
+        meta: { ..p.meta, states: { ..p.meta.states, blur: Some(style) } },
+      })
+    Text(t) =>
+      Text({
+        ..t,
+        meta: { ..t.meta, states: { ..t.meta.states, blur: Some(style) } },
+      })
+  }
+}
+
+///|
 pub fn Element::with_current_states(
   self : Element,
   current_states : Array[String],
