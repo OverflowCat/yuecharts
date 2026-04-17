@@ -343,6 +343,7 @@ pub fn PathData::new(d : String) -> PathData {
 pub struct TextData {
   x : Double
   y : Double
+  rotation : Double?
   content : StringView
   style : TextStyle
   opacity : Double
@@ -354,6 +355,7 @@ pub fn TextData::new(x : Double, y : Double, content : StringView) -> TextData {
   {
     x,
     y,
+    rotation: None,
     content,
     style: TextStyle::default(),
     opacity: 1.0,
@@ -375,6 +377,11 @@ pub fn TextData::with_baseline(
 }
 
 ///|
+pub fn TextData::with_rotation(self : TextData, rotation : Double) -> TextData {
+  { ..self, rotation: Some(rotation) }
+}
+
+///|
 pub fn Element::with_silent(self : Element, silent : Bool) -> Element {
   match self {
     Group(g) => Group(g)
@@ -385,6 +392,29 @@ pub fn Element::with_silent(self : Element, silent : Bool) -> Element {
     Polygon(pg) => Polygon({ ..pg, meta: { ..pg.meta, silent, } })
     Path(p) => Path({ ..p, meta: { ..p.meta, silent, } })
     Text(t) => Text({ ..t, meta: { ..t.meta, silent, } })
+  }
+}
+
+///|
+/// Apply a text rotation in radians to text elements.
+pub fn Element::with_rotation(self : Element, rotation : Double) -> Element {
+  match self {
+    Text(t) => Text({ ..t, rotation: Some(rotation) })
+    _ => self
+  }
+}
+
+///|
+pub fn Element::with_opacity(self : Element, opacity : Double) -> Element {
+  match self {
+    Group(g) => Group({ ..g, opacity, })
+    Rect(r) => Rect({ ..r, opacity, })
+    Circle(c) => Circle({ ..c, opacity, })
+    Line(l) => Line({ ..l, opacity, })
+    Polyline(pl) => Polyline({ ..pl, opacity, })
+    Polygon(pg) => Polygon({ ..pg, opacity, })
+    Path(p) => Path({ ..p, opacity, })
+    Text(t) => Text({ ..t, opacity, })
   }
 }
 
@@ -668,6 +698,7 @@ pub fn Element::text_colored(
     .with_baseline(baseline)
   Text({
     ..data,
+    rotation: None,
     style: {
       ..data.style,
       fill: Color::from_string(color_str).unwrap_or(black),
@@ -694,7 +725,15 @@ pub fn Element::text_title(
     anchor,
     baseline: TextBaseline::Central, // dominant-baseline="central"
   }
-  Text({ x, y, content, style, opacity: 1.0, meta: DisplayableMeta::default() })
+  Text({
+    x,
+    y,
+    rotation: None,
+    content,
+    style,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  })
 }
 
 ///|
@@ -1221,6 +1260,7 @@ pub fn Element::text_custom(
   Text({
     x,
     y,
+    rotation: None,
     content,
     style: {
       fill: Color::from_string(color_str).unwrap_or(black),
@@ -1268,6 +1308,26 @@ pub fn Element::path_stroke_custom(
     d,
     fill: None,
     stroke: Some({ color: color_str, width, dash: [], line_cap, line_join }),
+    opacity,
+    meta: DisplayableMeta::default(),
+  })
+}
+
+///|
+/// Path stroked with explicit stroke color/width/cap/join, dash pattern, and element opacity.
+pub fn Element::path_stroke_custom_dashed(
+  d : String,
+  color_str : String,
+  width : Double,
+  line_cap : String,
+  line_join : String,
+  dash : Array[Double],
+  opacity : Double,
+) -> Element {
+  Path({
+    d,
+    fill: None,
+    stroke: Some({ color: color_str, width, dash, line_cap, line_join }),
     opacity,
     meta: DisplayableMeta::default(),
   })

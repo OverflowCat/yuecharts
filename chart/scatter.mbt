@@ -291,11 +291,16 @@ pub fn render_scatter_series(
         item,
         series.symbol_size,
       )
-      let e = @graphic.Element::circle_colored(
+      let item_color = item.item_style.bind(s => s.color).unwrap_or(color)
+      let item_opacity = item.item_style
+        .bind(s => s.opacity)
+        .unwrap_or(series.item_opacity.unwrap_or(0.8))
+      let e = @graphic.Element::circle_colored_opacity(
         point.x,
         point.y,
         symbol_size * 0.5,
-        color,
+        item_color,
+        item_opacity,
       )
       Some(e)
     } else {

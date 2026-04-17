@@ -1,5 +1,6 @@
 /// <=> echarts/src/chart/pie/PieView.ts
 /// <=> echarts/src/chart/pie/pieLayout.ts
+/// <=> echarts/src/chart/pie/labelLayout.ts
 //
 // Pie / donut chart renderer.
 //
@@ -251,6 +252,864 @@ fn pie_format_percent(value : Double, precision : Int) -> String {
 }
 
 ///|
+/// Internal pie label layout state.
+/// <=> echarts/src/chart/pie/labelLayout.ts
+priv struct PieLabelPlan {
+  text_lines : Array[String]
+  x : Double
+  y : Double
+  text_width : Double
+  height : Double
+  text_color : String
+  font_size : Double
+  font_family : String
+  font_weight : String
+  text_anchor : @graphic.TextAnchor
+  text_baseline : @graphic.TextBaseline
+  rotation : Double?
+  opacity : Double
+  side_sign : Int
+  surface_normal : @graphic.Point
+  align_to : String
+  bleed_margin : Double
+  distance_to_label_line : Double
+  line_points : Array[@graphic.Point]?
+  line_show : Bool
+  line_color : String
+  line_width : Double
+  line_type : String
+  line_opacity : Double
+  line_smooth : Double
+  line_min_turn_angle : Double
+  line_max_surface_angle : Double
+}
+
+///|
+fn pie_label_lines(text : String) -> Array[String] {
+  text
+  .replace(old="\\n", new="\n")
+  .split("\n")
+  .map(StringView::to_string)
+  .collect()
+}
+
+///|
+fn pie_estimate_text_width(lines : Array[String], font_size : Double) -> Double {
+  let mut max_chars = 0
+  for line in lines {
+    let char_count = line.length()
+    if char_count > max_chars {
+      max_chars = char_count
+    }
+  }
+  max_chars.to_double() * font_size * 0.6
+}
+
+///|
+fn pie_estimate_text_height(
+  lines : Array[String],
+  font_size : Double,
+) -> Double {
+  let line_height = font_size * 1.2
+  lines.length().to_double() * line_height
+}
+
+///|
+fn pie_side_sign(nx : Double) -> Int {
+  if nx < 0.0 {
+    -1
+  } else {
+    1
+  }
+}
+
+///|
+fn pie_tangential_rotation(
+  nx : Double,
+  ny : Double,
+  flip_downward : Bool,
+) -> Double {
+  let mut rad = @math.atan2(nx, ny)
+  if rad < 0.0 {
+    rad = @math.PI * 2.0 + rad
+  }
+  let is_down = ny > 0.0
+  if is_down && flip_downward {
+    rad = @math.PI + rad
+  }
+  rad - @math.PI
+}
+
+///|
+/// <=> echarts/src/label/sectorLabel.ts:setSectorTextRotation
+fn pie_label_rotation_rad(
+  position : String,
+  rotate : Double?,
+  rotate_mode : String?,
+  nx : Double,
+  ny : Double,
+  mid_angle : Double,
+) -> Double? {
+  match rotate {
+    Some(value) => Some(value / 180.0 * @math.PI)
+    None => {
+      if position == "center" {
+        return Some(0.0)
+      }
+      match rotate_mode {
+        Some("radial") =>
+          Some(if nx < 0.0 { -mid_angle + @math.PI } else { -mid_angle })
+        Some("tangential") => Some(pie_tangential_rotation(nx, ny, true))
+        Some("tangential-noflip") =>
+          if position != "outside" && position != "outer" {
+            Some(pie_tangential_rotation(nx, ny, false))
+          } else {
+            None
+          }
+        _ => None
+      }
+    }
+  }
+}
+
+///|
+fn pie_label_line_dash(line_type : String) -> Array[Double] {
+  match line_type {
+    "dashed" => [4.0, 2.0]
+    "dotted" => [1.0, 2.0]
+    _ => []
+  }
+}
+
+///|
+fn pie_point_distance(a : @graphic.Point, b : @graphic.Point) -> Double {
+  let dx = a.x - b.x
+  let dy = a.y - b.y
+  (dx * dx + dy * dy).sqrt()
+}
+
+///|
+fn pie_point_sub(a : @graphic.Point, b : @graphic.Point) -> @graphic.Point {
+  @graphic.Point::new(a.x - b.x, a.y - b.y)
+}
+
+///|
+fn pie_point_dot(a : @graphic.Point, b : @graphic.Point) -> Double {
+  a.x * b.x + a.y * b.y
+}
+
+///|
+fn pie_point_len(a : @graphic.Point) -> Double {
+  (a.x * a.x + a.y * a.y).sqrt()
+}
+
+///|
+fn pie_point_scale(a : @graphic.Point, scale : Double) -> @graphic.Point {
+  @graphic.Point::new(a.x * scale, a.y * scale)
+}
+
+///|
+fn pie_point_scale_add(
+  base : @graphic.Point,
+  dir : @graphic.Point,
+  scale : Double,
+) -> @graphic.Point {
+  @graphic.Point::new(base.x + dir.x * scale, base.y + dir.y * scale)
+}
+
+///|
+fn pie_point_lerp(
+  a : @graphic.Point,
+  b : @graphic.Point,
+  t : Double,
+) -> @graphic.Point {
+  @graphic.Point::new(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t)
+}
+
+///|
+fn pie_project_point_to_line(
+  x1 : Double,
+  y1 : Double,
+  x2 : Double,
+  y2 : Double,
+  x : Double,
+  y : Double,
+  limit_to_ends : Bool,
+) -> (@graphic.Point, Double) {
+  let dx = x - x1
+  let dy = y - y1
+  let mut dx1 = x2 - x1
+  let mut dy1 = y2 - y1
+  let line_len = (dx1 * dx1 + dy1 * dy1).sqrt()
+  if line_len == 0.0 {
+    let out = @graphic.Point::new(x1, y1)
+    let dist = ((x1 - x) * (x1 - x) + (y1 - y) * (y1 - y)).sqrt()
+    return (out, dist)
+  }
+  dx1 = dx1 / line_len
+  dy1 = dy1 / line_len
+  let projected_len = dx * dx1 + dy * dy1
+  let mut t = projected_len / line_len
+  if limit_to_ends {
+    t = if t < 0.0 { 0.0 } else if t > 1.0 { 1.0 } else { t }
+  }
+  t = t * line_len
+  let ox = x1 + t * dx1
+  let oy = y1 + t * dy1
+  let dist = ((ox - x) * (ox - x) + (oy - y) * (oy - y)).sqrt()
+  (@graphic.Point::new(ox, oy), dist)
+}
+
+///|
+/// <=> echarts/src/label/labelGuideHelper.ts:limitTurnAngle
+fn pie_limit_turn_angle(
+  line_points : Array[@graphic.Point],
+  min_turn_angle : Double,
+) -> Unit {
+  if !(min_turn_angle <= 180.0 && min_turn_angle > 0.0) {
+    return
+  }
+  let min_turn_angle_rad = min_turn_angle / 180.0 * @math.PI
+  let pt0 = line_points[0]
+  let pt1 = line_points[1]
+  let pt2 = line_points[2]
+  let dir = pie_point_sub(pt0, pt1)
+  let dir2 = pie_point_sub(pt2, pt1)
+  let len1 = pie_point_len(dir)
+  let len2 = pie_point_len(dir2)
+  if len1 < 0.001 || len2 < 0.001 {
+    return
+  }
+  let dir_norm = pie_point_scale(dir, 1.0 / len1)
+  let dir2_norm = pie_point_scale(dir2, 1.0 / len2)
+  let angle_cos = pie_point_dot(dir_norm, dir2_norm)
+  let min_turn_angle_cos = @math.cos(min_turn_angle_rad)
+  if min_turn_angle_cos < angle_cos {
+    let (proj_point, d) = pie_project_point_to_line(
+      pt1.x,
+      pt1.y,
+      pt2.x,
+      pt2.y,
+      pt0.x,
+      pt0.y,
+      false,
+    )
+    let mut tmp_proj_point = pie_point_scale_add(
+      proj_point,
+      dir2_norm,
+      d / @math.tan(@math.PI - min_turn_angle_rad),
+    )
+    let t = if pt2.x != pt1.x {
+      (tmp_proj_point.x - pt1.x) / (pt2.x - pt1.x)
+    } else {
+      (tmp_proj_point.y - pt1.y) / (pt2.y - pt1.y)
+    }
+    if t.is_nan() {
+      return
+    }
+    if t < 0.0 {
+      tmp_proj_point = pt1
+    } else if t > 1.0 {
+      tmp_proj_point = pt2
+    }
+    line_points[1] = tmp_proj_point
+  }
+}
+
+///|
+/// <=> echarts/src/label/labelGuideHelper.ts:limitSurfaceAngle
+fn pie_limit_surface_angle(
+  line_points : Array[@graphic.Point],
+  surface_normal : @graphic.Point,
+  max_surface_angle : Double,
+) -> Unit {
+  if !(max_surface_angle <= 180.0 && max_surface_angle > 0.0) {
+    return
+  }
+  let max_surface_angle_rad = max_surface_angle / 180.0 * @math.PI
+  let pt0 = line_points[0]
+  let pt1 = line_points[1]
+  let pt2 = line_points[2]
+  let dir = pie_point_sub(pt1, pt0)
+  let dir2 = pie_point_sub(pt2, pt1)
+  let len1 = pie_point_len(dir)
+  let len2 = pie_point_len(dir2)
+  if len1 < 0.001 || len2 < 0.001 {
+    return
+  }
+  let dir_norm = pie_point_scale(dir, 1.0 / len1)
+  let dir2_norm = pie_point_scale(dir2, 1.0 / len2)
+  let angle_cos = pie_point_dot(dir_norm, surface_normal)
+  let max_surface_angle_cos = @math.cos(max_surface_angle_rad)
+  if angle_cos < max_surface_angle_cos {
+    let (proj_point, d) = pie_project_point_to_line(
+      pt1.x,
+      pt1.y,
+      pt2.x,
+      pt2.y,
+      pt0.x,
+      pt0.y,
+      false,
+    )
+    let half_pi = @math.PI / 2.0
+    let angle2 = @math.acos(pie_point_dot(dir2_norm, surface_normal))
+    let new_angle = half_pi + angle2 - max_surface_angle_rad
+    let mut tmp_proj_point = if new_angle >= half_pi {
+      pt2
+    } else {
+      pie_point_scale_add(
+        proj_point,
+        dir2_norm,
+        d / @math.tan(@math.PI / 2.0 - new_angle),
+      )
+    }
+    let t = if pt2.x != pt1.x {
+      (tmp_proj_point.x - pt1.x) / (pt2.x - pt1.x)
+    } else {
+      (tmp_proj_point.y - pt1.y) / (pt2.y - pt1.y)
+    }
+    if t.is_nan() {
+      return
+    }
+    if t < 0.0 {
+      tmp_proj_point = pt1
+    } else if t > 1.0 {
+      tmp_proj_point = pt2
+    }
+    line_points[1] = tmp_proj_point
+  }
+}
+
+///|
+fn pie_build_label_line_path(
+  points : Array[@graphic.Point],
+  smooth : Double,
+) -> String {
+  let p0 = points[0]
+  let p1 = points[1]
+  let p2 = points[2]
+  if smooth > 0.0 {
+    let len1 = pie_point_distance(p0, p1)
+    let len2 = pie_point_distance(p1, p2)
+    if len1 > 0.0 && len2 > 0.0 {
+      let min_len = if len1 < len2 { len1 } else { len2 }
+      let move_len = min_len * smooth
+      let mid_point0 = pie_point_lerp(p1, p0, move_len / len1)
+      let mid_point2 = pie_point_lerp(p1, p2, move_len / len2)
+      let mid_point1 = pie_point_lerp(mid_point0, mid_point2, 0.5)
+      return "M \{r4(p0.x)} \{r4(p0.y)} C \{r4(mid_point0.x)} \{r4(mid_point0.y)} \{r4(mid_point0.x)} \{r4(mid_point0.y)} \{r4(mid_point1.x)} \{r4(mid_point1.y)} C \{r4(mid_point2.x)} \{r4(mid_point2.y)} \{r4(mid_point2.x)} \{r4(mid_point2.y)} \{r4(p2.x)} \{r4(p2.y)}"
+    } else {
+      return "M \{r4(p0.x)} \{r4(p0.y)} L \{r4(p1.x)} \{r4(p1.y)} L \{r4(p2.x)} \{r4(p2.y)}"
+    }
+  } else {
+    return "M \{r4(p0.x)} \{r4(p0.y)} L \{r4(p1.x)} \{r4(p1.y)} L \{r4(p2.x)} \{r4(p2.y)}"
+  }
+}
+
+///|
+fn pie_render_label_lines(plan : PieLabelPlan) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  let line_count = plan.text_lines.length()
+  if line_count == 0 {
+    return elems
+  }
+  let line_height = plan.font_size * 1.2
+  let start_y = plan.y - (line_count.to_double() - 1.0) * line_height / 2.0
+  let mut i = 0
+  while i < line_count {
+    let line = plan.text_lines[i]
+    if line != "" {
+      let mut text_elem = @graphic.Element::text_custom(
+        plan.x,
+        start_y + i.to_double() * line_height,
+        line,
+        plan.text_anchor,
+        plan.text_baseline,
+        plan.text_color,
+        plan.font_size,
+        plan.font_family,
+        plan.font_weight,
+      ).with_opacity(plan.opacity)
+      match plan.rotation {
+        Some(rotation) =>
+          if rotation != 0.0 && !rotation.is_nan() {
+            text_elem = text_elem.with_rotation(rotation)
+          }
+        None => ()
+      }
+      elems.push(text_elem)
+    }
+    i += 1
+  }
+  elems
+}
+
+///|
+fn pie_render_label_plan(plan : PieLabelPlan) -> Array[@graphic.Element] {
+  let elems : Array[@graphic.Element] = []
+  if plan.line_show {
+    match plan.line_points {
+      Some(points) => {
+        let path_d = pie_build_label_line_path(points, plan.line_smooth)
+        let dash = pie_label_line_dash(plan.line_type)
+        let line_elem = if dash.length() > 0 {
+          @graphic.Element::path_stroke_custom_dashed(
+            path_d,
+            plan.line_color,
+            plan.line_width,
+            "butt",
+            "miter",
+            dash,
+            plan.line_opacity,
+          )
+        } else {
+          @graphic.Element::path_stroke_custom(
+            path_d,
+            plan.line_color,
+            plan.line_width,
+            "butt",
+            "miter",
+            plan.line_opacity,
+          )
+        }
+        elems.push(line_elem)
+      }
+      None => ()
+    }
+  }
+  let text_elems = pie_render_label_lines(plan)
+  for e in text_elems {
+    elems.push(e)
+  }
+  elems
+}
+
+///|
+/// <=> echarts/src/chart/pie/labelLayout.ts
+fn pie_resolve_label_option(
+  series : @option.SeriesOption,
+  item : @option.DataItem,
+) -> @option.GeoLabelOption {
+  let base = series.label.unwrap_or(@option.GeoLabelOption::default())
+  match item.label {
+    Some(label) => {
+      let show = match label.show {
+        Some(v) => v
+        None => base.show
+      }
+      let color = match label.color {
+        Some(v) => v
+        None => base.color
+      }
+      let position = match label.position {
+        Some(v) => Some(v)
+        None => base.position
+      }
+      let distance = match label.distance {
+        Some(v) => Some(v)
+        None => base.distance
+      }
+      let font_weight = match label.font_weight {
+        Some(v) => Some(v)
+        None => base.font_weight
+      }
+      let rotate_mode = match label.rotate_mode {
+        Some(v) => Some(v)
+        None => base.rotate_mode
+      }
+      let align_to = match label.align_to {
+        Some(v) => Some(v)
+        None => base.align_to
+      }
+      let edge_distance = match label.edge_distance {
+        Some(v) => Some(v)
+        None => base.edge_distance
+      }
+      let bleed_margin = match label.bleed_margin {
+        Some(v) => Some(v)
+        None => base.bleed_margin
+      }
+      let distance_to_label_line = match label.distance_to_label_line {
+        Some(v) => Some(v)
+        None => base.distance_to_label_line
+      }
+      let font_size = match label.font_size {
+        Some(v) => v
+        None => base.font_size
+      }
+      let font_family = match label.font_family {
+        Some(v) => v
+        None => base.font_family
+      }
+      let formatter = match label.formatter {
+        Some(v) => Some(v)
+        None => base.formatter
+      }
+      let rotate = match label.rotate {
+        Some(v) => Some(v)
+        None =>
+          match label.rotate_mode {
+            Some(_) => None
+            None => base.rotate
+          }
+      }
+      {
+        show,
+        color,
+        position,
+        distance,
+        font_weight,
+        rotate,
+        rotate_mode,
+        align_to,
+        edge_distance,
+        bleed_margin,
+        distance_to_label_line,
+        font_size,
+        font_family,
+        formatter,
+      }
+    }
+    None => base
+  }
+}
+
+///|
+/// <=> echarts/src/chart/pie/labelLayout.ts
+fn pie_build_label_plan(
+  series : @option.SeriesOption,
+  label : @option.GeoLabelOption,
+  label_text : String,
+  slice_color : String,
+  slice_opacity : Double,
+  slice_cx : Double,
+  slice_cy : Double,
+  r_inner : Double,
+  r_outer : Double,
+  slice_r_outer : Double,
+  mid_angle : Double,
+  nx : Double,
+  ny : Double,
+  view_rect : @graphic.BBox,
+) -> PieLabelPlan {
+  let text_lines = pie_label_lines(label_text)
+  let font_size = label.font_size
+  let text_width = pie_estimate_text_width(text_lines, font_size)
+  let height = pie_estimate_text_height(text_lines, font_size)
+  let position = label.position.unwrap_or("outer")
+  let is_inside = position == "inside" ||
+    position == "inner" ||
+    position == "center"
+  let side_sign = pie_side_sign(nx)
+  let align_to = label.align_to.unwrap_or("none")
+  let edge_distance = parse_pct_or_px(
+    label.edge_distance.unwrap_or("25%"),
+    view_rect.width,
+  )
+  let bleed_margin = label.bleed_margin.unwrap_or(
+    if view_rect.width > 200.0 && view_rect.height > 200.0 {
+      10.0
+    } else {
+      2.0
+    },
+  )
+  let distance_to_label_line = label.distance_to_label_line.unwrap_or(5.0)
+  let rotation = pie_label_rotation_rad(
+    position,
+    label.rotate,
+    label.rotate_mode,
+    nx,
+    ny,
+    mid_angle,
+  )
+  let text_color = if label.color == "inherit" {
+    slice_color
+  } else {
+    label.color
+  }
+  let text_anchor = if is_inside {
+    @graphic.TextAnchor::Middle
+  } else if align_to == "edge" {
+    if side_sign > 0 {
+      @graphic.TextAnchor::End
+    } else {
+      @graphic.TextAnchor::Start
+    }
+  } else if side_sign > 0 {
+    @graphic.TextAnchor::Start
+  } else {
+    @graphic.TextAnchor::End
+  }
+  let text_baseline = @graphic.TextBaseline::Middle
+  if is_inside {
+    let inside_offset = match label.distance {
+      Some(v) => v
+      None => 5.0
+    }
+    let inside_r = (r_inner + slice_r_outer) / 2.0
+    let x = if position == "center" {
+      slice_cx
+    } else {
+      slice_cx + (inside_r + inside_offset) * @math.cos(mid_angle)
+    }
+    let y = if position == "center" {
+      slice_cy
+    } else {
+      slice_cy + (inside_r + inside_offset) * @math.sin(mid_angle)
+    }
+    {
+      text_lines,
+      x,
+      y,
+      text_width,
+      height,
+      text_color,
+      font_size,
+      font_family: label.font_family,
+      font_weight: label.font_weight.unwrap_or("normal"),
+      text_anchor,
+      text_baseline,
+      rotation,
+      opacity: slice_opacity,
+      side_sign,
+      surface_normal: @graphic.Point::new(nx, ny),
+      align_to,
+      bleed_margin,
+      distance_to_label_line,
+      line_points: None,
+      line_show: false,
+      line_color: slice_color,
+      line_width: series.pie_label_line_width,
+      line_type: series.pie_label_line_type,
+      line_opacity: match series.pie_label_line_opacity {
+        Some(v) => v
+        None => slice_opacity
+      },
+      line_smooth: series.pie_label_line_smooth,
+      line_min_turn_angle: series.pie_label_line_min_turn_angle,
+      line_max_surface_angle: series.pie_label_line_max_surface_angle,
+    }
+  } else {
+    let line_start_x = slice_cx + slice_r_outer * @math.cos(mid_angle)
+    let line_start_y = slice_cy + slice_r_outer * @math.sin(mid_angle)
+    let line_mid_r = r_outer + series.pie_label_line_length
+    let line_mid_x = slice_cx + line_mid_r * @math.cos(mid_angle)
+    let line_mid_y = slice_cy + line_mid_r * @math.sin(mid_angle)
+    let line_end_x = line_mid_x +
+      (if side_sign > 0 {
+        series.pie_label_line_length2
+      } else {
+        -series.pie_label_line_length2
+      })
+    let line_end_y = line_mid_y
+    let x = if align_to == "edge" {
+      if side_sign > 0 {
+        view_rect.right() - edge_distance
+      } else {
+        view_rect.x + edge_distance
+      }
+    } else {
+      line_end_x +
+      (if side_sign > 0 {
+        distance_to_label_line
+      } else {
+        -distance_to_label_line
+      })
+    }
+    {
+      text_lines,
+      x,
+      y: line_end_y,
+      text_width,
+      height,
+      text_color,
+      font_size,
+      font_family: label.font_family,
+      font_weight: label.font_weight.unwrap_or("normal"),
+      text_anchor,
+      text_baseline,
+      rotation,
+      opacity: slice_opacity,
+      side_sign,
+      surface_normal: @graphic.Point::new(nx, ny),
+      align_to,
+      bleed_margin,
+      distance_to_label_line,
+      line_points: Some([
+        @graphic.Point::new(line_start_x, line_start_y),
+        @graphic.Point::new(line_mid_x, line_mid_y),
+        @graphic.Point::new(line_end_x, line_end_y),
+      ]),
+      line_show: series.pie_label_line_show,
+      line_color: match series.pie_label_line_color {
+        Some(v) => v
+        None => slice_color
+      },
+      line_width: series.pie_label_line_width,
+      line_type: series.pie_label_line_type,
+      line_opacity: match series.pie_label_line_opacity {
+        Some(v) => v
+        None => slice_opacity
+      },
+      line_smooth: series.pie_label_line_smooth,
+      line_min_turn_angle: series.pie_label_line_min_turn_angle,
+      line_max_surface_angle: series.pie_label_line_max_surface_angle,
+    }
+  }
+}
+
+///|
+fn pie_sort_indices_by_y(
+  indices : Array[Int],
+  plans : Array[PieLabelPlan],
+) -> Array[Int] {
+  let sorted : Array[Int] = []
+  for idx in indices {
+    sorted.push(idx)
+  }
+  let mut a = 1
+  while a < sorted.length() {
+    let key = sorted[a]
+    let key_y = plans[key].y
+    let mut b = a
+    while b > 0 && plans[sorted[b - 1]].y > key_y {
+      sorted[b] = sorted[b - 1]
+      b -= 1
+    }
+    sorted[b] = key
+    a += 1
+  }
+  sorted
+}
+
+///|
+/// <=> echarts/src/chart/pie/labelLayout.ts:avoidOverlap
+fn pie_adjust_label_side(
+  plans : Array[PieLabelPlan],
+  indices : Array[Int],
+  view_rect : @graphic.BBox,
+) -> Unit {
+  if indices.length() < 2 {
+    return
+  }
+  let sorted = pie_sort_indices_by_y(indices, plans)
+  let gap = 2.0
+  let mut i = 0
+  while i < sorted.length() {
+    let idx = sorted[i]
+    let plan = plans[idx]
+    let half_h = plan.height / 2.0
+    let min_y = view_rect.y + plan.bleed_margin + half_h
+    let max_y = view_rect.bottom() - plan.bleed_margin - half_h
+    let mut y = plan.y
+    if i == 0 {
+      if y < min_y {
+        y = min_y
+      }
+    } else {
+      let prev = plans[sorted[i - 1]]
+      let prev_bottom = prev.y + prev.height / 2.0
+      let wanted = prev_bottom + gap + half_h
+      if y < wanted {
+        y = wanted
+      }
+      if y < min_y {
+        y = min_y
+      }
+    }
+    if y > max_y {
+      y = max_y
+    }
+    plans[idx] = { ..plan, y, }
+    i += 1
+  }
+
+  let first_idx = sorted[0]
+  let last_idx = sorted[sorted.length() - 1]
+  let first_plan = plans[first_idx]
+  let last_plan = plans[last_idx]
+  let top_limit = view_rect.y + first_plan.bleed_margin
+  let bottom_limit = view_rect.bottom() - last_plan.bleed_margin
+  let last_bottom = last_plan.y + last_plan.height / 2.0
+  if last_bottom > bottom_limit {
+    let delta = last_bottom - bottom_limit
+    for idx in sorted {
+      plans[idx] = { ..plans[idx], y: plans[idx].y - delta }
+    }
+  }
+  let first_top_after = plans[first_idx].y - plans[first_idx].height / 2.0
+  if first_top_after < top_limit {
+    let delta = top_limit - first_top_after
+    for idx in sorted {
+      plans[idx] = { ..plans[idx], y: plans[idx].y + delta }
+    }
+  }
+}
+
+///|
+/// <=> echarts/src/chart/pie/labelLayout.ts:avoidOverlap
+fn pie_adjust_label_plans(
+  plans : Array[PieLabelPlan],
+  view_rect : @graphic.BBox,
+) -> Unit {
+  let left_indices : Array[Int] = []
+  let right_indices : Array[Int] = []
+  for i, _ in plans {
+    let plan = plans[i]
+    match plan.line_points {
+      Some(_) =>
+        if plan.side_sign < 0 {
+          left_indices.push(i)
+        } else {
+          right_indices.push(i)
+        }
+      None => ()
+    }
+  }
+  pie_adjust_label_side(plans, right_indices, view_rect)
+  pie_adjust_label_side(plans, left_indices, view_rect)
+}
+
+///|
+/// <=> echarts/src/chart/pie/labelLayout.ts
+fn pie_finalize_label_plan(
+  plan : PieLabelPlan,
+  view_rect : @graphic.BBox,
+) -> PieLabelPlan {
+  match plan.line_points {
+    Some(points) => {
+      let mut text_x = plan.x
+      if plan.align_to != "edge" {
+        if plan.side_sign > 0 {
+          let max_x = view_rect.right() - plan.bleed_margin - plan.text_width
+          if text_x > max_x {
+            text_x = max_x
+          }
+        } else {
+          let min_x = view_rect.x + plan.bleed_margin + plan.text_width
+          if text_x < min_x {
+            text_x = min_x
+          }
+        }
+      }
+      let line_end_x = if plan.align_to == "edge" {
+        text_x +
+        plan.side_sign.to_double() *
+        (plan.text_width + plan.distance_to_label_line)
+      } else {
+        text_x - plan.side_sign.to_double() * plan.distance_to_label_line
+      }
+      let dist = points[1].x - points[2].x
+      let line_points = points
+      line_points[1] = @graphic.Point::new(line_end_x + dist, plan.y)
+      line_points[2] = @graphic.Point::new(line_end_x, plan.y)
+      { ..plan, x: text_x, y: plan.y, line_points: Some(line_points) }
+    }
+    None => plan
+  }
+}
+
+///|
 /// Render all pie/donut series in the option to scene graph elements.
 pub fn render_pies(
   opt : @option.ChartOption,
@@ -286,6 +1145,8 @@ pub fn render_pie_series(
   series_index : Int,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
+  let label_plans : Array[PieLabelPlan] = []
+  let mut has_label_rotate = false
   let nd = series.data.length()
   if nd == 0 {
     return elems
@@ -405,6 +1266,10 @@ pub fn render_pie_series(
     _ => false
   }
   let rose_area_mode = rose_type == Some("area")
+  let selected_flags = @option.pie_selected_flags(
+    series.data,
+    series.pie_selected_mode,
+  )
   let render_indices : Array[Int] = []
   let render_values : Array[Double] = []
   let angle_weights : Array[Double] = []
@@ -515,7 +1380,7 @@ pub fn render_pie_series(
 
     // selected offset: shift slice outward from center.
     // Corresponds to: PieView.ts PieSeriesModel selectedOffset.
-    let is_selected = item.selected == Some(true)
+    let is_selected = selected_flags[k]
     let off = if is_selected { selected_offset } else { 0.0 }
     let slice_cx = cx + off * @math.cos(mid_angle)
     let slice_cy = cy + off * @math.sin(mid_angle)
@@ -551,133 +1416,90 @@ pub fn render_pie_series(
     // Label: midpoint angle, outside the slice
     // Apply formatter: {a}=seriesName {b}=name {c}=value {d}=percent
     // <=> echarts/src/chart/pie/PieView.ts + dataFormat.ts getFormattedLabel
-    let item_name = match item.name {
-      Some(n) => n
-      None => ""
-    }
-    let series_name = series.name.unwrap_or("")
-    let value_str = if value.to_int().to_double() == value {
-      value.to_int().to_string()
-    } else {
-      value.to_string()
-    }
-    let pct_raw = if total_weight > 0.0 {
-      angle_weights[k] / total_weight * 100.0
-    } else {
-      0.0
-    }
-    let percent_str = pie_format_percent(pct_raw, series.pie_percent_precision)
-    let label_text = @option.apply_label_formatter(
-      series.label,
-      series_name,
-      item_name,
-      value_str,
-      Some(percent_str),
-    )
-    if label_text != "" {
-      let span_deg = span / @math.PI * 180.0
-      if span_deg < min_show_label_angle {
-        continue
+    let label_opt = pie_resolve_label_option(series, item)
+    if label_opt.show {
+      let item_name = match item.name {
+        Some(n) => n
+        None => ""
       }
-      let label_position = match series.label {
-        Some({ position: Some(pos), .. }) => pos
-        _ => "outside"
-      }
-      if label_position == "inside" ||
-        label_position == "inner" ||
-        label_position == "center" {
-        let inside_r = if label_position == "center" {
-          (r_inner + slice_r_outer) / 2.0
-        } else {
-          (r_inner + slice_r_outer) / 2.0
-        }
-        let lx = slice_cx + inside_r * @math.cos(mid_angle)
-        let ly = slice_cy + inside_r * @math.sin(mid_angle)
-        let normalized_label = label_text.replace(old="\\n", new="\n")
-        let label_lines = normalized_label
-          .split("\n")
-          // .map(StringView::to_string)
-          .collect()
-        let line_height = 14.0
-        for line_idx, line in label_lines {
-          if line != "" {
-            elems.push(
-              @graphic.Element::text_colored(
-                lx,
-                ly + line_height * line_idx.to_double(),
-                line,
-                @graphic.TextAnchor::Middle,
-                @graphic.TextBaseline::Middle,
-                "#333333",
-              ),
-            )
-          }
-        }
-        continue
-      }
-
-      // labelLine (polyline from arc edge to label).
-      // Corresponds to: PieView.ts LabelLine + pieLayout labelLineTarget.
-      let line_r1 = slice_r_outer + series.pie_label_line_length
-      let line_r2 = line_r1 + series.pie_label_line_length2
-      let elbow_x = slice_cx + line_r2 * @math.cos(mid_angle)
-      let elbow_y = slice_cy + line_r2 * @math.sin(mid_angle)
-      let edge_x = slice_cx + line_r1 * @math.cos(mid_angle)
-      let edge_y = slice_cy + line_r1 * @math.sin(mid_angle)
-      // Horizontal extension for label anchor
-      let label_stub_len = 8.0
-      let goes_right = @math.cos(mid_angle) >= 0.0
-      let stub_x = elbow_x +
-        (if goes_right { label_stub_len } else { -label_stub_len })
-      let stub_y = elbow_y
-      if series.pie_label_line_show {
-        elems.push(
-          @graphic.Element::line_colored(
-            edge_x, edge_y, elbow_x, elbow_y, slice_color, 1.0,
-          ),
-        )
-        elems.push(
-          @graphic.Element::line_colored(
-            elbow_x, elbow_y, stub_x, stub_y, slice_color, 1.0,
-          ),
-        )
-      }
-      let label_r = line_r2
-      let lx = slice_cx +
-        label_r * @math.cos(mid_angle) +
-        (if goes_right {
-          label_stub_len + 3.0
-        } else {
-          -(label_stub_len + 3.0)
-        })
-      let ly = slice_cy + label_r * @math.sin(mid_angle)
-      // Anchor: left if right half, right if left half
-      let anchor = if goes_right {
-        @graphic.TextAnchor::Start
+      let series_name = series.name.unwrap_or("")
+      let value_str = if value.to_int().to_double() == value {
+        value.to_int().to_string()
       } else {
-        @graphic.TextAnchor::End
+        value.to_string()
       }
-      let normalized_label = label_text.replace(old="\\n", new="\n")
-      let label_lines : Array[String] = normalized_label
-        .split("\n")
-        .map(StringView::to_string)
-        .collect()
-      let line_height = 14.0
-      for line_idx, line in label_lines {
-        if line != "" {
-          let line_color = if line_idx == 0 { "#333333" } else { "#999999" }
-          elems.push(
-            @graphic.Element::text_colored(
-              lx,
-              ly + line_height * line_idx.to_double(),
-              line,
-              anchor,
-              @graphic.TextBaseline::Middle,
-              line_color,
-            ),
-          )
+      let pct_raw = if total_weight > 0.0 {
+        angle_weights[k] / total_weight * 100.0
+      } else {
+        0.0
+      }
+      let percent_str = pie_format_percent(
+        pct_raw,
+        series.pie_percent_precision,
+      )
+      let label_text = @option.apply_label_formatter(
+        Some(label_opt),
+        series_name,
+        item_name,
+        value_str,
+        Some(percent_str),
+      )
+      if label_text != "" {
+        let span_deg = span / @math.PI * 180.0
+        if span_deg < min_show_label_angle {
+          continue
         }
+        let plan = pie_build_label_plan(
+          series,
+          pie_resolve_label_option(series, item),
+          label_text,
+          slice_color,
+          slice_opacity,
+          slice_cx,
+          slice_cy,
+          r_inner,
+          r_outer,
+          slice_r_outer,
+          mid_angle,
+          @math.cos(mid_angle),
+          @math.sin(mid_angle),
+          view_rect,
+        )
+        match plan.rotation {
+          Some(rotation) =>
+            if rotation != 0.0 && !rotation.is_nan() {
+              has_label_rotate = true
+            }
+          None => ()
+        }
+        label_plans.push(plan)
       }
+    }
+  }
+  // Upstream pie uses both the pie-specific avoidLabelOverlap switch and the
+  // generic labelLayout.hideOverlap default in the static overlap pass.
+  if (series.pie_avoid_label_overlap || series.pie_label_layout_hide_overlap) &&
+    !has_label_rotate {
+    pie_adjust_label_plans(label_plans, view_rect)
+  }
+  for i, _ in label_plans {
+    let plan = pie_finalize_label_plan(label_plans[i], view_rect)
+    let final_plan = match plan.line_points {
+      Some(points) => {
+        let line_points = points
+        pie_limit_turn_angle(line_points, plan.line_min_turn_angle)
+        pie_limit_surface_angle(
+          line_points,
+          plan.surface_normal,
+          plan.line_max_surface_angle,
+        )
+        { ..plan, line_points: Some(line_points) }
+      }
+      None => plan
+    }
+    let plan_elems = pie_render_label_plan(final_plan)
+    for e in plan_elems {
+      elems.push(e)
     }
   }
   elems

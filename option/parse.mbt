@@ -145,7 +145,8 @@ fn apply_option_patch_geo_region_selected(
               let selected = j_bool_opt(region_patch, "selected")
               match (name, selected) {
                 (Some(region_name), Some(is_selected)) =>
-                  match interaction_geo_region_index(regions, region_name) {
+                  match
+                    regions.search_by(region => region.name == region_name) {
                     Some(index) => {
                       let region = regions[index]
                       regions[index] = { ..region, selected: Some(is_selected) }
@@ -185,26 +186,20 @@ fn apply_option_patch_visual_map_selected(
   match visual_map_json {
     Some(Array(vm_arr)) => {
       let visual_map = opt.visual_map
-      let mut vi = 0
-      while vi < vm_arr.length() && vi < visual_map.length() {
-        let vm_patch = vm_arr[vi]
-        let selected_json = j_field(vm_patch, "selected")
-        match selected_json {
-          Some(Object(selected_map)) => {
-            let vm = visual_map[vi]
-            let current = vm.selected
-            for key, value in selected_map {
-              match value {
-                True => visual_map_selection_upsert(current, key, true)
-                False => visual_map_selection_upsert(current, key, false)
-                _ => ()
-              }
-            }
-            visual_map[vi] = { ..vm, selected: current }
-          }
-          _ => ()
+      for vi, pair in vm_arr.iter().zip(visual_map.iter()) {
+        let (vm_patch, vm) = pair
+        guard j_field(vm_patch, "selected") is Some(Object(selected_map)) else {
+          continue
         }
-        vi += 1
+        let current = vm.selected
+        for key, value in selected_map {
+          match value {
+            True => visual_map_selection_upsert(current, key, true)
+            False => visual_map_selection_upsert(current, key, false)
+            _ => ()
+          }
+        }
+        visual_map[vi] = { ..vm, selected: current }
       }
       { ..opt, visual_map, }
     }
@@ -355,20 +350,162 @@ fn apply_dispatch_action_data_select(
     Some((series_index, data_index, _)) => {
       let series = opt.series
       let series_opt = series[series_index]
-      let data = series_opt.data
-      let item = data[data_index]
-      let current_selected = item.selected.unwrap_or(false)
-      let next_selected = match mode {
-        "select" => true
-        "unselect" => false
-        _ => !current_selected
+      let data = match series_opt.series_type {
+        Pie =>
+          pie_apply_data_select_action(
+            series_opt.data,
+            series_opt.pie_selected_mode,
+            data_index,
+            mode,
+          )
+        _ => {
+          let next_data = series_opt.data
+          let item = next_data[data_index]
+          let current_selected = item.selected.unwrap_or(false)
+          let next_selected = match mode {
+            "select" => true
+            "unselect" => false
+            _ => !current_selected
+          }
+          next_data[data_index] = { ..item, selected: Some(next_selected) }
+          next_data
+        }
       }
-      data[data_index] = { ..item, selected: Some(next_selected) }
       series[series_index] = { ..series_opt, data, }
       { ..opt, series, }
     }
     None => opt
   }
+}
+
+///|
+/// <=> echarts/src/model/Series.ts:select
+/// <=> echarts/src/model/Series.ts:unselect
+/// <=> echarts/src/model/Series.ts:toggleSelect
+/// Pie-specific selection normalization for static rendering and action
+/// replay. The upstream SeriesModel keeps selection in selectedMap, but this
+/// port stores the final item-level state directly on DataItem.selected.
+pub fn pie_selected_flags(
+  data : Array[DataItem],
+  selected_mode : String?,
+) -> Array[Bool] {
+  let len = data.length()
+  let flags : Array[Bool] = []
+  let mut i = 0
+  while i < len {
+    flags.push(false)
+    i += 1
+  }
+  let mut any_selected = false
+  let mut last_selected = -1
+  let mut j = 0
+  while j < len {
+    if data[j].selected == Some(true) {
+      any_selected = true
+      last_selected = j
+    }
+    j += 1
+  }
+  match selected_mode {
+    Some("series") =>
+      if any_selected {
+        let mut k = 0
+        while k < len {
+          flags[k] = true
+          k += 1
+        }
+      }
+    Some("multiple") => {
+      let mut k = 0
+      while k < len {
+        flags[k] = data[k].selected == Some(true)
+        k += 1
+      }
+    }
+    Some("single") => if last_selected >= 0 { flags[last_selected] = true }
+    _ => ()
+  }
+  flags
+}
+
+///|
+/// <=> echarts/src/core/echarts.ts:dispatchAction
+/// <=> echarts/src/model/Series.ts:select / unselect / toggleSelect
+pub fn pie_apply_data_select_action(
+  data : Array[DataItem],
+  selected_mode : String?,
+  data_index : Int,
+  mode : String,
+) -> Array[DataItem] {
+  let len = data.length()
+  if data_index < 0 || data_index >= len {
+    return data
+  }
+  let flags = pie_selected_flags(data, selected_mode)
+  match selected_mode {
+    Some("series") =>
+      match mode {
+        "unselect" => {
+          let mut i = 0
+          while i < len {
+            flags[i] = false
+            i += 1
+          }
+        }
+        "select" => {
+          let mut i = 0
+          while i < len {
+            flags[i] = true
+            i += 1
+          }
+        }
+        _ => {
+          let next = !flags[data_index]
+          let mut i = 0
+          while i < len {
+            flags[i] = next
+            i += 1
+          }
+        }
+      }
+    Some("multiple") =>
+      match mode {
+        "select" => flags[data_index] = true
+        "unselect" => flags[data_index] = false
+        _ => flags[data_index] = !flags[data_index]
+      }
+    Some("single") =>
+      match mode {
+        "unselect" => flags[data_index] = false
+        "select" => {
+          let mut i = 0
+          while i < len {
+            flags[i] = false
+            i += 1
+          }
+          flags[data_index] = true
+        }
+        _ =>
+          if flags[data_index] {
+            flags[data_index] = false
+          } else {
+            let mut i = 0
+            while i < len {
+              flags[i] = false
+              i += 1
+            }
+            flags[data_index] = true
+          }
+      }
+    _ => return data
+  }
+  let next_data : Array[DataItem] = []
+  let mut i = 0
+  while i < len {
+    next_data.push({ ..data[i], selected: Some(flags[i]) })
+    i += 1
+  }
+  next_data
 }
 
 ///|
@@ -630,7 +767,7 @@ fn apply_interaction_geo_region_selected(
           Some((geo_index, region_name, selected)) => {
             let geo_opt = geo[geo_index]
             let regions = geo_opt.regions
-            match interaction_geo_region_index(regions, region_name) {
+            match regions.search_by(region => region.name == region_name) {
               Some(index) => {
                 let region = regions[index]
                 regions[index] = { ..region, selected: Some(selected) }
@@ -748,19 +885,9 @@ fn interaction_data_index(data : Array[DataItem], entry : Json) -> Int? {
       }
     }
     None =>
-      match j_string_opt(entry, "name") {
-        Some(name) => {
-          let mut i = 0
-          while i < data.length() {
-            if data[i].name == Some(name) {
-              return Some(i)
-            }
-            i += 1
-          }
-          None
-        }
-        None => None
-      }
+      j_string_opt(entry, "name").bind(name => {
+        data.search_by(item => item.name == Some(name))
+      })
   }
 }
 
@@ -782,22 +909,6 @@ fn resolve_interaction_geo_target(
       Some((geo_index, name, j_bool_opt(entry, "selected").unwrap_or(true)))
     None => None
   }
-}
-
-///|
-/// <=> echarts/src/component/geo/GeoView.ts
-fn interaction_geo_region_index(
-  regions : Array[GeoRegionOption],
-  name : String,
-) -> Int? {
-  let mut i = 0
-  while i < regions.length() {
-    if regions[i].name == name {
-      return Some(i)
-    }
-    i += 1
-  }
-  None
 }
 
 ///|
@@ -2059,6 +2170,16 @@ fn parse_geo_label_option_with_base(
   j : Json,
   base : GeoLabelOption,
 ) -> GeoLabelOption {
+  let (rotate, rotate_mode) = parse_label_rotate_option(
+    j,
+    base.rotate,
+    base.rotate_mode,
+  )
+  let edge_distance = match
+    j_string_or_number_as_string_opt(j, "edgeDistance", None) {
+    Some(value) => Some(value)
+    None => j_string_or_number_as_string_opt(j, "margin", base.edge_distance)
+  }
   {
     show: j_bool(j, "show", base.show),
     color: j_string(j, "color", base.color),
@@ -2071,9 +2192,20 @@ fn parse_geo_label_option_with_base(
       Some(v) => Some(v)
       None => base.font_weight
     },
-    rotate: match j_number_opt(j, "rotate") {
+    rotate,
+    rotate_mode,
+    align_to: match j_string_opt(j, "alignTo") {
       Some(v) => Some(v)
-      None => base.rotate
+      None => base.align_to
+    },
+    edge_distance,
+    bleed_margin: match j_number_opt(j, "bleedMargin") {
+      Some(v) => Some(v)
+      None => base.bleed_margin
+    },
+    distance_to_label_line: match j_number_opt(j, "distanceToLabelLine") {
+      Some(v) => Some(v)
+      None => base.distance_to_label_line
     },
     font_size: j_number(j, "fontSize", base.font_size),
     font_family: j_string(j, "fontFamily", base.font_family),
@@ -2086,6 +2218,12 @@ fn parse_geo_label_option_with_base(
 
 ///|
 fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
+  let (rotate, rotate_mode) = parse_label_rotate_option(j, None, None)
+  let edge_distance = match
+    j_string_or_number_as_string_opt(j, "edgeDistance", None) {
+    Some(value) => Some(value)
+    None => j_string_or_number_as_string_opt(j, "margin", None)
+  }
   {
     show: match j_field(j, "show") {
       Some(True) => Some(true)
@@ -2096,7 +2234,12 @@ fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
     position: j_string_opt(j, "position"),
     distance: j_number_opt(j, "distance"),
     font_weight: j_string_opt(j, "fontWeight"),
-    rotate: j_number_opt(j, "rotate"),
+    rotate,
+    rotate_mode,
+    align_to: j_string_opt(j, "alignTo"),
+    edge_distance,
+    bleed_margin: j_number_opt(j, "bleedMargin"),
+    distance_to_label_line: j_number_opt(j, "distanceToLabelLine"),
     font_size: j_number_opt(j, "fontSize"),
     font_family: j_string_opt(j, "fontFamily"),
     formatter: j_string_opt(j, "formatter"),
@@ -2113,6 +2256,25 @@ fn parse_map_registry_option(j : Json) -> MapRegistryOption {
     },
     svg: j_string_opt(j, "svg"),
     special_areas: parse_map_special_areas(j),
+  }
+}
+
+///|
+fn parse_label_rotate_option(
+  j : Json,
+  base_rotate : Double?,
+  base_rotate_mode : String?,
+) -> (Double?, String?) {
+  match j_field(j, "rotate") {
+    Some(Number(n, ..)) => (Some(n), None)
+    Some(True) => (None, Some("radial"))
+    Some(False) => (Some(0.0), None)
+    Some(String(s)) =>
+      match s {
+        "radial" | "tangential" | "tangential-noflip" => (None, Some(s))
+        _ => (base_rotate, base_rotate_mode)
+      }
+    _ => (base_rotate, base_rotate_mode)
   }
 }
 
@@ -2724,6 +2886,14 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(style) => j_color_opt(style, "borderColor0")
     None => base.candle_border_color_down
   }
+  let candle_border_color_doji = match candle_item_style {
+    Some(style) => j_color_opt(style, "borderColorDoji")
+    None => base.candle_border_color_doji
+  }
+  let candle_border_color0_doji = match candle_item_style {
+    Some(style) => j_color_opt(style, "borderColor0Doji")
+    None => base.candle_border_color0_doji
+  }
   let candle_border_width = match candle_item_style {
     Some(style) => j_number(style, "borderWidth", base.candle_border_width)
     None => base.candle_border_width
@@ -2756,7 +2926,20 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(_) => true
   }
   let stack = j_string_opt(j, "stack")
-  let smooth = j_bool(j, "smooth", base.smooth)
+  // smooth may be bool or number (0-1 curvature factor)
+  let smooth = match j_field(j, "smooth") {
+    Some(True) => 0.5
+    Some(False) => 0.0
+    Some(Number(n, ..)) => if n > 0.0 { n } else { 0.0 }
+    _ => base.smooth
+  }
+  let step = match j_field(j, "step") {
+    Some(True) => "end"
+    Some(False) => ""
+    Some(String(s)) => s
+    _ => base.step
+  }
+  let show_symbol = j_bool(j, "showSymbol", base.show_symbol)
   let polyline = j_bool(j, "polyline", base.polyline)
   let clip = j_bool(j, "clip", base.clip)
   let line_style = j_field_or_self(j, "lineStyle")
@@ -3143,6 +3326,11 @@ fn parse_series_option(j : Json) -> SeriesOption {
     Some(f) => j_number(f, "gravity", base.graph_force_gravity)
     None => base.graph_force_gravity
   }
+  let graph_circular_obj = j_field(j, "circular")
+  let graph_circular_rotate_label = match graph_circular_obj {
+    Some(circ) => j_bool(circ, "rotateLabel", base.graph_circular_rotate_label)
+    None => base.graph_circular_rotate_label
+  }
   let pie_rose_type = match j_string_opt(j, "roseType") {
     Some("radius") => Some("radius")
     Some("area") => Some("area")
@@ -3178,6 +3366,10 @@ fn parse_series_option(j : Json) -> SeriesOption {
     "showEmptyCircle",
     base.pie_show_empty_circle,
   )
+  let pie_label_layout_hide_overlap = match j_field(j, "labelLayout") {
+    Some(v) => j_bool(v, "hideOverlap", base.pie_label_layout_hide_overlap)
+    None => base.pie_label_layout_hide_overlap
+  }
   let pie_empty_circle_color = match j_field(j, "emptyCircleStyle") {
     Some(v) =>
       match j_color_opt(v, "color") {
@@ -3186,17 +3378,80 @@ fn parse_series_option(j : Json) -> SeriesOption {
       }
     None => base.pie_empty_circle_color
   }
-  let pie_label_line_show = match j_field(j, "labelLine") {
+  let label_line = j_field(j, "labelLine")
+  let pie_label_line_show = match label_line {
     Some(v) => j_bool(v, "show", base.pie_label_line_show)
     None => base.pie_label_line_show
   }
-  let pie_label_line_length = match j_field(j, "labelLine") {
+  let pie_label_line_length = match label_line {
     Some(v) => j_number(v, "length", base.pie_label_line_length)
     None => base.pie_label_line_length
   }
-  let pie_label_line_length2 = match j_field(j, "labelLine") {
+  let pie_label_line_length2 = match label_line {
     Some(v) => j_number(v, "length2", base.pie_label_line_length2)
     None => base.pie_label_line_length2
+  }
+  let pie_label_line_smooth = match label_line {
+    Some(v) =>
+      match j_field(v, "smooth") {
+        Some(True) => 0.3
+        Some(False) => 0.0
+        Some(Number(n, ..)) => n
+        _ => base.pie_label_line_smooth
+      }
+    None => base.pie_label_line_smooth
+  }
+  let pie_label_line_min_turn_angle = match label_line {
+    Some(v) => j_number(v, "minTurnAngle", base.pie_label_line_min_turn_angle)
+    None => base.pie_label_line_min_turn_angle
+  }
+  let pie_label_line_max_surface_angle = match label_line {
+    Some(v) =>
+      j_number(v, "maxSurfaceAngle", base.pie_label_line_max_surface_angle)
+    None => base.pie_label_line_max_surface_angle
+  }
+  let pie_label_line_style = label_line.bind(v => j_field(v, "lineStyle"))
+  let pie_label_line_color = match pie_label_line_style {
+    Some(style) => j_color_opt(style, "color")
+    None => base.pie_label_line_color
+  }
+  let pie_label_line_width = match pie_label_line_style {
+    Some(style) => j_number(style, "width", base.pie_label_line_width)
+    None => base.pie_label_line_width
+  }
+  let pie_label_line_type = match pie_label_line_style {
+    Some(style) => j_string(style, "type", base.pie_label_line_type)
+    None => base.pie_label_line_type
+  }
+  let pie_label_line_opacity = match pie_label_line_style {
+    Some(style) => j_number_opt(style, "opacity")
+    None => base.pie_label_line_opacity
+  }
+  let pie_animation_type = match j_string_opt(j, "animationType") {
+    Some(v) => Some(v)
+    None => base.pie_animation_type
+  }
+  let pie_animation_duration = match j_number_opt(j, "animationDuration") {
+    Some(v) => Some(v)
+    None => base.pie_animation_duration
+  }
+  let pie_animation_easing = match j_string_opt(j, "animationEasing") {
+    Some(v) => Some(v)
+    None => base.pie_animation_easing
+  }
+  let pie_animation_type_update = match j_string_opt(j, "animationTypeUpdate") {
+    Some(v) => Some(v)
+    None => base.pie_animation_type_update
+  }
+  let pie_animation_duration_update = match
+    j_number_opt(j, "animationDurationUpdate") {
+    Some(v) => Some(v)
+    None => base.pie_animation_duration_update
+  }
+  let pie_animation_easing_update = match
+    j_string_opt(j, "animationEasingUpdate") {
+    Some(v) => Some(v)
+    None => base.pie_animation_easing_update
   }
   {
     series_type,
@@ -3263,6 +3518,8 @@ fn parse_series_option(j : Json) -> SeriesOption {
     stack,
     boundary_gap,
     smooth,
+    step,
+    show_symbol,
     polyline,
     clip,
     symbol_size,
@@ -3372,16 +3629,26 @@ fn parse_series_option(j : Json) -> SeriesOption {
     candle_color_down,
     candle_border_color_up,
     candle_border_color_down,
+    candle_border_color_doji,
+    candle_border_color0_doji,
     candle_border_width,
     graph_layout,
     graph_categories,
     graph_force_edge_length,
     graph_force_repulsion,
     graph_force_gravity,
+    graph_circular_rotate_label,
+    pie_selected_mode: match j_field(j, "selectedMode") {
+      Some(String(s)) => if s == "false" { None } else { Some(s) }
+      Some(False) => None
+      Some(True) => Some("single")
+      _ => base.pie_selected_mode
+    },
     pie_selected_offset: j_number(j, "selectedOffset", base.pie_selected_offset),
     pie_rose_type,
     pie_min_show_label_angle,
     pie_avoid_label_overlap,
+    pie_label_layout_hide_overlap,
     pie_percent_precision,
     pie_still_show_zero_sum,
     pie_show_empty_circle,
@@ -3389,6 +3656,23 @@ fn parse_series_option(j : Json) -> SeriesOption {
     pie_label_line_show,
     pie_label_line_length,
     pie_label_line_length2,
+    pie_label_line_smooth,
+    pie_label_line_min_turn_angle,
+    pie_label_line_max_surface_angle,
+    pie_label_line_color,
+    pie_label_line_width,
+    pie_label_line_type,
+    pie_label_line_opacity,
+    pie_animation_type,
+    pie_animation_duration,
+    pie_animation_easing,
+    pie_animation_type_update,
+    pie_animation_duration_update,
+    pie_animation_easing_update,
+    label_line_show: match label_line {
+      Some(v) => j_bool(v, "show", base.label_line_show)
+      None => base.label_line_show
+    },
   }
 }
 

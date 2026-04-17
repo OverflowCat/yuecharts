@@ -238,18 +238,32 @@ fn treemap_item_style_for_depth(
 }
 
 ///|
+fn treemap_border_color(series : @option.SeriesOption, depth : Int) -> String {
+  treemap_item_style_for_depth(series, depth)
+  .bind(style => style.border_color)
+  .unwrap_or("#ffffff")
+}
+
+///|
+fn treemap_border_width(series : @option.SeriesOption, depth : Int) -> Double {
+  match treemap_item_style_for_depth(series, depth) {
+    Some(style) =>
+      match style.border_width {
+        Some(w) => w
+        None => 1.0
+      }
+    None => 1.0
+  }
+}
+
+///|
 fn treemap_parent_fill_color(
   series : @option.SeriesOption,
   depth : Int,
 ) -> String {
-  match treemap_item_style_for_depth(series, depth) {
-    Some(style) =>
-      match style.border_color {
-        Some(color) => color
-        None => "#ffffff"
-      }
-    None => "#ffffff"
-  }
+  treemap_item_style_for_depth(series, depth)
+  .bind(style => style.color)
+  .unwrap_or("#ffffff")
 }
 
 ///|
@@ -513,6 +527,8 @@ fn render_treemap_children(
       let is_parent = node.children.length() > 0
       if is_parent {
         let parent_fill = treemap_parent_fill_color(series, depth)
+        let border_color = treemap_border_color(series, depth)
+        let border_width = treemap_border_width(series, depth)
         elems.push(
           @graphic.Element::rect_colored(
             child_rect.x,
@@ -528,8 +544,8 @@ fn render_treemap_children(
             child_rect.y,
             child_rect.width,
             child_rect.height,
-            "#ffffff",
-            1.0,
+            border_color,
+            border_width,
           ),
         )
         let content_rect : TreemapRect = if upper_label_height > 0.0 {
@@ -604,6 +620,8 @@ fn render_treemap_children(
         let fill_color = treemap_leaf_fill_color(
           series, depth, color_seed, ri, node_value, sibling_min, sibling_max,
         )
+        let border_color = treemap_border_color(series, depth)
+        let border_width = treemap_border_width(series, depth)
         elems.push(
           @graphic.Element::rect_colored(
             child_rect.x,
@@ -619,8 +637,8 @@ fn render_treemap_children(
             child_rect.y,
             child_rect.width,
             child_rect.height,
-            "#ffffff",
-            1.0,
+            border_color,
+            border_width,
           ),
         )
         if label != "" && child_rect.width >= 48.0 && child_rect.height >= 22.0 {

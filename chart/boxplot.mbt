@@ -15,6 +15,8 @@ pub fn render_boxplot_series(
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
   let color = series.color.unwrap_or(@visual.palette_color(series_index))
+  // Use itemStyle.borderWidth if specified, otherwise default 1.5
+  let line_w = series.geo_item_style.bind(s => s.border_width).unwrap_or(1.5)
   let box_w = if x_idx < coord.x_scales.length() {
     match coord.x_scales[x_idx] {
       Ordinal(s) => s.band_width() * 0.5
@@ -59,24 +61,26 @@ pub fn render_boxplot_series(
         let effective_bot = if box_h < 1.0 { box_top + 1.0 } else { box_bot }
         // Top edge
         elems.push(
-          @graphic.Element::line_colored(bx0, box_top, bx1, box_top, color, 1.5),
+          @graphic.Element::line_colored(
+            bx0, box_top, bx1, box_top, color, line_w,
+          ),
         )
         // Bottom edge
         elems.push(
           @graphic.Element::line_colored(
-            bx0, effective_bot, bx1, effective_bot, color, 1.5,
+            bx0, effective_bot, bx1, effective_bot, color, line_w,
           ),
         )
         // Left edge
         elems.push(
           @graphic.Element::line_colored(
-            bx0, box_top, bx0, effective_bot, color, 1.5,
+            bx0, box_top, bx0, effective_bot, color, line_w,
           ),
         )
         // Right edge
         elems.push(
           @graphic.Element::line_colored(
-            bx1, box_top, bx1, effective_bot, color, 1.5,
+            bx1, box_top, bx1, effective_bot, color, line_w,
           ),
         )
         // Median line (bold, inside box)
@@ -87,7 +91,7 @@ pub fn render_boxplot_series(
             cx + box_w * 0.5,
             y_med,
             color,
-            2.0,
+            line_w * 1.333,
           ),
         )
         // Upper whisker: from box_top (q3) to y_max (high value → lower y)

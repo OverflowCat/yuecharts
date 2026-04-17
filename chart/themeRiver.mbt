@@ -489,19 +489,23 @@ pub fn render_theme_rivers(
         ),
       )
       // Render stream label at leftmost point with margin
-      match theme_river_label_pos(layer) {
-        Some((lx, ly)) =>
-          elems.push(
-            @graphic.Element::text_colored(
-              lx,
-              ly,
-              layer.name,
-              @graphic.TextAnchor::Start,
-              @graphic.TextBaseline::Middle,
-              "#333",
-            ),
-          )
-        None => ()
+      // Only render label when label.show is true (default)
+      let label_show = series.label.map_or(true, fn(l) { l.show })
+      if label_show {
+        match theme_river_label_pos(layer) {
+          Some((lx, ly)) =>
+            elems.push(
+              @graphic.Element::text_colored(
+                lx,
+                ly,
+                layer.name,
+                @graphic.TextAnchor::Start,
+                @graphic.TextBaseline::Middle,
+                "#333",
+              ),
+            )
+          None => ()
+        }
       }
     }
     color_offset += layers.length()

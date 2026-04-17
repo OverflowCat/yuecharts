@@ -818,7 +818,7 @@ fn bar_resolve_background_style(
     opacity: background_style.opacity.unwrap_or(1.0),
     border_color: background_style.border_color,
     border_width: background_style.border_width.unwrap_or(0.0),
-    border_radius: None,
+    border_radius: background_style.border_radius,
   }
 }
 
@@ -1298,15 +1298,17 @@ fn bar_render_series_cartesian_large_impl(
                   bar_index.to_double() * bar_h * (1.0 + gap_percent)
               }
               if draw_background && series.show_background {
+                let bg_style = bar_resolve_background_style(series)
                 elems.push(
                   bar_render_path(
-                    bar_rect_path(
+                    bar_style_rect_path(
                       coord.bbox.x,
                       bar_y,
                       coord.bbox.width,
                       render_bar_h,
+                      bg_style.border_radius,
                     ),
-                    bar_resolve_background_style(series),
+                    bg_style,
                   ).with_silent(true),
                 )
               }
@@ -1878,9 +1880,16 @@ fn bar_render_series_cartesian_impl(
             cat_px - total_span / 2.0 + bar_index.to_double() * bar_w * 1.3
         }
         if draw_background && series.show_background {
+          let bg_style = bar_resolve_background_style(series)
           let p = bar_render_path(
-            bar_rect_path(bar_x, coord.bbox.y, render_bar_w, coord.bbox.height),
-            bar_resolve_background_style(series),
+            bar_style_rect_path(
+              bar_x,
+              coord.bbox.y,
+              render_bar_w,
+              coord.bbox.height,
+              bg_style.border_radius,
+            ),
+            bg_style,
           ).with_silent(true)
           elems.push(p)
         }
@@ -2014,15 +2023,17 @@ fn bar_render_series_cartesian_impl(
                   bar_index.to_double() * bar_h * (1.0 + gap_percent)
               }
               if draw_background && series.show_background {
+                let bg_style = bar_resolve_background_style(series)
                 elems.push(
                   bar_render_path(
-                    bar_rect_path(
+                    bar_style_rect_path(
                       coord.bbox.x,
                       bar_y,
                       coord.bbox.width,
                       render_bar_h,
+                      bg_style.border_radius,
                     ),
-                    bar_resolve_background_style(series),
+                    bg_style,
                   ).with_silent(true),
                 )
               }
@@ -2129,10 +2140,17 @@ fn bar_render_series_cartesian_impl(
           }
           let bar_x = s.data_to_pixel(x_val) - bar_w * 0.5
           if draw_background && series.show_background {
+            let bg_style = bar_resolve_background_style(series)
             elems.push(
               bar_render_path(
-                bar_rect_path(bar_x, coord.bbox.y, bar_w, coord.bbox.height),
-                bar_resolve_background_style(series),
+                bar_style_rect_path(
+                  bar_x,
+                  coord.bbox.y,
+                  bar_w,
+                  coord.bbox.height,
+                  bg_style.border_radius,
+                ),
+                bg_style,
               ).with_silent(true),
             )
           }

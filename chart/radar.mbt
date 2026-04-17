@@ -401,10 +401,26 @@ pub fn render_radar_series(
     if pts.length() < 2 {
       continue
     }
-    // Fill polygon (opacity 0.7) — matches polygon.useStyle({fill: color, opacity: 0.7})
-    elems.push(@graphic.Element::polygon_filled(pts, color, 0.7))
+    // Fill polygon only when areaStyle is specified (area_style = true)
+    // ECharts: areaStyle.opacity defaults to 0 (no fill unless areaStyle is set)
+    // <=> echarts/src/chart/radar/RadarView.ts polygon.useStyle({fill:..., opacity:...})
+    if series.area_style {
+      elems.push(@graphic.Element::polygon_filled(pts, color, 0.7))
+    }
     // Border polyline (opacity 1.0) — matches polyline.useStyle({stroke: color, fill: 'none'})
     elems.push(@graphic.Element::polygon_stroked_round(pts, color, line_width))
+    // Symbols at each vertex — ECharts renders 'emptyCircle' by default at symbolSize=8
+    // <=> echarts/src/chart/radar/RadarView.ts SymbolDraw.updateData()
+    for pt in pts {
+      elems.push(
+        @graphic.Element::circle_colored(
+          pt.x,
+          pt.y,
+          series.symbol_size * 0.5,
+          data_color_str,
+        ),
+      )
+    }
   }
   elems
 }

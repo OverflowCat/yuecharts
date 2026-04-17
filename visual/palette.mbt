@@ -79,8 +79,7 @@ fn parse_hex_color(hex : String) -> (Int, Int, Int)? {
     let g = parse_hex_nibble(s[1])
     let b = parse_hex_nibble(s[2])
     match (r, g, b) {
-      (Some(rv), Some(gv), Some(bv)) =>
-        Some((rv * 17, gv * 17, bv * 17))
+      (Some(rv), Some(gv), Some(bv)) => Some((rv * 17, gv * 17, bv * 17))
       _ => None
     }
   } else if s.length() == 6 {
@@ -147,7 +146,11 @@ pub fn lift_hex_color(color : String) -> String {
     Some((r, g, b)) => {
       let lift = fn(v : Int) -> Int {
         let lifted = (v.to_double() * 1.1).to_int()
-        if lifted > 255 { 255 } else { lifted }
+        if lifted > 255 {
+          255
+        } else {
+          lifted
+        }
       }
       "#" + int_to_hex2(lift(r)) + int_to_hex2(lift(g)) + int_to_hex2(lift(b))
     }

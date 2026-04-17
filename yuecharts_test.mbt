@@ -923,6 +923,77 @@ test "pie legend selection and negative filter affect rendered slices" {
 }
 
 ///|
+/// Pie selectedMode=single should keep only one selected slice after a select
+/// action, matching the upstream SeriesModel selection rules.
+test "pie selectedMode single honors select action" {
+  let json_str =
+    #|{
+    #|  "option": {
+    #|    "width": 200,
+    #|    "height": 200,
+    #|    "series": [{
+    #|      "type": "pie",
+    #|      "selectedMode": "single",
+    #|      "label": {"show": false},
+    #|      "data": [
+    #|        {"name": "A", "value": 50, "selected": true},
+    #|        {"name": "B", "value": 50, "selected": true}
+    #|      ]
+    #|    }]
+    #|  },
+    #|  "dispatchActions": [{"type": "select", "seriesIndex": 0, "dataIndex": 0}]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("M 110 100 L 110 25"))
+  assert_true(!svg.contains("M 90 100 L 90 175"))
+}
+
+///|
+/// Pie labels with alignTo=edge should emit edge-anchored labels and rotated text.
+test "pie alignTo edge and radial rotate render labels" {
+  let json_str =
+    #|{
+    #|  "width": 500,
+    #|  "height": 320,
+    #|  "series": [{
+    #|    "type": "pie",
+    #|    "radius": "40%",
+    #|    "center": ["50%", "50%"],
+    #|    "data": [
+    #|      {"name": "Alpha", "value": 40},
+    #|      {"name": "Beta", "value": 30},
+    #|      {"name": "Gamma", "value": 20},
+    #|      {"name": "Delta", "value": 10}
+    #|    ],
+    #|    "label": {
+    #|      "position": "outer",
+    #|      "alignTo": "edge",
+    #|      "edgeDistance": 12,
+    #|      "rotate": "radial"
+    #|    },
+    #|    "labelLine": {
+    #|      "show": true,
+    #|      "length": 12,
+    #|      "length2": 18,
+    #|      "smooth": true,
+    #|      "minTurnAngle": 90,
+    #|      "maxSurfaceAngle": 90,
+    #|      "lineStyle": {
+    #|        "type": "dashed",
+    #|        "width": 2
+    #|      }
+    #|    }
+    #|  }]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  assert_true(svg.contains("transform=\"rotate("))
+  assert_true(svg.contains("stroke-dasharray=\"4,2\""))
+  assert_true(svg.contains("text-anchor=\"end\""))
+  assert_true(svg.contains("x=\"12\""))
+  assert_true(svg.contains("x=\"488\""))
+}
+
+///|
 test "dataset filter transform partitions data to multiple pies" {
   let json_str =
     #|{

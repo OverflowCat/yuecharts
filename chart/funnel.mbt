@@ -637,7 +637,7 @@ pub fn render_funnel_series(
       if label_text != "" {
         let label_color = funnel_label_color(series, item, fill_color)
         let layout = funnel_label_layout(series, item, points, orient)
-        if !layout.inside {
+        if !layout.inside && series.label_line_show {
           elems.push(
             @graphic.Element::polyline_leader(layout.line_points, fill_color),
           )

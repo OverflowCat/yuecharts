@@ -66,7 +66,21 @@ pub fn render_candlestick_series(
         } else {
           series.candle_color_down.unwrap_or(candle_color_down)
         }
-        let border_color = if close_v >= open_v {
+        let is_doji = close_v == open_v
+        let border_color = if is_doji {
+          // Doji: open == close; use borderColorDoji if set
+          if close_v >= open_v {
+            match series.candle_border_color_doji {
+              Some(c) => c
+              None => series.candle_border_color_up.unwrap_or(color)
+            }
+          } else {
+            match series.candle_border_color0_doji {
+              Some(c) => c
+              None => series.candle_border_color_down.unwrap_or(color)
+            }
+          }
+        } else if close_v >= open_v {
           series.candle_border_color_up.unwrap_or(color)
         } else {
           series.candle_border_color_down.unwrap_or(color)

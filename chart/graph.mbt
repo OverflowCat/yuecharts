@@ -439,6 +439,8 @@ fn render_graph_series(
     Some(l) => l.font_size
     None => 12.0
   }
+  let use_rotated_label = series.graph_layout == "circular" &&
+    series.graph_circular_rotate_label
 
   let mut nri = 0
   while nri < n_nodes {
@@ -482,49 +484,69 @@ fn render_graph_series(
         None => ""
       }
       if label_text != "" {
-        let (lx, ly, anchor, baseline) = match label_position {
-          "right" =>
-            (
-              fn_node.x + node_r + 3.0,
-              fn_node.y,
+        if use_rotated_label {
+          // Compute angle of this node relative to center
+          let angle_rad = @math.atan2(fn_node.y - cy, fn_node.x - cx)
+          // Place label at the outer edge of the node
+          let lx = fn_node.x + (node_r + 4.0) * @math.cos(angle_rad)
+          let ly = fn_node.y + (node_r + 4.0) * @math.sin(angle_rad)
+          // with_rotation takes radians
+          let _ = label_font_size
+          elems.push(
+            @graphic.Element::text_colored(
+              lx,
+              ly,
+              label_text,
               @graphic.TextAnchor::Start,
               @graphic.TextBaseline::Middle,
-            )
-          "left" =>
-            (
-              fn_node.x - node_r - 3.0,
-              fn_node.y,
-              @graphic.TextAnchor::End,
-              @graphic.TextBaseline::Middle,
-            )
-          "top" =>
-            (
-              fn_node.x,
-              fn_node.y - node_r - 3.0,
-              @graphic.TextAnchor::Middle,
-              @graphic.TextBaseline::Bottom,
-            )
-          "bottom" =>
-            (
-              fn_node.x,
-              fn_node.y + node_r + 3.0,
-              @graphic.TextAnchor::Middle,
-              @graphic.TextBaseline::Hanging,
-            )
-          _ =>
-            (
-              fn_node.x + node_r + 3.0,
-              fn_node.y,
-              @graphic.TextAnchor::Start,
-              @graphic.TextBaseline::Middle,
-            )
+              label_color,
+            ).with_rotation(angle_rad),
+          )
+        } else {
+          let (lx, ly, anchor, baseline) = match label_position {
+            "right" =>
+              (
+                fn_node.x + node_r + 3.0,
+                fn_node.y,
+                @graphic.TextAnchor::Start,
+                @graphic.TextBaseline::Middle,
+              )
+            "left" =>
+              (
+                fn_node.x - node_r - 3.0,
+                fn_node.y,
+                @graphic.TextAnchor::End,
+                @graphic.TextBaseline::Middle,
+              )
+            "top" =>
+              (
+                fn_node.x,
+                fn_node.y - node_r - 3.0,
+                @graphic.TextAnchor::Middle,
+                @graphic.TextBaseline::Bottom,
+              )
+            "bottom" =>
+              (
+                fn_node.x,
+                fn_node.y + node_r + 3.0,
+                @graphic.TextAnchor::Middle,
+                @graphic.TextBaseline::Hanging,
+              )
+            _ =>
+              (
+                fn_node.x + node_r + 3.0,
+                fn_node.y,
+                @graphic.TextAnchor::Start,
+                @graphic.TextBaseline::Middle,
+              )
+          }
+          let _ = label_font_size
+          elems.push(
+            @graphic.Element::text_colored(
+              lx, ly, label_text, anchor, baseline, label_color,
+            ),
+          )
         }
-        let _ = label_font_size
-        elems.push(
-          @graphic.Element::text_colored(
-            lx, ly, label_text, anchor, baseline, label_color,
-          ),
-        )
       }
     }
     nri = nri + 1

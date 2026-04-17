@@ -1225,6 +1225,60 @@ fn sankey_render_series(
     } else {
       elems.push(@graphic.Element::path_filled(path, fill_color, opacity))
     }
+    // Edge label at midpoint — Corresponds to: SankeyView.ts edgeLabel rendering
+    // Only shown when link_data[i].label has show=true
+    let edge_item = if i < series.link_data.length() {
+      Some(series.link_data[i])
+    } else {
+      None
+    }
+    let edge_label_show = edge_item
+      .bind(item => item.label)
+      .bind(l => l.show)
+      .unwrap_or(false)
+    if edge_label_show {
+      // Compute approximate midpoint between source and target node centers
+      let source = nodes[edges[i].source_index]
+      let target = nodes[edges[i].target_index]
+      let (mid_x, mid_y) = if series.sankey_orient == "vertical" {
+        let sx = source.x + edges[i].sy + edges[i].dy / 2.0
+        let tx = target.x + edges[i].ty + edges[i].dy / 2.0
+        let sy = source.y + source.dy
+        let ty = target.y
+        ((sx + tx) / 2.0, (sy + ty) / 2.0)
+      } else {
+        let sx = source.x + source.dx
+        let tx = target.x
+        let sy = source.y + edges[i].sy + edges[i].dy / 2.0
+        let ty = target.y + edges[i].ty + edges[i].dy / 2.0
+        ((sx + tx) / 2.0, (sy + ty) / 2.0)
+      }
+      let (lx, ly) = sankey_project_point(box, view, mid_x, mid_y)
+      let edge_label = edge_item.bind(item => item.label)
+      let label_color = edge_label.bind(l => l.color).unwrap_or(fill_color)
+      let label_font_size = edge_label.bind(l => l.font_size).unwrap_or(12.0)
+      let label_text = edge_item
+        .bind(item => {
+          match item.value {
+            @option.Num(n) => Some(n.to_string())
+            _ => item.name
+          }
+        })
+        .unwrap_or("")
+      if label_text != "" {
+        elems.push(
+          @graphic.Element::text_colored(
+            lx,
+            ly,
+            label_text,
+            @graphic.TextAnchor::Middle,
+            @graphic.TextBaseline::Central,
+            label_color,
+          ),
+        )
+        let _ = label_font_size
+      }
+    }
     i += 1
   }
 

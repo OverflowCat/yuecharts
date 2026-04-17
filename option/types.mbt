@@ -187,6 +187,17 @@ pub(all) struct GeoLabelOption {
   distance : Double?
   font_weight : String?
   rotate : Double?
+  /// Pie-only rotate modes from echarts/src/chart/pie/PieSeries.ts:
+  /// "radial", "tangential", "tangential-noflip".
+  rotate_mode : String?
+  /// Pie-only label alignment mode.
+  align_to : String?
+  /// Pie-only label edge distance; percentage strings are kept as strings.
+  edge_distance : String?
+  /// Pie-only label bleed margin.
+  bleed_margin : Double?
+  /// Pie-only distance between text and label line.
+  distance_to_label_line : Double?
   font_size : Double
   font_family : String
   // echarts/src/model/mixin/dataFormat.ts: getFormattedLabel -> formatTpl
@@ -202,6 +213,11 @@ pub impl Default for GeoLabelOption with default() {
     distance: None,
     font_weight: None,
     rotate: None,
+    rotate_mode: None,
+    align_to: None,
+    edge_distance: None,
+    bleed_margin: None,
+    distance_to_label_line: None,
     font_size: 12.0,
     font_family: "sans-serif",
     formatter: None,
@@ -216,6 +232,11 @@ pub(all) struct GeoLabelPatchOption {
   distance : Double?
   font_weight : String?
   rotate : Double?
+  rotate_mode : String?
+  align_to : String?
+  edge_distance : String?
+  bleed_margin : Double?
+  distance_to_label_line : Double?
   font_size : Double?
   font_family : String?
   formatter : String?
@@ -230,6 +251,11 @@ pub impl Default for GeoLabelPatchOption with default() {
     distance: None,
     font_weight: None,
     rotate: None,
+    rotate_mode: None,
+    align_to: None,
+    edge_distance: None,
+    bleed_margin: None,
+    distance_to_label_line: None,
     font_size: None,
     font_family: None,
     formatter: None,
@@ -668,7 +694,15 @@ pub(all) struct SeriesOption {
   funnel_max_size : String
   // For themeRiver: [before, after] gap on axis orthogonal direction
   boundary_gap : Array[String]
-  smooth : Bool
+  // smooth: 0.0 = straight lines; >0.0 = cubic Bezier curvature factor.
+  // Corresponds to: LineSeries smooth (Bool or number 0-1).
+  smooth : Double
+  // step: "" | "start" | "end" | "middle" — step-line mode for line series.
+  // Corresponds to: LineSeries.ts `step` option.
+  step : String
+  // show_symbol: whether to render data point symbols on line series.
+  // Corresponds to: LineSeries.ts `showSymbol` (default true).
+  show_symbol : Bool
   polyline : Bool
   clip : Bool
   symbol_size : Double
@@ -799,6 +833,8 @@ pub(all) struct SeriesOption {
   candle_color_down : String? // itemStyle.color0 (bearish/close<open)
   candle_border_color_up : String? // itemStyle.borderColor
   candle_border_color_down : String? // itemStyle.borderColor0
+  candle_border_color_doji : String? // itemStyle.borderColorDoji (open==close)
+  candle_border_color0_doji : String? // itemStyle.borderColor0Doji (open==close, bearish color)
   candle_border_width : Double // itemStyle.borderWidth, default 1.0
   // Graph-specific options
   // Corresponds to: echarts/src/chart/graph/GraphSeries.ts
@@ -807,19 +843,39 @@ pub(all) struct SeriesOption {
   graph_force_edge_length : Double
   graph_force_repulsion : Double
   graph_force_gravity : Double
+  graph_circular_rotate_label : Bool // circular.rotateLabel, default false
   // Pie-specific options
   // Corresponds to: echarts/src/chart/pie/PieSeries.ts
+  pie_selected_mode : String? // selectedMode: 'single' | 'multiple' | 'series' | boolean (None = disabled)
   pie_selected_offset : Double // selectedOffset, default 10.0
   pie_rose_type : String? // roseType: "radius" | "area"
   pie_min_show_label_angle : Double // minShowLabelAngle, default 0
   pie_avoid_label_overlap : Bool // avoidLabelOverlap, default true
+  pie_label_layout_hide_overlap : Bool // labelLayout.hideOverlap, default true
   pie_percent_precision : Int // percentPrecision, default 2
   pie_still_show_zero_sum : Bool // stillShowZeroSum, default true
   pie_show_empty_circle : Bool // showEmptyCircle, default true
   pie_empty_circle_color : String? // emptyCircleStyle.color
   pie_label_line_show : Bool // labelLine.show, default true
   pie_label_line_length : Double // labelLine.length, default 15
-  pie_label_line_length2 : Double // labelLine.length2, default 15
+  pie_label_line_length2 : Double // labelLine.length2, default 30
+  pie_label_line_smooth : Double // labelLine.smooth, default 0
+  pie_label_line_min_turn_angle : Double // labelLine.minTurnAngle, default 90
+  pie_label_line_max_surface_angle : Double // labelLine.maxSurfaceAngle, default 90
+  pie_label_line_color : String? // labelLine.lineStyle.color
+  pie_label_line_width : Double // labelLine.lineStyle.width, default 1
+  pie_label_line_type : String // labelLine.lineStyle.type, default "solid"
+  pie_label_line_opacity : Double? // labelLine.lineStyle.opacity
+  pie_animation_type : String? // animationType: "expansion" | "scale"
+  pie_animation_duration : Double? // animationDuration, default 1000
+  pie_animation_easing : String? // animationEasing, default "cubicInOut"
+  pie_animation_type_update : String? // animationTypeUpdate: "transition" | "expansion"
+  pie_animation_duration_update : Double? // animationDurationUpdate, default 500
+  pie_animation_easing_update : String? // animationEasingUpdate, default "cubicInOut"
+  // Generic labelLine.show — used by funnel (and potentially others) to toggle
+  // the connector line between the segment and the outer label.
+  // Corresponds to: FunnelSeries.ts labelLine.show, default true
+  label_line_show : Bool
 }
 
 ///|
@@ -888,7 +944,9 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     funnel_min_size: "0%",
     funnel_max_size: "100%",
     boundary_gap: [],
-    smooth: false,
+    smooth: 0.0,
+    step: "",
+    show_symbol: true,
     polyline: false,
     clip: false,
     symbol_size: 4.0,
@@ -999,23 +1057,42 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     candle_color_down: None,
     candle_border_color_up: None,
     candle_border_color_down: None,
+    candle_border_color_doji: None,
+    candle_border_color0_doji: None,
     candle_border_width: 1.0,
     graph_layout: "none",
     graph_categories: [],
     graph_force_edge_length: 30.0,
     graph_force_repulsion: 50.0,
     graph_force_gravity: 0.1,
+    pie_selected_mode: None,
     pie_selected_offset: 10.0,
+    graph_circular_rotate_label: false,
     pie_rose_type: None,
     pie_min_show_label_angle: 0.0,
     pie_avoid_label_overlap: true,
+    pie_label_layout_hide_overlap: false,
     pie_percent_precision: 2,
     pie_still_show_zero_sum: true,
     pie_show_empty_circle: true,
-    pie_empty_circle_color: None,
+    pie_empty_circle_color: Some("lightgray"),
     pie_label_line_show: true,
     pie_label_line_length: 15.0,
-    pie_label_line_length2: 15.0,
+    pie_label_line_length2: 30.0,
+    pie_label_line_smooth: 0.0,
+    pie_label_line_min_turn_angle: 90.0,
+    pie_label_line_max_surface_angle: 90.0,
+    pie_label_line_color: None,
+    pie_label_line_width: 1.0,
+    pie_label_line_type: "solid",
+    pie_label_line_opacity: None,
+    pie_animation_type: None,
+    pie_animation_duration: None,
+    pie_animation_easing: None,
+    pie_animation_type_update: None,
+    pie_animation_duration_update: None,
+    pie_animation_easing_update: None,
+    label_line_show: true,
   }
 }
 
@@ -1029,6 +1106,7 @@ pub fn SeriesOption::default_graph() -> SeriesOption {
     graph_force_edge_length: 30.0,
     graph_force_repulsion: 50.0,
     graph_force_gravity: 0.1,
+    graph_circular_rotate_label: false,
   }
 }
 
@@ -1068,15 +1146,10 @@ pub fn SeriesOption::default_funnel() -> SeriesOption {
     funnel_min_size: "0%",
     funnel_max_size: "100%",
     label: Some({
+      ..GeoLabelOption::default(),
       show: true,
-      color: "#333",
-      position: Some("outer"),
-      distance: Some(5.0),
-      font_weight: None,
-      rotate: None,
-      font_size: 12.0,
-      font_family: "sans-serif",
-      formatter: None,
+      color: "#333333",
+      position: Some("right"),
     }),
   }
 }
@@ -1149,17 +1222,34 @@ pub fn SeriesOption::default_effect_scatter() -> SeriesOption {
 }
 
 ///|
+/// <=> echarts/src/chart/pie/PieSeries.ts:defaultOption
 pub fn SeriesOption::default_pie() -> SeriesOption {
   {
     ..SeriesOption::default_line(),
     series_type: SeriesType::Pie,
     radius: ["0%", "75%"],
     center: ["50%", "50%"],
+    label: Some({
+      ..GeoLabelOption::default(),
+      show: true,
+      position: Some("outer"),
+      align_to: Some("none"),
+      edge_distance: Some("25%"),
+      distance_to_label_line: Some(5.0),
+      rotate: Some(0.0),
+    }),
     start_angle: 90.0,
     end_angle: 0.0 / 0.0,
     clockwise: true,
     min_angle: 0.0,
     pad_angle: 0.0,
+    pie_label_layout_hide_overlap: true,
+    pie_animation_type: Some("expansion"),
+    pie_animation_duration: Some(1000.0),
+    pie_animation_easing: Some("cubicInOut"),
+    pie_animation_type_update: Some("transition"),
+    pie_animation_duration_update: Some(500.0),
+    pie_animation_easing_update: Some("cubicInOut"),
   }
 }
 
@@ -1222,15 +1312,11 @@ pub fn SeriesOption::default_chord() -> SeriesOption {
     line_style_width: Some(0.0),
     line_style_opacity: Some(0.2),
     label: Some({
+      ..GeoLabelOption::default(),
       show: true,
       color: "#54555a",
       position: Some("outside"),
       distance: Some(5.0),
-      font_weight: None,
-      rotate: None,
-      font_size: 12.0,
-      font_family: "sans-serif",
-      formatter: None,
     }),
   }
 }
@@ -1245,15 +1331,11 @@ pub fn SeriesOption::default_sankey() -> SeriesOption {
     line_style_opacity: Some(0.2),
     line_style_curveness: Some(0.5),
     label: Some({
+      ..GeoLabelOption::default(),
       show: true,
-      color: "#333333",
-      position: Some("right"),
-      distance: None,
-      font_weight: None,
-      rotate: None,
-      font_size: 12.0,
-      font_family: "sans-serif",
-      formatter: None,
+      color: "#333",
+      position: Some("outer"),
+      distance: Some(5.0),
     }),
     sankey_left: Some(SizeSpec::Pct(5.0)),
     sankey_top: Some(SizeSpec::Pct(5.0)),

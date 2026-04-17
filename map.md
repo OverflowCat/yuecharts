@@ -317,6 +317,7 @@ E:\recharts\echarts\src
 │   ├── globalDefault.ts => option/types.mbt [partial] Feature: default option values
 │   ├── internalComponentCreator.ts =>  [missing] Feature: internal component factory
 │   ├── OptionManager.ts => option/parse.mbt [partial] Feature: setOption normalization
+│   ├── OptionManager.ts + core/echarts.ts + legacy/dataSelectAction.ts + component/legend/legendAction.ts + util/states.ts + chart/tree/treeAction.ts + chart/treemap/treemapAction.ts + chart/sunburst/sunburstAction.ts + component/dataZoom/dataZoomAction.ts => interaction/input.mbt, option/parse.mbt [partial] Feature: rerenderable interaction-envelope normalization + optionPatch subset + static dispatchActions subset (highlight/downplay, treeExpandAndCollapse, dataZoom, treemap/sunburst/tree viewport actions)
 │   ├── referHelper.ts =>  [missing] Feature: model reference resolution
 │   └── mixin
 │       ├── areaStyle.ts => visual/palette.mbt [partial] Feature: area style model mixin
@@ -481,7 +482,7 @@ E:\recharts\echarts\src
 │   └── default.ts =>  [missing] Feature: default loading animation
 │
 ├── legacy
-│   ├── dataSelectAction.ts =>  [missing] Feature: legacy data select actions
+│   ├── dataSelectAction.ts => option/parse.mbt:apply_dispatch_action_data_select,pie_apply_data_select_action,pie_selected_flags [partial] Feature: pieSelect/mapSelect aliases forwarded to select/unselect/toggle in dispatchAction switch; pie selectedMode now follows single/multiple/series rules
 │   └── getTextRect.ts => svg/painter.mbt [partial] Feature: text measuring helper
 │
 ├── label
@@ -541,23 +542,23 @@ E:\recharts\echarts\src
 │   │   ├── installLegendScroll.ts =>  [missing] Feature: scroll legend install
 │   │   ├── LegendModel.ts => component/legend.mbt [partial] Feature: legend model
 │   │   ├── LegendView.ts => component/legend.mbt [translated] Feature: plain legend view
-│   │   ├── legendAction.ts =>  [missing] Feature: legend select action
+│   │   ├── legendAction.ts => option/parse.mbt:apply_dispatch_action_legend_select,apply_dispatch_action_legend_toggle [partial] Feature: legendSelect/legendUnSelect/legendToggleSelect/legendAllSelect/legendInverseSelect recognized in dispatch switch
 │   │   ├── legendFilter.ts =>  [missing] Feature: legend filtering
 │   │   ├── ScrollableLegendModel.ts =>  [missing] Feature: scroll legend model
 │   │   ├── ScrollableLegendView.ts =>  [missing] Feature: scroll legend view
-│   │   └── scrollableLegendAction.ts =>  [missing] Feature: scroll legend action
+│   │   └── scrollableLegendAction.ts => option/parse.mbt:apply_interaction_dispatch_action [partial] Feature: legendScroll recognized as no-op (viewport-only in static renderer)
 │   │
 │   ├── axis
 │   │   ├── AngleAxisView.ts =>  [missing] Feature: angle axis view
 │   │   ├── AxisBuilder.ts => component/axis.mbt [partial] Feature: axis builder
-│   │   ├── axisAction.ts =>  [missing] Feature: axis actions
+│   │   ├── axisAction.ts => option/parse.mbt:apply_interaction_dispatch_action [partial] Feature: expandAxisBreak/collapseAxisBreak/toggleAxisBreak recognized as no-op (require axis model reconciliation)
 │   │   ├── axisBreakHelper.ts => component/axis.mbt [partial] Feature: axis break overlay helper
 │   │   ├── axisBreakHelperImpl.ts => component/axis.mbt [partial] Feature: static axis break overlay renderer
 │   │   ├── axisSplitHelper.ts => component/grid_lines.mbt [translated] Feature: split line rendering
 │   │   ├── AxisView.ts => component/axis.mbt [translated] Feature: axis rendering
 │   │   ├── CartesianAxisView.ts => component/axis.mbt [partial] Feature: cartesian axis view
 │   │   ├── installBreak.ts => component/install.mbt [partial] Feature: axis break overlay install
-│   │   ├── parallelAxisAction.ts =>  [missing] Feature: parallel axis action
+│   │   ├── parallelAxisAction.ts => option/parse.mbt:apply_interaction_dispatch_action [partial] Feature: axisAreaSelect/parallelAxisExpand recognized as no-op (viewport-only)
 │   │   ├── ParallelAxisView.ts => component/parallel.mbt [partial] Feature: parallel axis view
 │   │   ├── RadiusAxisView.ts =>  [missing] Feature: radius axis view
 │   │   └── SingleAxisView.ts => component/axis.mbt [partial] Feature: single axis view
@@ -589,8 +590,8 @@ E:\recharts\echarts\src
 │   │
 │   ├── dataZoom
 │   │   ├── AxisProxy.ts =>  [missing] Feature: axis window proxy
-│   │   ├── dataZoomAction.ts =>  [missing] Feature: dataZoom action
-│   │   ├── DataZoomModel.ts =>  [missing] Feature: dataZoom model
+│   │   ├── dataZoomAction.ts => option/parse.mbt:apply_dispatch_action_data_zoom [partial] Feature: dataZoom range state update via dispatchAction
+│   │   ├── DataZoomModel.ts => option/types.mbt:DataZoomOption + option/parse.mbt:parse_data_zoom_option [partial] Feature: dataZoom range state (start/end/startValue/endValue)
 │   │   ├── dataZoomProcessor.ts =>  [missing] Feature: dataZoom processor
 │   │   ├── DataZoomView.ts =>  [missing] Feature: dataZoom base view
 │   │   ├── helper.ts =>  [missing] Feature: dataZoom helper
@@ -621,7 +622,7 @@ E:\recharts\echarts\src
 │   │   ├── preprocessor.ts =>  [missing] Feature: visualMap preprocessor
 │   │   ├── typeDefaulter.ts =>  [missing] Feature: visualMap type defaulting
 │   │   ├── visualEncoding.ts => chart/heatmap.mbt [partial] Feature: visual encoding
-│   │   ├── visualMapAction.ts =>  [missing] Feature: visualMap action
+│   │   ├── visualMapAction.ts => option/parse.mbt:apply_dispatch_action_select_data_range [partial] Feature: selectDataRange updates continuous range or piecewise selected; <=> ContinuousModel.setSelected / PiecewiseModel.setSelected
 │   │   ├── VisualMapModel.ts => chart/heatmap.mbt [partial] Feature: visualMap model subset
 │   │   └── VisualMapView.ts =>  [missing] Feature: visualMap view
 │   │
@@ -658,7 +659,7 @@ E:\recharts\echarts\src
 │   │   ├── preprocessor.ts =>  [missing] Feature: timeline preprocessor
 │   │   ├── SliderTimelineModel.ts =>  [missing] Feature: slider timeline model
 │   │   ├── SliderTimelineView.ts =>  [missing] Feature: slider timeline view
-│   │   ├── timelineAction.ts =>  [missing] Feature: timeline action
+│   │   ├── timelineAction.ts => option/parse.mbt:apply_interaction_dispatch_action [partial] Feature: timelineChange/timelinePlayChange recognized as no-op (timeline type not yet in static renderer)
 │   │   ├── TimelineAxis.ts =>  [missing] Feature: timeline axis
 │   │   ├── TimelineModel.ts =>  [missing] Feature: timeline model
 │   │   └── TimelineView.ts =>  [missing] Feature: timeline view
@@ -816,16 +817,16 @@ E:\recharts\echarts\src
 │   │
 │   ├── pie
 │   │   ├── install.ts => chart/pie.mbt [partial] Feature: pie install
-│   │   ├── labelLayout.ts => chart/pie.mbt [partial] Feature: pie label layout
+│   │   ├── labelLayout.ts => chart/pie.mbt [partial] Feature: pie label layout (alignTo, edgeDistance/margin, bleedMargin, distanceToLabelLine, rotate modes, labelLine smooth/angle limits)
 │   │   ├── pieLayout.ts => chart/pie.mbt [translated] Feature: pie layout (includes roseType radius/area, start/end angle, clockwise, minAngle, padAngle, zero-sum/empty-circle subset)
-│   │   ├── PieSeries.ts => chart/pie.mbt [partial] Feature: pie series model
+│   │   ├── PieSeries.ts => chart/pie.mbt [partial] Feature: pie series model + pie label/labelLine defaults, labelLayout.hideOverlap, animationType/animationTypeUpdate schema, and parser subset; pie selectedMode selection semantics are honored via the static interaction pipeline
 │   │   └── PieView.ts => chart/pie.mbt [translated] Feature: pie renderer
 │   │
 │   ├── sunburst
 │   │   ├── install.ts => chart/sunburst.mbt [partial] Feature: sunburst install
 │   │   ├── SunburstPiece.ts => chart/sunburst.mbt [partial] Feature: sunburst piece geometry
 │   │   ├── SunburstSeries.ts => chart/sunburst.mbt [partial] Feature: sunburst series model
-│   │   ├── sunburstAction.ts =>  [missing] Feature: sunburst action
+│   │   ├── sunburstAction.ts => option/parse.mbt:apply_interaction_dispatch_action [partial] Feature: sunburstRootToNode/sunburstHighlight/sunburstUnhighlight recognized (no-op in static renderer)
 │   │   ├── sunburstLayout.ts => chart/sunburst.mbt [translated] Feature: sunburst layout
 │   │   ├── sunburstVisual.ts => chart/sunburst.mbt [partial] Feature: sunburst visual
 │   │   └── SunburstView.ts => chart/sunburst.mbt [translated] Feature: sunburst renderer
@@ -833,7 +834,7 @@ E:\recharts\echarts\src
 │   ├── treemap
 │   │   ├── Breadcrumb.ts =>  [missing] Feature: treemap breadcrumb
 │   │   ├── install.ts => chart/treemap.mbt [partial] Feature: treemap install
-│   │   ├── treemapAction.ts =>  [missing] Feature: treemap action
+│   │   ├── treemapAction.ts => option/parse.mbt:apply_interaction_dispatch_action [partial] Feature: treemapRootToNode/treemapZoomToNode/treemapRender/treemapMove recognized (no-op in static renderer)
 │   │   ├── treemapLayout.ts => chart/treemap.mbt [translated] Feature: treemap layout
 │   │   ├── TreemapSeries.ts => chart/treemap.mbt [partial] Feature: treemap series model
 │   │   ├── treemapVisual.ts => chart/treemap.mbt [partial] Feature: treemap visual
@@ -916,7 +917,7 @@ E:\recharts\echarts\src
 │   │   ├── install.ts => chart/install.mbt [partial] Feature: tree install
 │   │   ├── layoutHelper.ts => chart/tree.mbt [translated] Feature: tree layout helper (Reingold-Tilford)
 │   │   ├── traversalHelper.ts => chart/tree.mbt [translated] Feature: tree traversal helper
-│   │   ├── treeAction.ts =>  [missing] Feature: tree action
+│   │   ├── treeAction.ts => option/parse.mbt:apply_dispatch_action_tree_expand_and_collapse [partial] Feature: treeExpandAndCollapse toggles DataItem.collapsed; treeRoam recognized (no-op)
 │   │   ├── treeLayout.ts => chart/tree.mbt [translated] Feature: tree layout
 │   │   ├── TreeSeries.ts => chart/tree.mbt [partial] Feature: tree series model
 │   │   ├── treeVisual.ts => chart/tree.mbt [partial] Feature: tree visual

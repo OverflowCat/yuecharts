@@ -971,6 +971,15 @@ fn render_text(
     s.fill.to_svg(),
   )
   buf.write_string("<text x=\"\{t.x}\" y=\"\{t.y}\"")
+  match t.rotation {
+    Some(rotation) =>
+      if rotation != 0.0 && !rotation.is_nan() {
+        buf.write_string(
+          " transform=\"\{text_rotation_transform(rotation, t.x, t.y)}\"",
+        )
+      }
+    _ => ()
+  }
   buf.write_string(fill_string_attr(fill_value, scope))
   buf.write_string(" font-size=\"\{s.font_size}\"")
   if s.font_family != "sans-serif" {
@@ -1049,6 +1058,12 @@ fn push_xml_attr_opt(
     Some(value) => attrs.push(XmlAttr::new(name, value))
     None => ()
   }
+}
+
+///|
+fn text_rotation_transform(rotation : Double, x : Double, y : Double) -> String {
+  let deg = rotation * 180.0 / @math.PI
+  "rotate(\{deg} \{x} \{y})"
 }
 
 ///|
@@ -1496,6 +1511,17 @@ fn build_text_node(t : @graphic.TextData, scope : Ref[BrushScope]) -> XmlNode {
   let attrs : Array[XmlAttr] = []
   push_xml_attr(attrs, "x", t.x.to_string())
   push_xml_attr(attrs, "y", t.y.to_string())
+  match t.rotation {
+    Some(rotation) =>
+      if rotation != 0.0 && !rotation.is_nan() {
+        push_xml_attr(
+          attrs,
+          "transform",
+          text_rotation_transform(rotation, t.x, t.y),
+        )
+      }
+    _ => ()
+  }
   push_color_xml_attrs(attrs, "fill", fill_value, scope)
   push_xml_attr(attrs, "font-size", s.font_size.to_string())
   if s.font_family != "sans-serif" {

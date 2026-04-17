@@ -1,16 +1,6 @@
 /// <=> echarts/src/chart/line/LineView.ts
 
 ///|
-/// <=> echarts/src/chart/line/LineView.ts:getSmooth
-fn line_smooth_factor(smooth : Bool) -> Double {
-  if smooth {
-    0.5
-  } else {
-    0.0
-  }
-}
-
-///|
 /// <=> zrender/src/graphic/helper/smoothBezier.ts:smoothBezier
 fn line_smooth_path(points : Array[@graphic.Point], smooth : Double) -> String {
   let n = points.length()
@@ -51,9 +41,56 @@ fn line_smooth_path(points : Array[@graphic.Point], smooth : Double) -> String {
 }
 
 ///|
-fn line_path(points : Array[@graphic.Point], smooth : Bool) -> String {
-  if smooth {
-    line_smooth_path(points, line_smooth_factor(smooth))
+/// <=> echarts/src/chart/line/LineView.ts:drawSeriesSymbol
+/// Generate step-line path for 'start', 'end', 'middle' modes.
+fn line_step_path(points : Array[@graphic.Point], step : String) -> String {
+  let n = points.length()
+  if n == 0 {
+    return ""
+  }
+  if n == 1 {
+    return "M \{points[0].x} \{points[0].y}"
+  }
+  let buf = StringBuilder::new()
+  buf.write_string("M \{points[0].x} \{points[0].y}")
+  let mut i = 0
+  while i < n - 1 {
+    let p1 = points[i]
+    let p2 = points[i + 1]
+    match step {
+      "start" => {
+        // horizontal then vertical
+        buf.write_string(" L \{p2.x} \{p1.y}")
+        buf.write_string(" L \{p2.x} \{p2.y}")
+      }
+      "middle" => {
+        // midpoint horizontal step
+        let mx = (p1.x + p2.x) / 2.0
+        buf.write_string(" L \{mx} \{p1.y}")
+        buf.write_string(" L \{mx} \{p2.y}")
+        buf.write_string(" L \{p2.x} \{p2.y}")
+      }
+      _ => {
+        // "end" (default): vertical then horizontal
+        buf.write_string(" L \{p1.x} \{p2.y}")
+        buf.write_string(" L \{p2.x} \{p2.y}")
+      }
+    }
+    i += 1
+  }
+  buf.to_string()
+}
+
+///|
+fn line_path(
+  points : Array[@graphic.Point],
+  smooth : Double,
+  step : String,
+) -> String {
+  if step != "" {
+    line_step_path(points, step)
+  } else if smooth > 0.0 {
+    line_smooth_path(points, smooth)
   } else {
     let buf = StringBuilder::new()
     if points.length() == 0 {
@@ -213,7 +250,7 @@ pub fn render_line_series(
   }
   elems.push(
     @graphic.Element::path_stroke_custom(
-      line_path(points, series.smooth),
+      line_path(points, series.smooth, series.step),
       stroke_color,
       stroke_width,
       "butt",
@@ -222,16 +259,18 @@ pub fn render_line_series(
     ),
   )
 
-  elems.append(
-    points.map(p => {
-      @graphic.Element::circle_colored(
-        p.x,
-        p.y,
-        series.symbol_size * 0.5,
-        stroke_color,
-      )
-    }),
-  )
+  if series.show_symbol {
+    elems.append(
+      points.map(p => {
+        @graphic.Element::circle_colored(
+          p.x,
+          p.y,
+          series.symbol_size * 0.5,
+          stroke_color,
+        )
+      }),
+    )
+  }
   elems
 }
 
