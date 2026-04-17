@@ -1178,6 +1178,22 @@ fn sankey_render_series(
     return elems
   }
 
+  // dragNode action persists normalized local position in DataItem.local_x/local_y.
+  // Apply overrides after layout, matching SankeySeries.setNodePosition usage.
+  let mut ni = 0
+  while ni < nodes.length() {
+    let item = nodes[ni].item
+    match item.local_x {
+      Some(x) => nodes[ni].x = x * box.width
+      None => ()
+    }
+    match item.local_y {
+      Some(y) => nodes[ni].y = y * box.height
+      None => ()
+    }
+    ni += 1
+  }
+
   let mut min_value = nodes[0].value
   let mut max_value = nodes[0].value
   for node in nodes {

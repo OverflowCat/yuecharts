@@ -188,6 +188,21 @@ fn render_pictorial_bar_series(
   let y_idx = series.y_axis_index
   let zero_y = value_axis_zero_y(coord, y_idx)
   let symbol = series.symbol.unwrap_or("circle")
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: Some(
+      @visual.lift_hex_color(pictorial_symbol_color(series, series_index)),
+    ),
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
   if x_idx >= coord.x_scales.length() {
     return elems
   }
@@ -355,7 +370,12 @@ fn render_pictorial_bar_series(
         pictorial_symbol_color(series, series_index),
         series |> pictorial_symbol_opacity,
       )
-      symbol_buf.push(sym)
+      let final_sym = if any_highlighted {
+        sym.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+      } else {
+        sym
+      }
+      symbol_buf.push(final_sym)
       ri += 1
     }
     if symbol_buf.length() > 0 {

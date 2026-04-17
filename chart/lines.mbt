@@ -795,6 +795,25 @@ pub fn render_lines_chart_series(
   geo? : @coord.Geo? = None,
 ) -> Array[@graphic.Element] {
   let line_elems : Array[@graphic.Element] = []
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: Some(
+      @visual.lift_hex_color(
+        series.line_style_color.unwrap_or(
+          series.color.unwrap_or(@visual.palette_color(series_index)),
+        ),
+      ),
+    ),
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
   for item in series.data {
     let points = lines_chart_points(series, item, coord, polar~, geo~)
     let color = lines_chart_item_color(item, series, series_index)
@@ -803,26 +822,38 @@ pub fn render_lines_chart_series(
     let curveness = lines_chart_item_curveness(item, series)
     if points.length() >= 2 {
       if series.polyline || points.length() > 2 {
-        line_elems.push(
-          @graphic.Element::polyline_custom_opacity(
-            points, color, width, "round", "round", opacity,
-          ),
+        let line_elem = @graphic.Element::polyline_custom_opacity(
+          points, color, width, "round", "round", opacity,
         )
+        let final_line_elem = if any_highlighted {
+          line_elem
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          line_elem
+        }
+        line_elems.push(final_line_elem)
         line_elems.append(
           lines_chart_endpoint_symbols(item, series, points, color, opacity),
         )
       } else if curveness != 0.0 {
         let control = lines_chart_curve_control(points[0], points[1], curveness)
-        line_elems.push(
-          @graphic.Element::path_stroke_custom(
-            lines_chart_curve_path(points[0], points[1], curveness),
-            color,
-            width,
-            "round",
-            "round",
-            opacity,
-          ),
+        let curve_elem = @graphic.Element::path_stroke_custom(
+          lines_chart_curve_path(points[0], points[1], curveness),
+          color,
+          width,
+          "round",
+          "round",
+          opacity,
         )
+        let final_curve_elem = if any_highlighted {
+          curve_elem
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          curve_elem
+        }
+        line_elems.push(final_curve_elem)
         line_elems.append(
           lines_chart_endpoint_symbols(
             item,
@@ -846,16 +877,22 @@ pub fn render_lines_chart_series(
           None => ()
         }
       } else {
-        line_elems.push(
-          @graphic.Element::polyline_custom_opacity(
-            [points[0], points[1]],
-            color,
-            width,
-            "round",
-            "round",
-            opacity,
-          ),
+        let line_elem = @graphic.Element::polyline_custom_opacity(
+          [points[0], points[1]],
+          color,
+          width,
+          "round",
+          "round",
+          opacity,
         )
+        let final_line_elem = if any_highlighted {
+          line_elem
+          .with_emphasis_style(emphasis_style)
+          .with_blur_style(blur_style)
+        } else {
+          line_elem
+        }
+        line_elems.push(final_line_elem)
         line_elems.append(
           lines_chart_endpoint_symbols(item, series, points, color, opacity),
         )

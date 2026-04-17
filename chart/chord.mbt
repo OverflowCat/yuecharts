@@ -708,6 +708,19 @@ pub fn render_chord_series(
     return elems
   }
 
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
   let node_colors : Array[String] = []
   let mut i = 0
   for i, _ in nodes {
@@ -721,15 +734,19 @@ pub fn render_chord_series(
     let edge = edges[ei]
     let fill_color = chord_edge_fill_color(series, edge, node_colors)
     let d = chord_edge_path(edge, cx, cy, r0, clockwise)
-    if edge_width > 0.0 {
-      elems.push(
-        @graphic.Element::path_fill_stroke(
-          d, fill_color, fill_color, edge_width, edge_opacity,
-        ),
+    let edge_elem = if edge_width > 0.0 {
+      @graphic.Element::path_fill_stroke(
+        d, fill_color, fill_color, edge_width, edge_opacity,
       )
     } else {
-      elems.push(@graphic.Element::path_filled(d, fill_color, edge_opacity))
+      @graphic.Element::path_filled(d, fill_color, edge_opacity)
     }
+    let final_edge_elem = if any_highlighted {
+      edge_elem.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+    } else {
+      edge_elem
+    }
+    elems.push(final_edge_elem)
   }
 
   i = 0
@@ -746,19 +763,25 @@ pub fn render_chord_series(
     )
     let fill_color = node_colors[i]
     let border_width = chord_node_border_width(series, node)
-    match chord_node_border_color(series, node) {
-      Some(border_color) =>
-        if border_width > 0.0 {
-          elems.push(
-            @graphic.Element::path_fill_stroke(
-              d, fill_color, border_color, border_width, 1.0,
-            ),
+    let sector_elem = if border_width > 0.0 {
+      match chord_node_border_color(series, node) {
+        Some(border_color) =>
+          @graphic.Element::path_fill_stroke(
+            d, fill_color, border_color, border_width, 1.0,
           )
-        } else {
-          elems.push(@graphic.Element::path_filled(d, fill_color, 1.0))
-        }
-      None => elems.push(@graphic.Element::path_filled(d, fill_color, 1.0))
+        None => @graphic.Element::path_filled(d, fill_color, 1.0)
+      }
+    } else {
+      @graphic.Element::path_filled(d, fill_color, 1.0)
     }
+    let final_sector_elem = if any_highlighted {
+      sector_elem
+      .with_emphasis_style(emphasis_style)
+      .with_blur_style(blur_style)
+    } else {
+      sector_elem
+    }
+    elems.push(final_sector_elem)
     i += 1
   }
 

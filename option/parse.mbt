@@ -272,6 +272,15 @@ fn apply_interaction_dispatch_action(
       apply_dispatch_action_data_select(opt, action, "toggle")
     "highlight" => apply_dispatch_action_highlight(opt, action, true)
     "downplay" => apply_dispatch_action_highlight(opt, action, false)
+    // Legacy graph adjacency focus actions.
+    // Corresponds to: echarts/src/chart/graph/install.ts
+    "focusNodeAdjacency" =>
+      apply_dispatch_action_focus_node_adjacency(opt, action)
+    "unfocusNodeAdjacency" =>
+      apply_dispatch_action_unfocus_node_adjacency(opt, action)
+    // Sankey drag action persists local node position.
+    // Corresponds to: echarts/src/chart/sankey/install.ts
+    "dragNode" => apply_dispatch_action_drag_node(opt, action)
     "treeExpandAndCollapse" =>
       apply_dispatch_action_tree_expand_and_collapse(opt, action)
     "dataZoom" => apply_dispatch_action_data_zoom(opt, action)
@@ -547,6 +556,209 @@ fn apply_dispatch_action_highlight(
         }
         None => opt
       }
+  }
+}
+
+///|
+/// Legacy graph adjacency focus action. Highlights a node/edge and its adjacent
+/// elements by setting DataItem.highlighted on graph data and link_data.
+///
+/// <=> echarts/src/chart/graph/install.ts (focusNodeAdjacency action)
+/// <=> echarts/src/chart/graph/GraphView.ts (focus === 'adjacency')
+fn apply_dispatch_action_focus_node_adjacency(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  let series_index = interaction_series_index(opt.series, action)
+  match series_index {
+    Some(si) => {
+      let series = opt.series
+      let series_opt = series[si]
+      if series_opt.series_type != Graph {
+        return opt
+      }
+
+      let data = series_opt.data
+      let link_data = series_opt.link_data
+      let new_data : Array[DataItem] = []
+      let new_link_data : Array[DataItem] = []
+      for item in data {
+        new_data.push({ ..item, highlighted: None })
+      }
+      for item in link_data {
+        new_link_data.push({ ..item, highlighted: None })
+      }
+
+      let node_key = fn(item : DataItem, index : Int) -> String {
+        item.id.unwrap_or(item.name.unwrap_or(index.to_string()))
+      }
+      let data_type = j_string_opt(action, "dataType").unwrap_or("node")
+      let mut focus_node_key = ""
+
+      if data_type == "edge" {
+        match j_number_opt(action, "dataIndex") {
+          Some(n) => {
+            let edge_index = n.to_int()
+            if edge_index >= 0 && edge_index < new_link_data.length() {
+              let edge_item = new_link_data[edge_index]
+              new_link_data[edge_index] = {
+                ..edge_item,
+                highlighted: Some(true),
+              }
+              let src = edge_item.source.unwrap_or("")
+              let tgt = edge_item.target.unwrap_or("")
+              let mut i = 0
+              while i < new_data.length() {
+                let key = node_key(new_data[i], i)
+                if key == src || key == tgt {
+                  new_data[i] = { ..new_data[i], highlighted: Some(true) }
+                }
+                i += 1
+              }
+            }
+          }
+          None => ()
+        }
+      } else {
+        match interaction_data_index(series_opt.data, action) {
+          Some(data_index) => {
+            focus_node_key = node_key(series_opt.data[data_index], data_index)
+            new_data[data_index] = {
+              ..new_data[data_index],
+              highlighted: Some(true),
+            }
+            let mut li = 0
+            while li < new_link_data.length() {
+              let edge = new_link_data[li]
+              let src = edge.source.unwrap_or("")
+              let tgt = edge.target.unwrap_or("")
+              if src == focus_node_key || tgt == focus_node_key {
+                new_link_data[li] = { ..edge, highlighted: Some(true) }
+              }
+              li += 1
+            }
+            let mut i = 0
+            while i < new_data.length() {
+              let key = node_key(new_data[i], i)
+              if key == focus_node_key {
+                i += 1
+                continue
+              }
+              let mut adjacent = false
+              let mut li2 = 0
+              while li2 < new_link_data.length() {
+                if new_link_data[li2].highlighted == Some(true) {
+                  let src = new_link_data[li2].source.unwrap_or("")
+                  let tgt = new_link_data[li2].target.unwrap_or("")
+                  if src == key || tgt == key {
+                    adjacent = true
+                    break
+                  }
+                }
+                li2 += 1
+              }
+              if adjacent {
+                new_data[i] = { ..new_data[i], highlighted: Some(true) }
+              }
+              i += 1
+            }
+          }
+          None => ()
+        }
+      }
+
+      series[si] = { ..series_opt, data: new_data, link_data: new_link_data }
+      { ..opt, series, }
+    }
+    None => opt
+  }
+}
+
+///|
+/// Clears graph adjacency focus flags.
+///
+/// <=> echarts/src/chart/graph/install.ts (unfocusNodeAdjacency action)
+fn apply_dispatch_action_unfocus_node_adjacency(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  match interaction_series_index(opt.series, action) {
+    Some(si) => {
+      let series = opt.series
+      let series_opt = series[si]
+      if series_opt.series_type != Graph {
+        return opt
+      }
+      let data : Array[DataItem] = []
+      let link_data : Array[DataItem] = []
+      for item in series_opt.data {
+        data.push({ ..item, highlighted: None })
+      }
+      for item in series_opt.link_data {
+        link_data.push({ ..item, highlighted: None })
+      }
+      series[si] = { ..series_opt, data, link_data }
+      { ..opt, series, }
+    }
+    None => opt
+  }
+}
+
+///|
+/// Persist sankey node local position from drag action payload.
+/// `localX`/`localY` are normalized to [0,1] and consumed by sankey renderer.
+///
+/// <=> echarts/src/chart/sankey/install.ts (dragNode action)
+/// <=> echarts/src/chart/sankey/SankeySeries.ts setNodePosition
+fn apply_dispatch_action_drag_node(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  let target_series = match interaction_series_index(opt.series, action) {
+    Some(si) => Some(si)
+    None => {
+      let mut i = 0
+      let mut found = -1
+      while i < opt.series.length() {
+        if opt.series[i].series_type == Sankey {
+          found = i
+          break
+        }
+        i += 1
+      }
+      if found >= 0 {
+        Some(found)
+      } else {
+        None
+      }
+    }
+  }
+  match (target_series, j_number_opt(action, "dataIndex")) {
+    (Some(si), Some(data_idx_num)) => {
+      let series = opt.series
+      let series_opt = series[si]
+      if series_opt.series_type != Sankey {
+        return opt
+      }
+      let data = series_opt.data
+      let data_index = data_idx_num.to_int()
+      if data_index < 0 || data_index >= data.length() {
+        return opt
+      }
+      let item = data[data_index]
+      let local_x = match j_number_opt(action, "localX") {
+        Some(x) => Some(x)
+        None => item.local_x
+      }
+      let local_y = match j_number_opt(action, "localY") {
+        Some(y) => Some(y)
+        None => item.local_y
+      }
+      data[data_index] = { ..item, local_x, local_y }
+      series[si] = { ..series_opt, data, }
+      { ..opt, series, }
+    }
+    _ => opt
   }
 }
 
@@ -1574,6 +1786,8 @@ fn make_data_item_num_name(value : Double, name : String?) -> DataItem {
     title_offset_center: None,
     detail_offset_center: None,
     highlighted: None,
+    local_x: None,
+    local_y: None,
   }
 }
 
@@ -3704,6 +3918,8 @@ fn parse_data_item(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     String(s) => {
       let parsed = try? @string.parse_double(s)
@@ -3733,6 +3949,8 @@ fn parse_data_item(j : Json) -> DataItem {
             title_offset_center: None,
             detail_offset_center: None,
             highlighted: None,
+            local_x: None,
+            local_y: None,
           }
         Err(_) =>
           {
@@ -3759,6 +3977,8 @@ fn parse_data_item(j : Json) -> DataItem {
             title_offset_center: None,
             detail_offset_center: None,
             highlighted: None,
+            local_x: None,
+            local_y: None,
           }
       }
     }
@@ -3787,6 +4007,8 @@ fn parse_data_item(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     True =>
       {
@@ -3813,6 +4035,8 @@ fn parse_data_item(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     False =>
       {
@@ -3839,6 +4063,8 @@ fn parse_data_item(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     Array(arr) => parse_data_array_item(arr)
     { "value": Number(n, ..), .. } => parse_data_object(j, DataValue::Num(n))
@@ -3874,6 +4100,8 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     title_offset_center: None,
     detail_offset_center: None,
     highlighted: None,
+    local_x: None,
+    local_y: None,
   }
 }
 
@@ -3914,6 +4142,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     Array([Number(x, ..), Number(val, ..), String(name)]) => {
       let key = if x.to_int().to_double() == x {
@@ -3945,6 +4175,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     }
     Array([String(date), Number(val, ..)]) =>
@@ -3972,6 +4204,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     Array([Number(x, ..), Number(val, ..)]) => {
       let key = if x.to_int().to_double() == x {
@@ -4003,6 +4237,8 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         title_offset_center: None,
         detail_offset_center: None,
         highlighted: None,
+        local_x: None,
+        local_y: None,
       }
     }
     _ => parse_data_item(j)
@@ -4720,6 +4956,8 @@ fn empty_data_item_with_coords(coords : Array[Array[Double]]) -> DataItem {
     title_offset_center: None,
     detail_offset_center: None,
     highlighted: None,
+    local_x: None,
+    local_y: None,
   }
 }
 
@@ -4795,6 +5033,8 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     Some(False) => Some(false)
     _ => None
   }
+  let local_x = j_number_opt(j, "localX")
+  let local_y = j_number_opt(j, "localY")
   // Gauge per-item title/detail offsetCenter
   let title_offset_center = match j_field(j, "title") {
     Some(t) =>
@@ -4854,6 +5094,8 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     title_offset_center,
     detail_offset_center,
     highlighted: None,
+    local_x,
+    local_y,
   }
 }
 

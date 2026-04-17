@@ -23,6 +23,7 @@ priv struct GraphEdge {
   n1 : Int // index into node array
   n2 : Int // index into node array
   d : Double // desired edge length
+  link_index : Int // index into series.link_data
 }
 
 ///|
@@ -325,7 +326,7 @@ fn render_graph_series(
     let tgt_id = link.target.unwrap_or("")
     match (id_to_idx.get(src_id), id_to_idx.get(tgt_id)) {
       (Some(s_idx), Some(t_idx)) =>
-        force_edges.push({ n1: s_idx, n2: t_idx, d: edge_len })
+        force_edges.push({ n1: s_idx, n2: t_idx, d: edge_len, link_index: li })
       _ => ()
     }
     li = li + 1
@@ -394,6 +395,9 @@ fn render_graph_series(
   // Category → color mapping (palette index = category index)
   // Corresponds to: echarts/src/chart/graph/categoryVisual.ts
   let n_cats = series.graph_categories.length()
+  let any_node_highlighted = @visual.has_any_highlighted(series.data)
+  let any_edge_highlighted = @visual.has_any_highlighted(series.link_data)
+  let any_highlighted = any_node_highlighted || any_edge_highlighted
 
   // Render edges first (below nodes)
   let mut ej = 0
@@ -407,17 +411,50 @@ fn render_graph_series(
     }
     let edge_width = series.line_style_width.unwrap_or(1.0)
     let edge_opacity = series.line_style_opacity.unwrap_or(0.5)
+    let link_item = if fe.link_index >= 0 &&
+      fe.link_index < series.link_data.length() {
+      Some(series.link_data[fe.link_index])
+    } else {
+      None
+    }
+    let item_highlighted = link_item.map_or(false, item => {
+      item.highlighted == Some(true)
+    })
+    let emphasis_color = if item_highlighted {
+      @visual.lift_hex_color(edge_color)
+    } else {
+      edge_color
+    }
+    let emphasis_style : @graphic.DisplayStateStyle = {
+      fill: None,
+      stroke: Some(emphasis_color),
+      line_width: None,
+      stroke_no_scale: false,
+    }
+    let blur_style : @graphic.DisplayStateStyle = {
+      fill: None,
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
+    let edge_elem = @graphic.Element::line_colored_dashed(
+      n1.x,
+      n1.y,
+      n2.x,
+      n2.y,
+      edge_color,
+      edge_width,
+      [],
+      edge_opacity,
+    )
     elems.push(
-      @graphic.Element::line_colored_dashed(
-        n1.x,
-        n1.y,
-        n2.x,
-        n2.y,
-        edge_color,
-        edge_width,
-        [],
-        edge_opacity,
-      ),
+      if any_highlighted {
+        edge_elem
+        .with_emphasis_style(emphasis_style)
+        .with_blur_style(blur_style)
+      } else {
+        edge_elem
+      },
     )
     ej = ej + 1
   }
@@ -465,16 +502,40 @@ fn render_graph_series(
           None => @visual.palette_color(series_index)
         }
     }
-
+    let item_highlighted = item.highlighted == Some(true)
+    let emphasis_fill = if item_highlighted {
+      @visual.lift_hex_color(fill_color)
+    } else {
+      fill_color
+    }
+    let emphasis_style : @graphic.DisplayStateStyle = {
+      fill: Some(emphasis_fill),
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
+    let blur_style : @graphic.DisplayStateStyle = {
+      fill: None,
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
+    let node_elem = @graphic.Element::circle_fill_stroke(
+      fn_node.x,
+      fn_node.y,
+      node_r,
+      fill_color,
+      "#ffffff",
+      1.0,
+    )
     elems.push(
-      @graphic.Element::circle_fill_stroke(
-        fn_node.x,
-        fn_node.y,
-        node_r,
-        fill_color,
-        "#ffffff",
-        1.0,
-      ),
+      if any_highlighted {
+        node_elem
+        .with_emphasis_style(emphasis_style)
+        .with_blur_style(blur_style)
+      } else {
+        node_elem
+      },
     )
 
     // Render label

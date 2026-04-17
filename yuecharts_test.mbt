@@ -2918,3 +2918,100 @@ test "pie highlight emphasis lifts color and blurs others" {
   // Items 1 and 2 should be blurred: opacity="0.1"
   assert_true(svg.contains("opacity=\"0.1\""))
 }
+
+///|
+/// Graph legacy adjacency focus action should affect static emphasis rendering.
+/// <=> echarts/src/chart/graph/install.ts (focusNodeAdjacency)
+test "graph focusNodeAdjacency updates emphasis output" {
+  let base_json =
+    #|{
+    #|  "option": {
+    #|    "width": 420,
+    #|    "height": 320,
+    #|    "series": [{
+    #|      "type": "graph",
+    #|      "layout": "none",
+    #|      "data": [
+    #|        {"id": "A", "name": "A", "x": 60, "y": 80},
+    #|        {"id": "B", "name": "B", "x": 180, "y": 120},
+    #|        {"id": "C", "name": "C", "x": 300, "y": 180}
+    #|      ],
+    #|      "links": [
+    #|        {"source": "A", "target": "B", "value": 1}
+    #|      ]
+    #|    }]
+    #|  }
+    #|}
+  let focused_json =
+    #|{
+    #|  "option": {
+    #|    "width": 420,
+    #|    "height": 320,
+    #|    "series": [{
+    #|      "type": "graph",
+    #|      "layout": "none",
+    #|      "data": [
+    #|        {"id": "A", "name": "A", "x": 60, "y": 80},
+    #|        {"id": "B", "name": "B", "x": 180, "y": 120},
+    #|        {"id": "C", "name": "C", "x": 300, "y": 180}
+    #|      ],
+    #|      "links": [
+    #|        {"source": "A", "target": "B", "value": 1}
+    #|      ]
+    #|    }]
+    #|  },
+    #|  "dispatchActions": [
+    #|    {"type": "focusNodeAdjacency", "seriesIndex": 0, "dataIndex": 0}
+    #|  ]
+    #|}
+  let svg_base = @yuecharts.render(base_json)
+  let svg_focused = @yuecharts.render(focused_json)
+  assert_true(svg_focused != svg_base)
+}
+
+///|
+/// Sankey drag action should persist local node position and change output.
+/// <=> echarts/src/chart/sankey/install.ts (dragNode)
+test "sankey dragNode updates local node position" {
+  let base_json =
+    #|{
+    #|  "option": {
+    #|    "width": 500,
+    #|    "height": 320,
+    #|    "series": [{
+    #|      "type": "sankey",
+    #|      "data": [
+    #|        {"name": "src"},
+    #|        {"name": "dst"}
+    #|      ],
+    #|      "links": [
+    #|        {"source": "src", "target": "dst", "value": 6}
+    #|      ]
+    #|    }]
+    #|  }
+    #|}
+  let drag_json =
+    #|{
+    #|  "option": {
+    #|    "width": 500,
+    #|    "height": 320,
+    #|    "series": [{
+    #|      "type": "sankey",
+    #|      "data": [
+    #|        {"name": "src"},
+    #|        {"name": "dst"}
+    #|      ],
+    #|      "links": [
+    #|        {"source": "src", "target": "dst", "value": 6}
+    #|      ]
+    #|    }]
+    #|  },
+    #|  "dispatchActions": [
+    #|    {"type": "dragNode", "seriesIndex": 0, "dataIndex": 0, "localX": 0.62, "localY": 0.18}
+    #|  ]
+    #|}
+  let svg_base = @yuecharts.render(base_json)
+  let svg_drag = @yuecharts.render(drag_json)
+  assert_true(svg_drag != svg_base)
+  assert_true(svg_drag.contains(">src</text>"))
+}

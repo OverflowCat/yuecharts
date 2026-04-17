@@ -558,6 +558,10 @@ pub(all) struct DataItem {
   // Emphasis state from highlight/downplay dispatchAction.
   // Corresponds to: echarts/src/util/states.ts HOVER_STATE_EMPHASIS
   highlighted : Bool?
+  // Sankey drag position persisted by dragNode action, normalized to [0,1].
+  // Corresponds to: echarts/src/chart/sankey/SankeySeries.ts setNodePosition
+  local_x : Double?
+  local_y : Double?
 }
 
 ///|

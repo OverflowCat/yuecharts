@@ -14,17 +14,34 @@ pub fn render_parallel_series(
   )
   let width = series.line_style_width.unwrap_or(1.0)
   let opacity = series.line_style_opacity.unwrap_or(0.45)
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: Some(@visual.lift_hex_color(color)),
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
   for i, _ in series.data {
     let item = series.data[i]
     let points = parallel_series_line_points(item, parallel)
     if points.length() < 2 {
       continue
     }
-    line_elems.push(
-      @graphic.Element::polyline_custom_opacity(
-        points, color, width, "round", "round", opacity,
-      ),
+    let base_elem = @graphic.Element::polyline_custom_opacity(
+      points, color, width, "round", "round", opacity,
     )
+    let final_elem = if any_highlighted {
+      base_elem.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+    } else {
+      base_elem
+    }
+    line_elems.push(final_elem)
   }
   if line_elems.length() == 0 {
     []

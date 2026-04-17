@@ -15,6 +15,19 @@ pub fn render_boxplot_series(
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
   let color = series.color.unwrap_or(@visual.palette_color(series_index))
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+  let emphasis_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: Some(@visual.lift_hex_color(color)),
+    line_width: None,
+    stroke_no_scale: false,
+  }
+  let blur_style : @graphic.DisplayStateStyle = {
+    fill: None,
+    stroke: None,
+    line_width: None,
+    stroke_no_scale: false,
+  }
   // Use itemStyle.borderWidth if specified, otherwise default 1.5
   let line_w = series.geo_item_style.bind(s => s.border_width).unwrap_or(1.5)
   let box_w = if x_idx < coord.x_scales.length() {
@@ -60,69 +73,136 @@ pub fn render_boxplot_series(
         let bx1 = cx + box_w * 0.5
         let effective_bot = if box_h < 1.0 { box_top + 1.0 } else { box_bot }
         // Top edge
+        let top_edge = @graphic.Element::line_colored(
+          bx0, box_top, bx1, box_top, color, line_w,
+        )
         elems.push(
-          @graphic.Element::line_colored(
-            bx0, box_top, bx1, box_top, color, line_w,
-          ),
+          if any_highlighted {
+            top_edge
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            top_edge
+          },
         )
         // Bottom edge
+        let bottom_edge = @graphic.Element::line_colored(
+          bx0, effective_bot, bx1, effective_bot, color, line_w,
+        )
         elems.push(
-          @graphic.Element::line_colored(
-            bx0, effective_bot, bx1, effective_bot, color, line_w,
-          ),
+          if any_highlighted {
+            bottom_edge
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            bottom_edge
+          },
         )
         // Left edge
+        let left_edge = @graphic.Element::line_colored(
+          bx0, box_top, bx0, effective_bot, color, line_w,
+        )
         elems.push(
-          @graphic.Element::line_colored(
-            bx0, box_top, bx0, effective_bot, color, line_w,
-          ),
+          if any_highlighted {
+            left_edge
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            left_edge
+          },
         )
         // Right edge
+        let right_edge = @graphic.Element::line_colored(
+          bx1, box_top, bx1, effective_bot, color, line_w,
+        )
         elems.push(
-          @graphic.Element::line_colored(
-            bx1, box_top, bx1, effective_bot, color, line_w,
-          ),
+          if any_highlighted {
+            right_edge
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            right_edge
+          },
         )
         // Median line (bold, inside box)
+        let med_line = @graphic.Element::line_colored(
+          cx - box_w * 0.5,
+          y_med,
+          cx + box_w * 0.5,
+          y_med,
+          color,
+          line_w * 1.333,
+        )
         elems.push(
-          @graphic.Element::line_colored(
-            cx - box_w * 0.5,
-            y_med,
-            cx + box_w * 0.5,
-            y_med,
-            color,
-            line_w * 1.333,
-          ),
+          if any_highlighted {
+            med_line
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            med_line
+          },
         )
         // Upper whisker: from box_top (q3) to y_max (high value → lower y)
+        let upper_whisker = @graphic.Element::line_colored(
+          cx, box_top, cx, y_max, color, 1.0,
+        )
         elems.push(
-          @graphic.Element::line_colored(cx, box_top, cx, y_max, color, 1.0),
+          if any_highlighted {
+            upper_whisker
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            upper_whisker
+          },
         )
         // Upper cap
+        let upper_cap = @graphic.Element::line_colored(
+          cx - box_w * 0.25,
+          y_max,
+          cx + box_w * 0.25,
+          y_max,
+          color,
+          1.0,
+        )
         elems.push(
-          @graphic.Element::line_colored(
-            cx - box_w * 0.25,
-            y_max,
-            cx + box_w * 0.25,
-            y_max,
-            color,
-            1.0,
-          ),
+          if any_highlighted {
+            upper_cap
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            upper_cap
+          },
         )
         // Lower whisker: from box_bot (q1) to y_min (low value → higher y)
+        let lower_whisker = @graphic.Element::line_colored(
+          cx, box_bot, cx, y_min, color, 1.0,
+        )
         elems.push(
-          @graphic.Element::line_colored(cx, box_bot, cx, y_min, color, 1.0),
+          if any_highlighted {
+            lower_whisker
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            lower_whisker
+          },
         )
         // Lower cap
+        let lower_cap = @graphic.Element::line_colored(
+          cx - box_w * 0.25,
+          y_min,
+          cx + box_w * 0.25,
+          y_min,
+          color,
+          1.0,
+        )
         elems.push(
-          @graphic.Element::line_colored(
-            cx - box_w * 0.25,
-            y_min,
-            cx + box_w * 0.25,
-            y_min,
-            color,
-            1.0,
-          ),
+          if any_highlighted {
+            lower_cap
+            .with_emphasis_style(emphasis_style)
+            .with_blur_style(blur_style)
+          } else {
+            lower_cap
+          },
         )
       }
       _ => ()

@@ -470,6 +470,19 @@ pub fn render_theme_rivers(
         continue
       }
     }
+    let any_highlighted = @visual.has_any_highlighted(series.data)
+    let emphasis_style : @graphic.DisplayStateStyle = {
+      fill: None,
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
+    let blur_style : @graphic.DisplayStateStyle = {
+      fill: None,
+      stroke: None,
+      line_width: None,
+      stroke_no_scale: false,
+    }
     let layers = theme_river_get_layers(series, single, color_offset)
     // Render each layer as a filled polygon
 
@@ -479,15 +492,21 @@ pub fn render_theme_rivers(
       if path_data == "" {
         continue
       }
-      elems.push(
-        @graphic.Element::path_fill_stroke(
-          path_data,
-          layer.color,
-          layer.color,
-          0.5,
-          1.0,
-        ),
+      let path_elem = @graphic.Element::path_fill_stroke(
+        path_data,
+        layer.color,
+        layer.color,
+        0.5,
+        1.0,
       )
+      let final_path_elem = if any_highlighted {
+        path_elem
+        .with_emphasis_style(emphasis_style)
+        .with_blur_style(blur_style)
+      } else {
+        path_elem
+      }
+      elems.push(final_path_elem)
       // Render stream label at leftmost point with margin
       // Only render label when label.show is true (default)
       let label_show = series.label.map_or(true, fn(l) { l.show })
