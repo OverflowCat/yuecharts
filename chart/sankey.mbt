@@ -43,7 +43,7 @@ priv struct SankeyResolvedLabelStyle {
   position : String
   distance : Double
   font_size : Double
-  font_family : String
+  font_family : StringView
   font_weight : String
 }
 

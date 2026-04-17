@@ -93,33 +93,26 @@ fn ring_path(
 }
 
 ///|
-fn axis_font_family(global_font_family : String?) -> String {
-  match global_font_family {
-    Some(font_family) => font_family
-    None => "sans-serif"
-  }
+fn axis_font_family(global_font_family : StringView?) -> StringView {
+  global_font_family.unwrap_or("sans-serif")
 }
 
 ///|
 pub fn render_axes(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
-  global_font_family : String?,
+  global_font_family : StringView?,
   polars? : Array[@coord.Polar] = [],
   single? : @coord.Single? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
   if has_cartesian_axis_series(opt) {
-    let mut i = 0
-    while i < opt.x_axis.length() {
-      render_x_axis(opt.x_axis[i], coord, i, elems, global_font_family)
-      i += 1
-    }
-    let mut j = 0
-    while j < opt.y_axis.length() {
-      render_y_axis(opt.y_axis[j], coord, j, elems, global_font_family)
-      j += 1
-    }
+    opt.x_axis.eachi((i, ax) => {
+      render_x_axis(ax, coord, i, elems, global_font_family)
+    })
+    opt.y_axis.eachi((j, ax) => {
+      render_y_axis(ax, coord, j, elems, global_font_family)
+    })
   }
   // Render all polar coordinate systems
   for polar in polars {
@@ -139,7 +132,7 @@ fn render_x_axis(
   coord : @coord.Cartesian2D,
   axis_index : Int,
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   let bbox = coord.bbox
   let pos = match ax.position {
@@ -189,7 +182,7 @@ fn render_x_axis(
             baseline,
             axis_line_color,
             12.0,
-            axis_font_family(global_font_family),
+            global_font_family |> axis_font_family,
             "normal",
           ),
         )
@@ -239,7 +232,7 @@ fn render_y_axis(
   coord : @coord.Cartesian2D,
   axis_index : Int,
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   let bbox = coord.bbox
   let pos = match ax.position {
@@ -398,7 +391,7 @@ fn render_y_axis_break(
   y_top : Double, // pixel y of the upper break boundary
   y_bot : Double, // pixel y of the lower break boundary
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   let _ = bbox
   let _ = break_area
@@ -592,7 +585,7 @@ pub fn render_break_area_overlays(
 fn render_polar_axes(
   polar : @coord.Polar,
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   render_angle_axis(polar, elems, global_font_family)
   render_radius_axis(polar, elems, global_font_family)
@@ -602,7 +595,7 @@ fn render_polar_axes(
 fn render_angle_axis(
   polar : @coord.Polar,
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   let axis = polar.angle_axis
   let area = polar.get_area()
@@ -712,7 +705,7 @@ fn render_angle_axis(
 fn render_radius_axis(
   polar : @coord.Polar,
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   let axis = polar.radius_axis
   let axis_angle = polar.angle_axis.extent_start
@@ -847,7 +840,7 @@ fn single_axis_tick_and_label(
   layout : @coord.SingleLayout,
   tick : @coord.SingleTick,
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   let tick_dir = layout.tick_direction.to_double()
   let label_dir = layout.label_direction.to_double()
@@ -950,7 +943,7 @@ fn render_single_axis(
   opt : @option.ChartOption,
   single_coord : @coord.Single,
   elems : Array[@graphic.Element],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   if opt.single_axis.length() == 0 {
     return

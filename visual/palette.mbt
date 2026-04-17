@@ -67,10 +67,10 @@ pub fn LineStyle::resolved_color(self : LineStyle, index : Int) -> String {
 /// Parse a 3- or 6-digit hex color string to (r, g, b).
 /// Returns None if unparsable.
 /// <=> zrender/src/tool/color.ts:parse (hex path)
-fn parse_hex_color(hex : String) -> (Int, Int, Int)? {
+fn parse_hex_color(hex : StringView) -> (Int, Int, Int)? {
   let s = if hex.length() > 0 && hex[0].to_int() == 0x23 {
     // '#' == 0x23
-    hex.substring(start=1)
+    hex[1:]
   } else {
     hex
   }

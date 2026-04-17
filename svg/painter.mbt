@@ -960,7 +960,7 @@ fn painter_xml_escape(s : StringView) -> String {
 }
 
 ///|
-fn push_xml_attr(attrs : Array[XmlAttr], name : String, value : String) -> Unit {
+fn push_xml_attr(attrs : Array[XmlAttr], name : StringView, value : StringView) -> Unit {
   attrs.push(XmlAttr::new(name, value))
 }
 

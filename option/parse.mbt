@@ -1796,7 +1796,7 @@ fn parse_chart_text_style_option(j : Json) -> ChartTextStyleOption {
   {
     color: j_string_opt(j, "color"),
     font_size: j_number_opt(j, "fontSize"),
-    font_family: j_string_opt(j, "fontFamily"),
+    font_family: j_string_view_opt(j, "fontFamily"),
     font_weight: j_string_opt(j, "fontWeight"),
   }
 }
@@ -1830,7 +1830,7 @@ fn parse_title_text_style_option(
     color: j_string(j, "color", base.color),
     font_size: j_number(j, "fontSize", base.font_size),
     font_weight: j_string(j, "fontWeight", base.font_weight),
-    font_family: j_string(j, "fontFamily", base.font_family),
+    font_family: j_string_view(j, "fontFamily", base.font_family),
   }
 }
 
@@ -2013,6 +2013,8 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
   let breaks = parse_axis_breaks(j)
   // echarts/src/coord/axisCommonTypes.ts BreakAreaOption
   let break_area = j_parse_optional(j, "breakArea", parse_break_area_option)
+  // scatter jitter: pixel width (jitterLayout.ts)
+  let jitter = j_number_opt(j, "jitter")
   {
     axis_type,
     position,
@@ -2030,6 +2032,7 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     label_formatter,
     breaks,
     break_area,
+    jitter,
   }
 }
 
@@ -2422,7 +2425,7 @@ fn parse_geo_label_option_with_base(
       None => base.distance_to_label_line
     },
     font_size: j_number(j, "fontSize", base.font_size),
-    font_family: j_string(j, "fontFamily", base.font_family),
+    font_family: j_string_view(j, "fontFamily", base.font_family),
     formatter: match j_string_opt(j, "formatter") {
       Some(v) => Some(v)
       None => base.formatter
@@ -2455,7 +2458,7 @@ fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
     bleed_margin: j_number_opt(j, "bleedMargin"),
     distance_to_label_line: j_number_opt(j, "distanceToLabelLine"),
     font_size: j_number_opt(j, "fontSize"),
-    font_family: j_string_opt(j, "fontFamily"),
+    font_family: j_string_view_opt(j, "fontFamily"),
     formatter: j_string_opt(j, "formatter"),
   }
 }
@@ -2758,7 +2761,7 @@ fn parse_matrix_label_option(
     show: j_bool(j, "show", base.show),
     color: j_string(j, "color", base.color),
     font_size: j_number(j, "fontSize", base.font_size),
-    font_family: j_string(j, "fontFamily", base.font_family),
+    font_family: j_string_view(j, "fontFamily", base.font_family),
     font_weight: j_string(j, "fontWeight", base.font_weight),
   }
 }
@@ -4391,7 +4394,7 @@ fn parse_calendar_day_label(j : Json) -> CalendarDayLabelOption {
     name_map: parse_name_map(label),
     color: j_string(label, "color", base.color),
     font_size: j_number(label, "fontSize", base.font_size),
-    font_family: j_string(label, "fontFamily", base.font_family),
+    font_family: j_string_view(label, "fontFamily", base.font_family),
     font_weight: j_string(label, "fontWeight", base.font_weight),
     silent: j_bool(label, "silent", base.silent),
   }
@@ -4410,7 +4413,7 @@ fn parse_calendar_month_label(j : Json) -> CalendarMonthLabelOption {
     name_map: parse_name_map(label),
     color: j_string(label, "color", base.color),
     font_size: j_number(label, "fontSize", base.font_size),
-    font_family: j_string(label, "fontFamily", base.font_family),
+    font_family: j_string_view(label, "fontFamily", base.font_family),
     font_weight: j_string(label, "fontWeight", base.font_weight),
     silent: j_bool(label, "silent", base.silent),
   }
@@ -4427,7 +4430,7 @@ fn parse_calendar_year_label(j : Json) -> CalendarYearLabelOption {
     formatter: j_string_opt(label, "formatter"),
     color: j_string(label, "color", base.color),
     font_size: j_number(label, "fontSize", base.font_size),
-    font_family: j_string(label, "fontFamily", base.font_family),
+    font_family: j_string_view(label, "fontFamily", base.font_family),
     font_weight: j_string(label, "fontWeight", base.font_weight),
     silent: j_bool(label, "silent", base.silent),
   }
@@ -5160,6 +5163,26 @@ fn j_string(j : Json, key : String, default_val : String) -> String {
 
 ///|
 fn j_string_opt(j : Json, key : String) -> String? {
+  match j_field(j, key) {
+    Some(String(s)) => Some(s)
+    _ => None
+  }
+}
+
+///|
+fn j_string_view(
+  j : Json,
+  key : String,
+  default_val : StringView,
+) -> StringView {
+  match j_field(j, key) {
+    Some(String(s)) => s
+    _ => default_val
+  }
+}
+
+///|
+fn j_string_view_opt(j : Json, key : String) -> StringView? {
   match j_field(j, key) {
     Some(String(s)) => Some(s)
     _ => None

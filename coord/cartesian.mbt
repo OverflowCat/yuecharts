@@ -114,7 +114,8 @@ pub fn Cartesian2D::num_y(
     Ordinal(s) =>
       match s.data_to_pixel(v.to_string()) {
         Some(px) => px
-        None => self.bbox.bottom()
+        // Fallback: treat v as an integer category index (e.g. punchCard data)
+        None => s.band_center(v.to_int())
       }
   }
 }

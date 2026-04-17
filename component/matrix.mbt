@@ -45,7 +45,7 @@ pub fn render_matrix(
 fn matrix_append_cells(
   elems : Array[@graphic.Element],
   cells : Array[@coord.MatrixCell],
-  global_font_family : String?,
+  global_font_family : StringView?,
 ) -> Unit {
   for i, _ in cells {
     let cell = cells[i]
@@ -73,7 +73,7 @@ fn matrix_append_cells(
 }
 
 ///|
-fn matrix_font_family(global : String?, fallback : String) -> String {
+fn matrix_font_family(global : StringView?, fallback : StringView) -> StringView {
   match global {
     Some(font) if fallback == "sans-serif" => font
     _ => fallback

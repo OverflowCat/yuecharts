@@ -145,7 +145,7 @@ fn resolve_title_anchor(title : @option.TitleOption) -> @graphic.TextAnchor {
 }
 
 ///|
-fn title_font_family(global : String?, fallback : String) -> String {
+fn title_font_family(global : StringView?, fallback : StringView) -> StringView {
   match global {
     Some(font) if fallback == "sans-serif" => font
     _ => fallback

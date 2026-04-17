@@ -202,7 +202,7 @@ fn vm_font_size(vm : @option.VisualMapOption, fallback : Double) -> Double {
 }
 
 ///|
-fn vm_font_family(vm : @option.VisualMapOption, fallback : String) -> String {
+fn vm_font_family(vm : @option.VisualMapOption, fallback : StringView) -> StringView {
   match vm.text_style {
     Some(style) => style.font_family.unwrap_or(fallback)
     None => fallback
@@ -569,7 +569,7 @@ fn vm_render_piecewise_item(
   show_label : Bool,
   label_color : String,
   font_size : Double,
-  font_family : String,
+  font_family : StringView,
   font_weight : String,
   item_w : Double,
   item_h : Double,

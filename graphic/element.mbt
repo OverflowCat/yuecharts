@@ -89,7 +89,7 @@ pub fn TextBaseline::to_svg(self : TextBaseline) -> String {
 pub struct TextStyle {
   fill : Color
   font_size : Double
-  font_family : String
+  font_family : StringView
   font_weight : String
   anchor : TextAnchor
   baseline : TextBaseline
@@ -1299,7 +1299,7 @@ pub fn Element::text_custom(
   baseline : TextBaseline,
   color_str : String,
   font_size : Double,
-  font_family : String,
+  font_family : StringView,
   font_weight : String,
 ) -> Element {
   Text({

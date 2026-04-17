@@ -141,6 +141,7 @@ fn scatter_point(
   polar? : @coord.Polar? = None,
   geo? : @coord.Geo? = None,
   calendar? : @coord.Calendar? = None,
+  x_jitter? : Double = 0.0,
 ) -> @graphic.Point? {
   match (series.coordinate_system, polar, geo, calendar) {
     (Some("polar"), Some(p), _, _) =>
@@ -223,7 +224,15 @@ fn scatter_point(
           if arr.length() >= 2 {
             let px = if x_idx < coord.x_scales.length() {
               match coord.x_scales[x_idx] {
-                Ordinal(s) => s.band_center(arr[0].to_int())
+                Ordinal(s) => {
+                  let base = s.band_center(arr[0].to_int())
+                  // Apply jitter offset when data has 3+ elements and jitter > 0
+                  if arr.length() >= 3 && x_jitter > 0.0 {
+                    base + (arr[2] - 0.5) * x_jitter
+                  } else {
+                    base
+                  }
+                }
                 Linear(s) => s.data_to_pixel(arr[0])
               }
             } else {
@@ -278,13 +287,21 @@ pub fn render_scatter_series(
 ) -> Array[@graphic.Element] {
   let default_color = scatter_series_color(series, series_index)
 
+  // Extract x-axis jitter pixel width (used by scatter jitter layout)
+  let x_axis_idx = series.x_axis_index
+  let x_jitter = if x_axis_idx < opt.x_axis.length() {
+    opt.x_axis[x_axis_idx].jitter.unwrap_or(0.0)
+  } else {
+    0.0
+  }
+
   // Check if any point is highlighted; if so apply emphasis/blur states to all points.
   let any_highlighted = @visual.has_any_highlighted(series.data)
 
   series.data
   .iter()
   .mapi(fn(di, item) {
-    if scatter_point(series, di, item, coord, polar~, geo~, calendar~)
+    if scatter_point(series, di, item, coord, polar~, geo~, calendar~, x_jitter~)
       is Some(point) {
       let color = geo_visual_map_color(opt, series_index, item).unwrap_or(
         default_color,

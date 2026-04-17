@@ -90,6 +90,8 @@ pub(all) struct AxisOption {
   breaks : Array[AxisBreakOption]
   // echarts/src/coord/axisCommonTypes.ts: BreakAreaOption — break visual style
   break_area : BreakAreaOption?
+  // scatter jitter: pixel width of the jitter area (jitterLayout.ts)
+  jitter : Double?
 }
 
 ///|
@@ -140,6 +142,7 @@ pub fn AxisOption::default_x() -> AxisOption {
     label_formatter: None,
     breaks: [],
     break_area: None,
+    jitter: None,
   }
 }
 
@@ -162,6 +165,7 @@ pub fn AxisOption::default_y() -> AxisOption {
     label_formatter: None,
     breaks: [],
     break_area: None,
+    jitter: None,
   }
 }
 
@@ -199,7 +203,7 @@ pub(all) struct GeoLabelOption {
   /// Pie-only distance between text and label line.
   distance_to_label_line : Double?
   font_size : Double
-  font_family : String
+  font_family : StringView
   // echarts/src/model/mixin/dataFormat.ts: getFormattedLabel -> formatTpl
   formatter : String?
 }
@@ -238,7 +242,7 @@ pub(all) struct GeoLabelPatchOption {
   bleed_margin : Double?
   distance_to_label_line : Double?
   font_size : Double?
-  font_family : String?
+  font_family : StringView?
   formatter : String?
 }
 
@@ -267,7 +271,7 @@ pub impl Default for GeoLabelPatchOption with default() {
 pub(all) struct ChartTextStyleOption {
   color : String?
   font_size : Double?
-  font_family : String?
+  font_family : StringView?
   font_weight : String?
 }
 
@@ -1399,7 +1403,7 @@ pub struct TitleTextStyleOption {
   color : String
   font_size : Double
   font_weight : String
-  font_family : String
+  font_family : StringView
 }
 
 ///|
@@ -1735,7 +1739,7 @@ pub struct CalendarDayLabelOption {
   name_map : Array[String]?
   color : String
   font_size : Double
-  font_family : String
+  font_family : StringView
   font_weight : String
   silent : Bool
 }
@@ -1766,7 +1770,7 @@ pub struct CalendarMonthLabelOption {
   name_map : Array[String]?
   color : String
   font_size : Double
-  font_family : String
+  font_family : StringView
   font_weight : String
   silent : Bool
 }
@@ -1796,7 +1800,7 @@ pub struct CalendarYearLabelOption {
   formatter : String?
   color : String
   font_size : Double
-  font_family : String
+  font_family : StringView
   font_weight : String
   silent : Bool
 }
@@ -1861,7 +1865,7 @@ pub struct MatrixLabelOption {
   show : Bool
   color : String
   font_size : Double
-  font_family : String
+  font_family : StringView
   font_weight : String
 }
 
