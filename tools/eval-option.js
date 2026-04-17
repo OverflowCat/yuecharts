@@ -8,9 +8,15 @@
 
 'use strict';
 
-const { loadOptionFile } = require('./option-loader');
+const path = require('path');
+const { loadOptionFile, loadEchartsExampleFile } = require('./option-loader');
 
-function main() {
+function isLikelyEchartsExample(filePath) {
+  const normalized = path.resolve(filePath).replace(/\\/g, '/').toLowerCase();
+  return normalized.includes('/examples/js/') || normalized.includes('/public/examples/js/');
+}
+
+async function main() {
   const filePath = process.argv[2];
   if (!filePath) {
     process.stderr.write('Usage: node tools/eval-option.js <option-file>\n');
@@ -18,7 +24,15 @@ function main() {
   }
 
   try {
-    const option = loadOptionFile(filePath);
+    let option;
+    if (isLikelyEchartsExample(filePath)) {
+      const loaded = await loadEchartsExampleFile(filePath, path.resolve('examples'));
+      option = loaded && loaded.maps && loaded.maps.length > 0
+        ? { ...loaded.option, maps: loaded.maps }
+        : loaded.option;
+    } else {
+      option = loadOptionFile(filePath);
+    }
     process.stdout.write(JSON.stringify(option, null, 2) + '\n');
   } catch (e) {
     process.stderr.write('Error evaluating option file: ' + e.message + '\n');
@@ -26,4 +40,4 @@ function main() {
   }
 }
 
-main();
+void main();

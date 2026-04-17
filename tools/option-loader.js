@@ -391,6 +391,69 @@ function modifyHSLColor(color, degree = 0) {
   return formatColor({ ...rgb, a: parsed.a });
 }
 
+function createEcStatFallback() {
+  return {
+    clustering: {
+      hierarchicalKMeans(data = []) {
+        return {
+          data,
+          centroids: [],
+          pointsInCluster: [],
+        };
+      },
+    },
+    regression(_type, data = []) {
+      return {
+        points: data,
+        parameter: {},
+        expression: '',
+      };
+    },
+    histogram(_data = [], _method) {
+      return {
+        bins: [],
+        data: [],
+        customData: [],
+      };
+    },
+    statistics: {
+      max(arr = []) {
+        return Math.max(...arr);
+      },
+      min(arr = []) {
+        return Math.min(...arr);
+      },
+      mean(arr = []) {
+        if (!arr.length) return 0;
+        return arr.reduce((sum, v) => sum + Number(v || 0), 0) / arr.length;
+      },
+    },
+  };
+}
+
+function loadEcStat(rootPath) {
+  const candidates = [
+    path.join(rootPath, '..', '..', 'node_modules', 'echarts-stat'),
+    path.join(rootPath, '..', '..', '..', 'recharts', 'echarts-examples', 'node_modules', 'echarts-stat'),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return require(candidate);
+      }
+    } catch {
+      // Fall through to next candidate.
+    }
+  }
+
+  try {
+    return require('echarts-stat');
+  } catch {
+    return createEcStatFallback();
+  }
+}
+
 function createExampleRuntime(filePath, rootPath) {
   const registeredMaps = [];
   const chartState = { option: undefined };
@@ -471,7 +534,30 @@ function createExampleRuntime(filePath, rootPath) {
     off() {},
     dispatchAction() {},
     getZr() {
-      return { on() {}, off() {} };
+      return {
+        on() {},
+        off() {},
+        configLayer() {},
+      };
+    },
+    getWidth() {
+      return 600;
+    },
+    getHeight() {
+      return 400;
+    },
+    convertToPixel() {
+      return [0, 0];
+    },
+    convertFromPixel() {
+      return [0, 0];
+    },
+    getModel() {
+      return {
+        getComponent() {
+          return null;
+        },
+      };
     },
     getDom() {
       return {};
@@ -501,6 +587,15 @@ function createExampleRuntime(filePath, rootPath) {
     init() {
       return chart;
     },
+    registerTheme() {},
+    registerTransform() {},
+    registerAction() {},
+    registerCoordinateSystem() {},
+    registerProcessor() {},
+    registerLayout() {},
+    registerVisual() {},
+    connect() {},
+    disconnect() {},
     registerMap(name, geoJSON, specialAreas) {
       registeredMaps.push({ name, geoJSON, specialAreas });
     },
@@ -511,6 +606,59 @@ function createExampleRuntime(filePath, rootPath) {
     color: {
       lift: liftColor,
       modifyHSL: modifyHSLColor,
+    },
+    util: {
+      clone(value) {
+        if (value == null) return value;
+        return JSON.parse(JSON.stringify(value));
+      },
+      map(arr, cb) {
+        return Array.isArray(arr) ? arr.map(cb) : [];
+      },
+      each(arr, cb) {
+        if (!Array.isArray(arr)) return;
+        arr.forEach((item, idx) => cb(item, idx));
+      },
+    },
+    number: {
+      round(value, precision = 0) {
+        const factor = Math.pow(10, precision);
+        return Math.round(Number(value) * factor) / factor;
+      },
+      parseDate(value) {
+        return new Date(value);
+      },
+    },
+    format: {
+      addCommas(value) {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return String(value);
+        return num.toLocaleString('en-US');
+      },
+      formatTime(_tpl, value) {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? String(value) : d.toISOString();
+      },
+    },
+    time: {
+      parse(value) {
+        return new Date(value);
+      },
+      parseDate(value) {
+        return new Date(value);
+      },
+      format(_tpl, value) {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? String(value) : d.toISOString();
+      },
+      formatTime(_tpl, value) {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? String(value) : d.toISOString();
+      },
+      roundTime(_unit, value) {
+        const d = new Date(value);
+        return Number.isNaN(d.getTime()) ? value : d.getTime();
+      },
     },
     graphic: {
       LinearGradient,
@@ -600,12 +748,37 @@ function createExampleRuntime(filePath, rootPath) {
   sandbox.global = sandbox;
   sandbox.globalThis = sandbox;
   sandbox.self = sandbox;
+  sandbox.addEventListener = () => {};
+  sandbox.removeEventListener = () => {};
   sandbox.document = {
     body: { innerHTML: '' },
+    addEventListener() {},
+    removeEventListener() {},
     getElementById() {
       return {};
     },
-    createElement() {
+    createElement(tagName) {
+      if (String(tagName).toLowerCase() === 'canvas') {
+        return {
+          width: 300,
+          height: 225,
+          getContext() {
+            return {
+              drawImage() {},
+              createImageData() {
+                return { data: new Uint8ClampedArray(0) };
+              },
+              putImageData() {},
+              getImageData() {
+                return { data: new Uint8ClampedArray(0) };
+              },
+            };
+          },
+          toDataURL() {
+            return 'data:image/png;base64,';
+          },
+        };
+      }
       return {};
     },
   };
@@ -615,8 +788,33 @@ function createExampleRuntime(filePath, rootPath) {
   sandbox.$ = dollar;
   sandbox.jQuery = dollar;
   sandbox.myChart = chart;
+  sandbox.ecStat = loadEcStat(rootPath);
   sandbox.option = undefined;
   sandbox.app = {};
+  sandbox.draggable = {};
+  sandbox.SimplexNoise = class SimplexNoise {
+    noise2D() { return 0; }
+    noise3D() { return 0; }
+    noise4D() { return 0; }
+  };
+  sandbox.Image = class Image {
+    constructor() {
+      this._src = '';
+      this.onload = null;
+      this.onerror = null;
+      this.naturalWidth = 300;
+      this.naturalHeight = 225;
+    }
+    set src(value) {
+      this._src = value;
+      if (typeof this.onload === 'function') {
+        this.onload();
+      }
+    }
+    get src() {
+      return this._src;
+    }
+  };
   sandbox.setTimeout = (fn, _delay, ...args) => runImmediate(fn, args);
   sandbox.clearTimeout = () => 0;
   sandbox.setInterval = (fn, _delay, ...args) => runImmediate(fn, args);
