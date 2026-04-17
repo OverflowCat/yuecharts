@@ -90,7 +90,7 @@ pub struct TextStyle {
   fill : Color
   font_size : Double
   font_family : StringView
-  font_weight : String
+  font_weight : StringView
   anchor : TextAnchor
   baseline : TextBaseline
 }
@@ -1300,7 +1300,7 @@ pub fn Element::text_custom(
   color_str : String,
   font_size : Double,
   font_family : StringView,
-  font_weight : String,
+  font_weight : StringView,
 ) -> Element {
   Text({
     x,

@@ -73,7 +73,10 @@ fn matrix_append_cells(
 }
 
 ///|
-fn matrix_font_family(global : StringView?, fallback : StringView) -> StringView {
+fn matrix_font_family(
+  global : StringView?,
+  fallback : StringView,
+) -> StringView {
   match global {
     Some(font) if fallback == "sans-serif" => font
     _ => fallback

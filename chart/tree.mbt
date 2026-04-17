@@ -774,7 +774,7 @@ priv struct TreeResolvedLabelStyle {
   color : String
   position : String?
   distance : Double
-  font_weight : String
+  font_weight : StringView
   rotate : Double?
   font_size : Double
   font_family : StringView

@@ -215,7 +215,7 @@ fn chord_label_color(
 fn chord_label_weight(
   series : @option.SeriesOption,
   node : ChordNode,
-) -> String {
+) -> StringView {
   node.item.label
   .bind(label => label.font_weight)
   .unwrap_or(series.label.bind(l => l.font_weight).unwrap_or("normal"))

@@ -189,7 +189,7 @@ pub(all) struct GeoLabelOption {
   color : String
   position : String?
   distance : Double?
-  font_weight : String?
+  font_weight : StringView?
   rotate : Double?
   /// Pie-only rotate modes from echarts/src/chart/pie/PieSeries.ts:
   /// "radial", "tangential", "tangential-noflip".
@@ -234,7 +234,7 @@ pub(all) struct GeoLabelPatchOption {
   color : String?
   position : String?
   distance : Double?
-  font_weight : String?
+  font_weight : StringView?
   rotate : Double?
   rotate_mode : String?
   align_to : String?
@@ -272,7 +272,7 @@ pub(all) struct ChartTextStyleOption {
   color : String?
   font_size : Double?
   font_family : StringView?
-  font_weight : String?
+  font_weight : StringView?
 }
 
 ///|
@@ -1402,7 +1402,7 @@ pub struct TitleOption {
 pub struct TitleTextStyleOption {
   color : String
   font_size : Double
-  font_weight : String
+  font_weight : StringView
   font_family : StringView
 }
 
@@ -1740,7 +1740,7 @@ pub struct CalendarDayLabelOption {
   color : String
   font_size : Double
   font_family : StringView
-  font_weight : String
+  font_weight : StringView
   silent : Bool
 }
 
@@ -1771,7 +1771,7 @@ pub struct CalendarMonthLabelOption {
   color : String
   font_size : Double
   font_family : StringView
-  font_weight : String
+  font_weight : StringView
   silent : Bool
 }
 
@@ -1801,7 +1801,7 @@ pub struct CalendarYearLabelOption {
   color : String
   font_size : Double
   font_family : StringView
-  font_weight : String
+  font_weight : StringView
   silent : Bool
 }
 
@@ -1866,7 +1866,7 @@ pub struct MatrixLabelOption {
   color : String
   font_size : Double
   font_family : StringView
-  font_weight : String
+  font_weight : StringView
 }
 
 ///|

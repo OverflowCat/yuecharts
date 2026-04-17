@@ -263,7 +263,7 @@ priv struct PieLabelPlan {
   text_color : String
   font_size : Double
   font_family : StringView
-  font_weight : String
+  font_weight : StringView
   text_anchor : @graphic.TextAnchor
   text_baseline : @graphic.TextBaseline
   rotation : Double?

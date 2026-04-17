@@ -109,15 +109,54 @@ fn geo_visual_map_symbol_size(
 }
 
 ///|
+/// <=> echarts/src/visual/VisualMapping.ts VisualMapping.mapValueToVisual (category branch)
+fn geo_visual_map_color_category(
+  visual_map : @option.VisualMapOption,
+  item : @option.DataItem,
+) -> String? {
+  // For piecewise visualMap with categories: look up raw string value at the
+  // specified dimension and find its index in categories array.
+  let dim = visual_map.dimension
+  let cat_str : String? = match item.raw_value_parts {
+    Some(parts) if dim >= 0 && dim < parts.length() =>
+      match parts[dim] {
+        String(s) => Some(s)
+        _ => None
+      }
+    _ => None
+  }
+  cat_str.bind(s => {
+    let idx = visual_map.categories
+      .iter()
+      .mapi(fn(i, c) { (i, c) })
+      .find_first(fn(pair) { pair.1 == s })
+      .map(fn(pair) { pair.0 })
+    idx.bind(i => {
+      let colors = visual_map.in_range.color
+      if i >= 0 && i < colors.length() {
+        Some(colors[i])
+      } else {
+        None
+      }
+    })
+  })
+}
+
+///|
 fn geo_visual_map_color(
   opt : @option.ChartOption,
   series_index : Int,
   item : @option.DataItem,
 ) -> String? {
   geo_visual_map_for_series(opt, series_index).bind(visual_map => {
-    geo_visual_map_ratio(visual_map, item).bind(ratio => {
-      color_stops_color(visual_map.in_range.color, ratio)
-    })
+    // Piecewise category: use string dimension lookup instead of numeric ratio
+    if visual_map.categories.length() > 0 {
+      geo_visual_map_color_category(visual_map, item)
+    } else {
+      geo_visual_map_ratio(visual_map, item).bind(ratio => {
+        color_stops_color(visual_map.in_range.color, ratio)
+      })
+    }
   })
 }
 
@@ -301,7 +340,16 @@ pub fn render_scatter_series(
   series.data
   .iter()
   .mapi(fn(di, item) {
-    if scatter_point(series, di, item, coord, polar~, geo~, calendar~, x_jitter~)
+    if scatter_point(
+        series,
+        di,
+        item,
+        coord,
+        polar~,
+        geo~,
+        calendar~,
+        x_jitter~,
+      )
       is Some(point) {
       let color = geo_visual_map_color(opt, series_index, item).unwrap_or(
         default_color,

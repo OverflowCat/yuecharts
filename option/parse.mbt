@@ -1797,7 +1797,7 @@ fn parse_chart_text_style_option(j : Json) -> ChartTextStyleOption {
     color: j_string_opt(j, "color"),
     font_size: j_number_opt(j, "fontSize"),
     font_family: j_string_view_opt(j, "fontFamily"),
-    font_weight: j_string_opt(j, "fontWeight"),
+    font_weight: j_string_view_opt(j, "fontWeight"),
   }
 }
 
@@ -1829,7 +1829,7 @@ fn parse_title_text_style_option(
   {
     color: j_string(j, "color", base.color),
     font_size: j_number(j, "fontSize", base.font_size),
-    font_weight: j_string(j, "fontWeight", base.font_weight),
+    font_weight: j_string_view(j, "fontWeight", base.font_weight),
     font_family: j_string_view(j, "fontFamily", base.font_family),
   }
 }
@@ -2450,7 +2450,7 @@ fn parse_geo_label_patch_option(j : Json) -> GeoLabelPatchOption {
     color: j_string_opt(j, "color"),
     position: j_string_opt(j, "position"),
     distance: j_number_opt(j, "distance"),
-    font_weight: j_string_opt(j, "fontWeight"),
+    font_weight: j_string_view_opt(j, "fontWeight"),
     rotate,
     rotate_mode,
     align_to: j_string_opt(j, "alignTo"),
@@ -2762,7 +2762,7 @@ fn parse_matrix_label_option(
     color: j_string(j, "color", base.color),
     font_size: j_number(j, "fontSize", base.font_size),
     font_family: j_string_view(j, "fontFamily", base.font_family),
-    font_weight: j_string(j, "fontWeight", base.font_weight),
+    font_weight: j_string_view(j, "fontWeight", base.font_weight),
   }
 }
 
@@ -4395,7 +4395,7 @@ fn parse_calendar_day_label(j : Json) -> CalendarDayLabelOption {
     color: j_string(label, "color", base.color),
     font_size: j_number(label, "fontSize", base.font_size),
     font_family: j_string_view(label, "fontFamily", base.font_family),
-    font_weight: j_string(label, "fontWeight", base.font_weight),
+    font_weight: j_string_view(label, "fontWeight", base.font_weight),
     silent: j_bool(label, "silent", base.silent),
   }
 }
@@ -4414,7 +4414,7 @@ fn parse_calendar_month_label(j : Json) -> CalendarMonthLabelOption {
     color: j_string(label, "color", base.color),
     font_size: j_number(label, "fontSize", base.font_size),
     font_family: j_string_view(label, "fontFamily", base.font_family),
-    font_weight: j_string(label, "fontWeight", base.font_weight),
+    font_weight: j_string_view(label, "fontWeight", base.font_weight),
     silent: j_bool(label, "silent", base.silent),
   }
 }
@@ -4431,7 +4431,7 @@ fn parse_calendar_year_label(j : Json) -> CalendarYearLabelOption {
     color: j_string(label, "color", base.color),
     font_size: j_number(label, "fontSize", base.font_size),
     font_family: j_string_view(label, "fontFamily", base.font_family),
-    font_weight: j_string(label, "fontWeight", base.font_weight),
+    font_weight: j_string_view(label, "fontWeight", base.font_weight),
     silent: j_bool(label, "silent", base.silent),
   }
 }

@@ -225,7 +225,7 @@ fn lines_chart_label_distance(
 fn lines_chart_label_weight(
   item : @option.DataItem,
   series : @option.SeriesOption,
-) -> String {
+) -> StringView {
   item.label
   .bind(label => label.font_weight)
   .unwrap_or(series.label.bind(l => l.font_weight).unwrap_or("normal"))

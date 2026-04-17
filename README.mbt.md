@@ -4,7 +4,9 @@
 
 # yuecharts
 
-`yuecharts` (pronounced as /yɛ.tʃɑɹts/) is a MoonBit port of [Apache ECharts](https://github.com/apache/echarts) with the help of large language models. The project targets parity with upstream ECharts behavior where feasible in a non-interactive pipeline, with a strong emphasis on direct source mapping from ECharts TS/JS into MoonBit.
+`yuecharts` (pronounced as /yɛ.tʃɑɹts/) is a MoonBit port of [Apache ECharts](https://github.com/apache/echarts). The project targets parity with upstream ECharts behavior where feasible in a non-interactive pipeline, with a strong emphasis on direct source mapping from ECharts TS/JS into MoonBit.
+
+> ⚠️ Disclaimer: This is an unofficial, LLM-driven port of ECharts. It is not affiliated with, maintained by, or endorsed by the original ECharts project.
 
 The project currently contains:
 
@@ -71,8 +73,8 @@ moon build --target wasm --strip --release
 ```
 
 Build sizes:
-- wasm-gc: 0.53 MB
-- wasm:    1.18 MB
+- wasm-gc: 0.54 MB
+- wasm:    1.19 MB
 
 ## Test
 
