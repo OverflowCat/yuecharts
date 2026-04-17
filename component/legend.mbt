@@ -41,12 +41,39 @@ fn legend_has_name(
 }
 
 ///|
+/// Radar default uses colorBy:'data', so palette assignment for legend items must
+/// advance across all radar data items in chart order.
+/// <=> echarts/src/chart/radar/RadarSeries.ts:defaultOption
+/// <=> echarts/src/visual/style.ts:dataColorPaletteTask
+fn legend_radar_palette_index(opt : @option.ChartOption, series_index : Int, data_index : Int) -> Int {
+  let mut ordinal = 0
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    if series.series_type == @option.SeriesType::Radar {
+      if si == series_index {
+        return ordinal + data_index
+      }
+      ordinal = ordinal + series.data.length()
+    }
+    si += 1
+  }
+  ordinal + data_index
+}
+
+///|
 fn legend_data_item_color(
+  opt : @option.ChartOption,
   series : @option.SeriesOption,
   item : @option.DataItem,
   series_index : Int,
   data_index : Int,
 ) -> String {
+  let palette_index = if series.series_type == @option.SeriesType::Radar {
+    legend_radar_palette_index(opt, series_index, data_index)
+  } else {
+    series_index + data_index
+  }
   match item.item_style {
     Some(style) =>
       match style.color {
@@ -57,14 +84,14 @@ fn legend_data_item_color(
             None =>
               match series.color {
                 Some(color) => color
-                None => @visual.palette_color(series_index + data_index)
+                None => @visual.palette_color(palette_index)
               }
           }
       }
     None =>
       match series.color {
         Some(color) => color
-        None => @visual.palette_color(series_index + data_index)
+        None => @visual.palette_color(palette_index)
       }
   }
 }
@@ -82,7 +109,7 @@ fn legend_find_data_color(opt : @option.ChartOption, name : String) -> String {
         for di, _ in series.data {
           let item = series.data[di]
           if item.name.unwrap_or("") == name {
-            return legend_data_item_color(series, item, si, di)
+            return legend_data_item_color(opt, series, item, si, di)
           }
         }
       _ =>
@@ -98,6 +125,7 @@ fn legend_find_data_color(opt : @option.ChartOption, name : String) -> String {
 fn append_data_legend_items(
   items : Array[(String, String, Bool)],
   lg : @option.LegendOption,
+  opt : @option.ChartOption,
   series : @option.SeriesOption,
   series_index : Int,
 ) -> Unit {
@@ -105,7 +133,7 @@ fn append_data_legend_items(
     let item = series.data[i]
     let name = item.name.unwrap_or("")
     if name != "" && !legend_has_name(items, name) {
-      let color = legend_data_item_color(series, item, series_index, i)
+      let color = legend_data_item_color(opt, series, item, series_index, i)
       let selected = @option.LegendOption::is_selected(lg, name)
       items.push((color, name, selected))
     }
@@ -139,8 +167,9 @@ pub fn render_legend(opt : @option.ChartOption) -> Array[@graphic.Element] {
         @option.SeriesType::Pie
         | @option.SeriesType::Funnel
         | @option.SeriesType::Sunburst
-        | @option.SeriesType::Chord =>
-          append_data_legend_items(items, lg, s, ci)
+        | @option.SeriesType::Chord
+        | @option.SeriesType::Radar =>
+          append_data_legend_items(items, lg, opt, s, ci)
         _ =>
           match s.name {
             Some(n) if n != "" && !legend_has_name(items, n) => {
