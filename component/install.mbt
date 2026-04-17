@@ -27,7 +27,7 @@ pub impl @core.ComponentViewLike for AxisComponentView with render(_self, ctx) {
     ctx.option,
     ctx.coord,
     ctx.option.text_style.font_family,
-    polar=ctx.polar,
+    polars=ctx.polars,
     single=ctx.single,
   )
 }

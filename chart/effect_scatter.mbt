@@ -131,7 +131,7 @@ pub fn render_effect_scatter_series(
 pub fn render_effect_scatters(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
-  polar? : @coord.Polar? = None,
+  polars? : Array[@coord.Polar] = [],
   geo? : @coord.Geo? = None,
   calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
@@ -139,6 +139,17 @@ pub fn render_effect_scatters(
   for si, series in opt.series {
     if series.series_type != EffectScatter {
       continue
+    }
+    // Select polar based on polarIndex
+    let polar : @coord.Polar? = if series.coordinate_system == Some("polar") {
+      let polar_idx = series.polar_index
+      if polar_idx >= 0 && polar_idx < polars.length() {
+        Some(polars[polar_idx])
+      } else {
+        None
+      }
+    } else {
+      None
     }
     let r = render_effect_scatter_series(
       opt,

@@ -42,7 +42,7 @@ pub impl @core.CoordinateSystemCreatorLike for PolarCoordinateSystemCreator with
   opt,
   state,
 ) {
-  { ..state, polar: build_polar(opt) }
+  { ..state, polars: build_polar(opt) }
 }
 
 ///|

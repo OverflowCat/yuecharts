@@ -135,23 +135,28 @@ fn build_radius_axis(
 }
 
 ///|
-pub fn build_polar(opt : @option.ChartOption) -> @coord.Polar? {
-  if opt.polar.length() == 0 {
-    return None
-  }
-  let polar_option = opt.polar[0]
-  let center = if polar_option.center.length() >= 2 {
-    polar_option.center
-  } else {
-    ["50%", "50%"]
-  }
-  let cx = parse_pct_or_px(center[0], opt.width)
-  let cy = parse_pct_or_px(center[1], opt.height)
-  let chart_size = (if opt.width < opt.height { opt.width } else { opt.height }) /
-    2.0
-  let angle_axis = build_angle_axis(opt, 0)
-  let radius_axis = build_radius_axis(opt, 0, chart_size, polar_option)
-  Some({ cx, cy, angle_axis, radius_axis })
+pub fn build_polar(opt : @option.ChartOption) -> Array[@coord.Polar] {
+  // <=> echarts/src/coord/polar/polarCreator.ts:create
+  opt.polar.mapi(fn(polar_index, polar_option) {
+    let center = if polar_option.center.length() >= 2 {
+      polar_option.center
+    } else {
+      ["50%", "50%"]
+    }
+    let cx = parse_pct_or_px(center[0], opt.width)
+    let cy = parse_pct_or_px(center[1], opt.height)
+    let chart_size = (if opt.width < opt.height {
+        opt.width
+      } else {
+        opt.height
+      }) /
+      2.0
+    let angle_axis = build_angle_axis(opt, polar_index)
+    let radius_axis = build_radius_axis(
+      opt, polar_index, chart_size, polar_option,
+    )
+    { cx, cy, angle_axis, radius_axis }
+  })
 }
 
 ///|

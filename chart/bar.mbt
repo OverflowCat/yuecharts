@@ -2283,7 +2283,7 @@ pub fn render_bar_series_cartesian(
 pub fn render_bars(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
-  polar? : @coord.Polar? = None,
+  polars? : Array[@coord.Polar] = [],
 ) -> Array[@graphic.Element] {
   let background_elems : Array[@graphic.Element] = []
   let foreground_elems : Array[@graphic.Element] = []
@@ -2303,7 +2303,10 @@ pub fn render_bars(
     bar_column_keys_by_y_axis.push([])
     yi_init += 1
   }
-  let polar_layout = polar.map(p => bar_cal_radial_layout(opt.series, p))
+  // Build polar layouts for all polars
+  let polar_layouts = polars.map(fn(polar) {
+    bar_cal_radial_layout(opt.series, polar)
+  })
   let cartesian_stack_states : Array[BarCartesianStackState] = []
   let mut count_i = 0
   while count_i < opt.series.length() {
@@ -2359,21 +2362,21 @@ pub fn render_bars(
       }
     }
     if series.coordinate_system == Some("polar") {
-      match (polar, polar_layout) {
-        (Some(p), Some(layout)) => {
-          let series_elems = bar_render_series_polar_impl(
-            series,
-            color_idx,
-            sr_bg - 1,
-            p,
-            layout,
-            [],
-            true,
-            false,
-          )
-          background_elems.append(series_elems)
-        }
-        _ => ()
+      let polar_idx = series.polar_index
+      if polar_idx >= 0 && polar_idx < polars.length() {
+        let p = polars[polar_idx]
+        let layout = polar_layouts[polar_idx]
+        let series_elems = bar_render_series_polar_impl(
+          series,
+          color_idx,
+          sr_bg - 1,
+          p,
+          layout,
+          [],
+          true,
+          false,
+        )
+        background_elems.append(series_elems)
       }
     } else {
       let is_horizontal = bar_series_cartesian_is_horizontal(series, coord)
@@ -2454,21 +2457,21 @@ pub fn render_bars(
       }
     }
     if series.coordinate_system == Some("polar") {
-      match (polar, polar_layout) {
-        (Some(p), Some(layout)) => {
-          let series_elems = bar_render_series_polar_impl(
-            series,
-            color_idx,
-            sr - 1,
-            p,
-            layout,
-            polar_stack_states,
-            false,
-            true,
-          )
-          foreground_elems.append(series_elems)
-        }
-        _ => ()
+      let polar_idx = series.polar_index
+      if polar_idx >= 0 && polar_idx < polars.length() {
+        let p = polars[polar_idx]
+        let layout = polar_layouts[polar_idx]
+        let series_elems = bar_render_series_polar_impl(
+          series,
+          color_idx,
+          sr - 1,
+          p,
+          layout,
+          polar_stack_states,
+          false,
+          true,
+        )
+        foreground_elems.append(series_elems)
       }
     } else {
       let is_horizontal = bar_series_cartesian_is_horizontal(series, coord)

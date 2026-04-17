@@ -7,7 +7,7 @@ pub struct RenderContext {
   raw_option : @option.ChartOption
   option : @option.ChartOption
   coord : @coord.Cartesian2D
-  polar : @coord.Polar?
+  polars : Array[@coord.Polar]
   parallel : @coord.Parallel?
   geo : @coord.Geo?
   calendar : @coord.Calendar?
@@ -20,14 +20,14 @@ pub fn RenderContext::new(
   raw_option : @option.ChartOption,
   option : @option.ChartOption,
   coord : @coord.Cartesian2D,
-  polar : @coord.Polar?,
+  polars : Array[@coord.Polar],
   parallel : @coord.Parallel?,
   geo : @coord.Geo?,
   calendar : @coord.Calendar?,
   single : @coord.Single?,
   view : Array[@coord.View],
 ) -> RenderContext {
-  { raw_option, option, coord, polar, parallel, geo, calendar, single, view }
+  { raw_option, option, coord, polars, parallel, geo, calendar, single, view }
 }
 
 ///|

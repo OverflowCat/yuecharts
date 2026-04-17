@@ -5,7 +5,7 @@ struct BarChartView {}
 
 ///|
 pub impl @core.ChartViewLike for BarChartView with render(_self, ctx) {
-  render_bars(ctx.option, ctx.coord, polar=ctx.polar)
+  render_bars(ctx.option, ctx.coord, polars=ctx.polars)
 }
 
 ///|
@@ -13,7 +13,7 @@ struct LineChartView {}
 
 ///|
 pub impl @core.ChartViewLike for LineChartView with render(_self, ctx) {
-  render_lines(ctx.option, ctx.coord, polar=ctx.polar)
+  render_lines(ctx.option, ctx.coord, polars=ctx.polars)
 }
 
 ///|
@@ -29,7 +29,7 @@ struct LinesChartView {}
 
 ///|
 pub impl @core.ChartViewLike for LinesChartView with render(_self, ctx) {
-  render_lines_chart(ctx.option, ctx.coord, polar=ctx.polar, geo=ctx.geo)
+  render_lines_chart(ctx.option, ctx.coord, polars=ctx.polars, geo=ctx.geo)
 }
 
 ///|
@@ -56,7 +56,7 @@ pub impl @core.ChartViewLike for ScatterChartView with render(_self, ctx) {
   render_scatters(
     ctx.option,
     ctx.coord,
-    polar=ctx.polar,
+    polars=ctx.polars,
     geo=ctx.geo,
     calendar=ctx.calendar,
   )
@@ -70,7 +70,7 @@ pub impl @core.ChartViewLike for EffectScatterChartView with render(_self, ctx) 
   render_effect_scatters(
     ctx.option,
     ctx.coord,
-    polar=ctx.polar,
+    polars=ctx.polars,
     geo=ctx.geo,
     calendar=ctx.calendar,
   )

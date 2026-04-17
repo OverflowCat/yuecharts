@@ -342,7 +342,7 @@ pub fn render_scatter_series(
 pub fn render_scatters(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
-  polar? : @coord.Polar? = None,
+  polars? : Array[@coord.Polar] = [],
   geo? : @coord.Geo? = None,
   calendar? : @coord.Calendar? = None,
 ) -> Array[@graphic.Element] {
@@ -352,6 +352,17 @@ pub fn render_scatters(
     let series = opt.series[si]
     match series.series_type {
       Scatter => {
+        // Select polar based on polarIndex
+        let polar : @coord.Polar? = if series.coordinate_system == Some("polar") {
+          let polar_idx = series.polar_index
+          if polar_idx >= 0 && polar_idx < polars.length() {
+            Some(polars[polar_idx])
+          } else {
+            None
+          }
+        } else {
+          None
+        }
         let series_elems = render_scatter_series(
           opt,
           series,

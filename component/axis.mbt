@@ -105,7 +105,7 @@ pub fn render_axes(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
   global_font_family : String?,
-  polar? : @coord.Polar? = None,
+  polars? : Array[@coord.Polar] = [],
   single? : @coord.Single? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
@@ -121,9 +121,9 @@ pub fn render_axes(
       j += 1
     }
   }
-  match polar {
-    Some(p) => render_polar_axes(p, elems, global_font_family)
-    None => ()
+  // Render all polar coordinate systems
+  for polar in polars {
+    render_polar_axes(polar, elems, global_font_family)
   }
   match single {
     Some(single_coord) =>

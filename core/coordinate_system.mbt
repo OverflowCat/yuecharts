@@ -4,7 +4,7 @@
 ///|
 pub(all) struct CoordinateSystemState {
   cartesian : @coord.Cartesian2D?
-  polar : @coord.Polar?
+  polars : Array[@coord.Polar]
   parallel : @coord.Parallel?
   geo : @coord.Geo?
   calendar : @coord.Calendar?
@@ -16,7 +16,7 @@ pub(all) struct CoordinateSystemState {
 pub fn CoordinateSystemState::new() -> CoordinateSystemState {
   {
     cartesian: None,
-    polar: None,
+    polars: [],
     parallel: None,
     geo: None,
     calendar: None,

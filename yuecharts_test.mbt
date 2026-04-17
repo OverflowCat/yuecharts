@@ -1748,16 +1748,17 @@ test "polar prepareCustom exposes coord sys bounds" {
     #|  }]
     #|}
   let opt = @option.parse(json_str)
-  match @layout.build_polar(opt) {
-    Some(polar) => {
-      let prepared = polar.prepare_custom()
-      assert_eq(prepared.coord_sys.type_name, "polar")
-      assert_eq(prepared.coord_sys.cx, 300.0)
-      assert_eq(prepared.coord_sys.cy, 200.0)
-      assert_eq(prepared.coord_sys.r0, 0.0)
-      assert_eq(prepared.coord_sys.r, 160.0)
-    }
-    None => assert_true(false)
+  let polars = @layout.build_polar(opt)
+  if polars.length() > 0 {
+    let polar = polars[0]
+    let prepared = polar.prepare_custom()
+    assert_eq(prepared.coord_sys.type_name, "polar")
+    assert_eq(prepared.coord_sys.cx, 300.0)
+    assert_eq(prepared.coord_sys.cy, 200.0)
+    assert_eq(prepared.coord_sys.r0, 0.0)
+    assert_eq(prepared.coord_sys.r, 160.0)
+  } else {
+    assert_true(false)
   }
 }
 

@@ -262,7 +262,7 @@ fn run_registered_layouts(
     raw_opt,
     opt,
     coord,
-    state.polar,
+    state.polars,
     state.parallel,
     state.geo,
     state.calendar,
