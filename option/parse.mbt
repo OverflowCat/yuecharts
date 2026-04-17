@@ -4303,8 +4303,12 @@ fn parse_radar_option(j : Json) -> RadarOption {
 ///|
 fn parse_radar_indicator(j : Json) -> RadarIndicator {
   let name = match j_field(j, "name") {
-    Some(String(s)) => s
-    _ => ""
+    Some(String(s)) if s != "" => s
+    _ =>
+      match j_field(j, "text") {
+        Some(String(s)) => s
+        _ => ""
+      }
   }
   let max = j_number_opt(j, "max")
   let min = j_number_opt(j, "min")

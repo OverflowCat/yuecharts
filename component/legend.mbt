@@ -77,7 +77,8 @@ fn legend_find_data_color(opt : @option.ChartOption, name : String) -> String {
       @option.SeriesType::Pie
       | @option.SeriesType::Funnel
       | @option.SeriesType::Sunburst
-      | @option.SeriesType::Chord =>
+      | @option.SeriesType::Chord
+      | @option.SeriesType::Radar =>
         for di, _ in series.data {
           let item = series.data[di]
           if item.name.unwrap_or("") == name {
