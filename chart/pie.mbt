@@ -478,12 +478,28 @@ pub fn render_pie_series(
 
   let mut current_angle = start_angle
 
+  // Check if any slice is highlighted; if so non-highlighted slices blur to 0.1 opacity.
+  // <=> echarts/src/util/states.ts:createBlurDefaultState
+  let any_highlighted = @visual.has_any_highlighted(series.data)
+
   for k, _ in render_indices {
     let data_idx = render_indices[k]
     let item = series.data[data_idx]
     let value = render_values[k]
     let span = spans[k]
-    let slice_color = @visual.palette_color(series_index + data_idx)
+    let base_slice_color = match item.item_style {
+      Some({ color: Some(c), .. }) => c
+      _ =>
+        match series.item_style {
+          Some(c) => c
+          None => @visual.palette_color(series_index + data_idx)
+        }
+    }
+    // Emphasis: lift color if highlighted; blur: reduce opacity if peer is highlighted.
+    // <=> echarts/src/util/states.ts:resolve_item_emphasis_color_opacity
+    let (slice_color, slice_opacity) = @visual.resolve_item_emphasis_color_opacity(
+      item, any_highlighted, base_slice_color, 1.0,
+    )
 
     // <=> echarts/src/chart/pie/pieLayout.ts
     // r = roseType ? linearMap(value, [0, max], [r0, r]) : r
@@ -528,7 +544,7 @@ pub fn render_pie_series(
 
     elems.push(
       @graphic.Element::path_fill_stroke(
-        path_d, slice_color, "#ffffff", 1.0, 1.0,
+        path_d, slice_color, "#ffffff", 1.0, slice_opacity,
       ),
     )
 

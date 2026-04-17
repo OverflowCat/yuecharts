@@ -8,4 +8,5 @@ import {
   "OverflowCat/yuecharts/component" @component,
   "OverflowCat/yuecharts/chart" @chart,
   "OverflowCat/yuecharts/visual" @visual,
+  "OverflowCat/yuecharts/interaction" @interaction,
 }

@@ -5,7 +5,866 @@
 /// Parse a JSON string into a ChartOption.
 pub fn parse(json_str : String) -> ChartOption raise @json.ParseError {
   let j = @json.parse(json_str)
+  parse_json(j)
+}
+
+///|
+/// Parse an already-decoded JSON value into a ChartOption.
+/// <=> echarts/src/core/echarts.ts:setOption
+/// <=> echarts/src/model/OptionManager.ts
+pub fn parse_json(j : Json) -> ChartOption {
   parse_chart_option(j)
+}
+
+///|
+/// Apply outer interaction-envelope root fields that live alongside `option`.
+/// <=> echarts/src/model/OptionManager.ts
+pub fn apply_render_input_root_overrides(
+  opt : ChartOption,
+  root : Json,
+) -> ChartOption {
+  let width = j_number(root, "width", opt.width)
+  let height = j_number(root, "height", opt.height)
+  let map_registry = match j_field(root, "maps") {
+    Some(Array(arr)) => {
+      let merged : Array[MapRegistryOption] = []
+      for item in opt.map_registry {
+        merged.push(item)
+      }
+      for entry in arr {
+        merged.push(parse_map_registry_option(entry))
+      }
+      merged
+    }
+    _ => opt.map_registry
+  }
+  { ..opt, width, height, map_registry }
+}
+
+///|
+/// Apply the canonical interaction-state subset onto a parsed ChartOption.
+/// <=> echarts/src/core/echarts.ts:dispatchAction
+/// <=> echarts/src/legacy/dataSelectAction.ts
+/// <=> echarts/src/component/visualMap/installCommon.ts
+/// <=> echarts/src/model/OptionManager.ts (stateful option merge subset)
+pub fn apply_interaction_option_patch_json(
+  opt : ChartOption,
+  patch : Json?,
+) -> ChartOption {
+  let next = apply_option_patch_legend_selected(opt, patch)
+  let next = apply_option_patch_series_data_selected(next, patch)
+  let next = apply_option_patch_geo_region_selected(next, patch)
+  apply_option_patch_visual_map_selected(next, patch)
+}
+
+///|
+/// <=> echarts/src/model/OptionManager.ts
+fn apply_option_patch_legend_selected(
+  opt : ChartOption,
+  patch : Json?,
+) -> ChartOption {
+  let selected_json = patch
+    .bind(value => j_field(value, "legend"))
+    .bind(value => j_field(value, "selected"))
+  match selected_json {
+    Some(Object(entries)) => {
+      let legend = opt.legend.unwrap_or(LegendOption::default())
+      let selected = legend.selected
+      for name, value in entries {
+        match value {
+          True => legend_selection_upsert(selected, name, true)
+          False => legend_selection_upsert(selected, name, false)
+          _ => ()
+        }
+      }
+      { ..opt, legend: Some({ ..legend, selected, }) }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/model/OptionManager.ts
+fn apply_option_patch_series_data_selected(
+  opt : ChartOption,
+  patch : Json?,
+) -> ChartOption {
+  let series_json = patch.bind(value => j_field(value, "series"))
+  match series_json {
+    Some(Array(series_arr)) => {
+      let series = opt.series
+      let mut si = 0
+      while si < series_arr.length() && si < series.length() {
+        let series_patch = series_arr[si]
+        let data_json = j_field(series_patch, "data")
+        match data_json {
+          Some(Array(data_arr)) => {
+            let series_opt = series[si]
+            let data = series_opt.data
+            let mut di = 0
+            while di < data_arr.length() && di < data.length() {
+              match j_field(data_arr[di], "selected") {
+                Some(True) => data[di] = { ..data[di], selected: Some(true) }
+                Some(False) => data[di] = { ..data[di], selected: Some(false) }
+                _ => ()
+              }
+              di += 1
+            }
+            series[si] = { ..series_opt, data, }
+          }
+          _ => ()
+        }
+        si += 1
+      }
+      { ..opt, series, }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/model/OptionManager.ts
+fn apply_option_patch_geo_region_selected(
+  opt : ChartOption,
+  patch : Json?,
+) -> ChartOption {
+  let geo_json = patch.bind(value => j_field(value, "geo"))
+  match geo_json {
+    Some(Array(geo_arr)) => {
+      let geo = opt.geo
+      let mut gi = 0
+      while gi < geo_arr.length() && gi < geo.length() {
+        let geo_patch = geo_arr[gi]
+        let regions_json = j_field(geo_patch, "regions")
+        match regions_json {
+          Some(Array(regions_arr)) => {
+            let geo_opt = geo[gi]
+            let regions = geo_opt.regions
+            for region_patch in regions_arr {
+              let name = j_string_opt(region_patch, "name")
+              let selected = j_bool_opt(region_patch, "selected")
+              match (name, selected) {
+                (Some(region_name), Some(is_selected)) =>
+                  match interaction_geo_region_index(regions, region_name) {
+                    Some(index) => {
+                      let region = regions[index]
+                      regions[index] = { ..region, selected: Some(is_selected) }
+                    }
+                    None =>
+                      regions.push({
+                        name: region_name,
+                        label: None,
+                        item_style: None,
+                        selected: Some(is_selected),
+                        silent: None,
+                        states: GeoStatesOption::default(),
+                      })
+                  }
+                _ => ()
+              }
+            }
+            geo[gi] = { ..geo_opt, regions, }
+          }
+          _ => ()
+        }
+        gi += 1
+      }
+      { ..opt, geo, }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/model/OptionManager.ts
+fn apply_option_patch_visual_map_selected(
+  opt : ChartOption,
+  patch : Json?,
+) -> ChartOption {
+  let visual_map_json = patch.bind(value => j_field(value, "visualMap"))
+  match visual_map_json {
+    Some(Array(vm_arr)) => {
+      let visual_map = opt.visual_map
+      let mut vi = 0
+      while vi < vm_arr.length() && vi < visual_map.length() {
+        let vm_patch = vm_arr[vi]
+        let selected_json = j_field(vm_patch, "selected")
+        match selected_json {
+          Some(Object(selected_map)) => {
+            let vm = visual_map[vi]
+            let current = vm.selected
+            for key, value in selected_map {
+              match value {
+                True => visual_map_selection_upsert(current, key, true)
+                False => visual_map_selection_upsert(current, key, false)
+                _ => ()
+              }
+            }
+            visual_map[vi] = { ..vm, selected: current }
+          }
+          _ => ()
+        }
+        vi += 1
+      }
+      { ..opt, visual_map, }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// Apply the canonical interaction-state subset onto a parsed ChartOption.
+/// <=> echarts/src/core/echarts.ts:dispatchAction
+/// <=> echarts/src/legacy/dataSelectAction.ts
+/// <=> echarts/src/component/visualMap/installCommon.ts
+pub fn apply_interaction_state_json(
+  opt : ChartOption,
+  state : Json?,
+) -> ChartOption {
+  let next = apply_interaction_legend_selected(opt, state)
+  let next = apply_interaction_series_data_selected(next, state)
+  let next = apply_interaction_geo_region_selected(next, state)
+  apply_interaction_visual_map_selected(next, state)
+}
+
+///|
+/// Apply the supported `interaction.dispatchActions` subset onto a parsed
+/// ChartOption.
+/// <=> echarts/src/core/echarts.ts:dispatchAction
+pub fn apply_interaction_dispatch_actions_json(
+  opt : ChartOption,
+  actions : Json?,
+) -> ChartOption {
+  match actions {
+    Some(Array(arr)) => {
+      let mut current = opt
+      for action in arr {
+        current = apply_interaction_dispatch_action(current, action)
+      }
+      current
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/core/echarts.ts:dispatchAction
+fn apply_interaction_dispatch_action(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  let action_type = j_string_opt(action, "type").unwrap_or("")
+  match action_type {
+    "legendSelect" => apply_dispatch_action_legend_select(opt, action, true)
+    "legendUnSelect" => apply_dispatch_action_legend_select(opt, action, false)
+    "legendToggleSelect" => apply_dispatch_action_legend_toggle(opt, action)
+    // legendAllSelect / legendInverseSelect: require iterating all known series
+    // names; too complex for static renderer — recognized as no-op.
+    // legendScroll: scrollable legend viewport position — no static effect.
+    // Corresponds to: echarts/src/component/legend/legendAction.ts
+    // Corresponds to: echarts/src/component/legend/scrollableLegendAction.ts
+    "legendAllSelect" | "legendInverseSelect" | "legendScroll" => opt
+    "select" => apply_dispatch_action_data_select(opt, action, "select")
+    "unselect" => apply_dispatch_action_data_select(opt, action, "unselect")
+    "toggleSelect" => apply_dispatch_action_data_select(opt, action, "toggle")
+    // Legacy pie/map select aliases forwarded to modern select/unselect/toggle.
+    // Corresponds to: echarts/src/legacy/dataSelectAction.ts
+    "pieSelect" | "mapSelect" =>
+      apply_dispatch_action_data_select(opt, action, "select")
+    "pieUnSelect" | "mapUnSelect" =>
+      apply_dispatch_action_data_select(opt, action, "unselect")
+    "pieToggleSelect" | "mapToggleSelect" =>
+      apply_dispatch_action_data_select(opt, action, "toggle")
+    "highlight" => apply_dispatch_action_highlight(opt, action, true)
+    "downplay" => apply_dispatch_action_highlight(opt, action, false)
+    "treeExpandAndCollapse" =>
+      apply_dispatch_action_tree_expand_and_collapse(opt, action)
+    "dataZoom" => apply_dispatch_action_data_zoom(opt, action)
+    "selectDataRange" => apply_dispatch_action_select_data_range(opt, action)
+    // treemapRootToNode, treemapZoomToNode, treemapRender, treemapMove:
+    // Viewport navigation; no static option effect — recognized but no-op.
+    // Corresponds to: echarts/src/chart/treemap/treemapAction.ts
+    "treemapRootToNode"
+    | "treemapZoomToNode"
+    | "treemapRender"
+    | "treemapMove" => opt
+    // sunburstRootToNode: Viewport navigation; no static option effect.
+    // sunburstHighlight / sunburstUnhighlight: deprecated, forwarded to highlight/downplay upstream.
+    // Corresponds to: echarts/src/chart/sunburst/sunburstAction.ts
+    "sunburstRootToNode" | "sunburstHighlight" | "sunburstUnhighlight" => opt
+    // treeRoam: coordinate transform only, no option change.
+    // Corresponds to: echarts/src/chart/tree/treeAction.ts
+    "treeRoam" => opt
+    // expandAxisBreak / collapseAxisBreak / toggleAxisBreak: modify axis break
+    // expanded state; requires axis model reconciliation — no-op in static renderer.
+    // Corresponds to: echarts/src/component/axis/axisAction.ts
+    "expandAxisBreak" | "collapseAxisBreak" | "toggleAxisBreak" => opt
+    // axisAreaSelect: parallel axis interval selection (viewport-only).
+    // parallelAxisExpand: parallel axis expand window (viewport-only).
+    // Corresponds to: echarts/src/component/axis/parallelAxisAction.ts
+    "axisAreaSelect" | "parallelAxisExpand" => opt
+    // timelineChange / timelinePlayChange: timeline has no type in static renderer.
+    // Corresponds to: echarts/src/component/timeline/timelineAction.ts
+    "timelineChange" | "timelinePlayChange" => opt
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/component/legend/legendAction.ts
+fn apply_dispatch_action_legend_select(
+  opt : ChartOption,
+  action : Json,
+  selected : Bool,
+) -> ChartOption {
+  match j_string_opt(action, "name") {
+    Some(name) => {
+      let legend = opt.legend.unwrap_or(LegendOption::default())
+      let items = legend.selected
+      legend_selection_upsert(items, name, selected)
+      { ..opt, legend: Some({ ..legend, selected: items }) }
+    }
+    None => opt
+  }
+}
+
+///|
+/// <=> echarts/src/component/legend/legendAction.ts
+fn apply_dispatch_action_legend_toggle(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  match j_string_opt(action, "name") {
+    Some(name) => {
+      let legend = opt.legend.unwrap_or(LegendOption::default())
+      let current = LegendOption::is_selected(legend, name)
+      apply_dispatch_action_legend_select(opt, action, !current)
+    }
+    None => opt
+  }
+}
+
+///|
+/// <=> echarts/src/legacy/dataSelectAction.ts
+fn apply_dispatch_action_data_select(
+  opt : ChartOption,
+  action : Json,
+  mode : String,
+) -> ChartOption {
+  match resolve_interaction_series_target(opt.series, action) {
+    Some((series_index, data_index, _)) => {
+      let series = opt.series
+      let series_opt = series[series_index]
+      let data = series_opt.data
+      let item = data[data_index]
+      let current_selected = item.selected.unwrap_or(false)
+      let next_selected = match mode {
+        "select" => true
+        "unselect" => false
+        _ => !current_selected
+      }
+      data[data_index] = { ..item, selected: Some(next_selected) }
+      series[series_index] = { ..series_opt, data, }
+      { ..opt, series, }
+    }
+    None => opt
+  }
+}
+
+///|
+/// Mark/unmark data items as highlighted for static emphasis rendering.
+/// In dynamic ECharts, highlight enters the zrender element's emphasis state.
+/// In static rendering we store the flag on DataItem.highlighted for renderers.
+///
+/// <=> echarts/src/util/states.ts:enterEmphasis / leaveEmphasis
+/// <=> echarts/src/core/echarts.ts (highlight/downplay action handler)
+/// Payload fields: seriesIndex?, seriesId?, seriesName?, dataIndex?, name?
+fn apply_dispatch_action_highlight(
+  opt : ChartOption,
+  action : Json,
+  enter : Bool,
+) -> ChartOption {
+  match resolve_interaction_series_target(opt.series, action) {
+    Some((series_index, data_index, _)) => {
+      let series = opt.series
+      let series_opt = series[series_index]
+      let data = series_opt.data
+      let item = data[data_index]
+      data[data_index] = { ..item, highlighted: Some(enter) }
+      series[series_index] = { ..series_opt, data, }
+      { ..opt, series, }
+    }
+    // If only seriesIndex given (no dataIndex), mark whole series highlighted
+    None =>
+      match interaction_series_index(opt.series, action) {
+        Some(series_index) => {
+          let series = opt.series
+          let series_opt = series[series_index]
+          let data = series_opt.data
+          let new_data : Array[DataItem] = []
+          for item in data {
+            new_data.push({ ..item, highlighted: Some(enter) })
+          }
+          series[series_index] = { ..series_opt, data: new_data }
+          { ..opt, series, }
+        }
+        None => opt
+      }
+  }
+}
+
+///|
+/// Toggle node expand/collapse in tree chart.
+/// Upstream toggles node.isExpand; here we toggle DataItem.collapsed (inverse).
+///
+/// <=> echarts/src/chart/tree/treeAction.ts:installTreeAction (treeExpandAndCollapse handler)
+/// Payload fields: dataIndex (required), seriesIndex?
+fn apply_dispatch_action_tree_expand_and_collapse(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  match interaction_series_index(opt.series, action) {
+    Some(series_index) =>
+      match j_number_opt(action, "dataIndex") {
+        Some(n) => {
+          let series = opt.series
+          let series_opt = series[series_index]
+          let data = series_opt.data
+          let data_index = n.to_int()
+          if data_index >= 0 && data_index < data.length() {
+            let item = data[data_index]
+            // collapsed: None / false → expand (isExpand=true); Some(true) → collapse
+            let currently_collapsed = item.collapsed.unwrap_or(false)
+            data[data_index] = { ..item, collapsed: Some(!currently_collapsed) }
+            series[series_index] = { ..series_opt, data, }
+            { ..opt, series, }
+          } else {
+            opt
+          }
+        }
+        None => opt
+      }
+    // If no seriesIndex, try the first tree series
+    None => {
+      let mut tree_idx = -1
+      let mut i = 0
+      while i < opt.series.length() {
+        if opt.series[i].series_type == Tree {
+          tree_idx = i
+          break
+        }
+        i += 1
+      }
+      if tree_idx >= 0 {
+        apply_dispatch_action_tree_expand_and_collapse(
+          opt,
+          // inject seriesIndex into action by wrapping — but action is Json, inject via override
+           action,
+        )
+      } else {
+        opt
+      }
+    }
+  }
+}
+
+///|
+/// Apply a dataZoom range action, updating the matching DataZoomOption in ChartOption.
+/// Upstream iterates effectedModels via findEffectedDataZooms and sets raw range.
+///
+/// <=> echarts/src/component/dataZoom/dataZoomAction.ts:installDataZoomAction
+/// Payload fields: dataZoomIndex?, start?, end?, startValue?, endValue?
+fn apply_dispatch_action_data_zoom(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  let data_zoom = opt.data_zoom
+  if data_zoom.is_empty() {
+    return opt
+  }
+  let zoom_index = match j_number_opt(action, "dataZoomIndex") {
+    Some(n) => n.to_int()
+    None => 0
+  }
+  if zoom_index < 0 || zoom_index >= data_zoom.length() {
+    return opt
+  }
+  let base = data_zoom[zoom_index]
+  let start = match j_number_opt(action, "start") {
+    Some(n) => n
+    None => base.start
+  }
+  let end = match j_number_opt(action, "end") {
+    Some(n) => n
+    None => base.end
+  }
+  let start_value = match interaction_stringish_opt(action, "startValue") {
+    Some(s) => Some(s)
+    None => base.start_value
+  }
+  let end_value = match interaction_stringish_opt(action, "endValue") {
+    Some(s) => Some(s)
+    None => base.end_value
+  }
+  data_zoom[zoom_index] = { start, end, start_value, end_value }
+  { ..opt, data_zoom, }
+}
+
+///|
+/// Updates visualMap selected range or piecewise selection from a selectDataRange dispatchAction.
+/// Continuous visualMap: `selected` is a number array [min, max] → updates VisualMapOption.range.
+/// Piecewise visualMap: `selected` is an object { key: bool } → updates VisualMapOption.selected.
+/// <=> echarts/src/component/visualMap/visualMapAction.ts:visualMapActionHander
+/// <=> echarts/src/component/visualMap/ContinuousModel.ts:setSelected
+/// <=> echarts/src/component/visualMap/PiecewiseModel.ts:setSelected
+fn apply_dispatch_action_select_data_range(
+  opt : ChartOption,
+  action : Json,
+) -> ChartOption {
+  let visual_map = opt.visual_map
+  if visual_map.is_empty() {
+    return opt
+  }
+  let vm_index = match j_number_opt(action, "visualMapIndex") {
+    Some(n) => n.to_int()
+    None => 0
+  }
+  if vm_index < 0 || vm_index >= visual_map.length() {
+    return opt
+  }
+  let vm = visual_map[vm_index]
+  match j_field(action, "selected") {
+    Some(Array(arr)) => {
+      // Continuous: selected=[start, end] → range
+      let range : Array[Double] = []
+      for v in arr {
+        match v {
+          Number(n, ..) => range.push(n)
+          _ => ()
+        }
+      }
+      visual_map[vm_index] = { ..vm, range, }
+      { ..opt, visual_map, }
+    }
+    Some(Object(map)) => {
+      // Piecewise: selected={"pieceKey": bool, ...} → selected array
+      let current = vm.selected
+      for key, val in map {
+        let is_selected = match val {
+          True => true
+          False => false
+          _ => true
+        }
+        visual_map_selection_upsert(current, key, is_selected)
+      }
+      visual_map[vm_index] = { ..vm, selected: current }
+      { ..opt, visual_map, }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/component/legend/legendAction.ts
+fn apply_interaction_legend_selected(
+  opt : ChartOption,
+  state : Json?,
+) -> ChartOption {
+  let selected_json = state.bind(value => j_field(value, "legendSelected"))
+  match selected_json {
+    Some(Object(entries)) => {
+      let legend = opt.legend.unwrap_or(LegendOption::default())
+      let selected = legend.selected
+      for name, value in entries {
+        match value {
+          True => legend_selection_upsert(selected, name, true)
+          False => legend_selection_upsert(selected, name, false)
+          _ => ()
+        }
+      }
+      { ..opt, legend: Some({ ..legend, selected, }) }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/legacy/dataSelectAction.ts
+fn apply_interaction_series_data_selected(
+  opt : ChartOption,
+  state : Json?,
+) -> ChartOption {
+  let selected_json = state.bind(value => j_field(value, "seriesDataSelected"))
+  match selected_json {
+    Some(Array(entries)) => {
+      let series = opt.series
+      for entry in entries {
+        match resolve_interaction_series_target(series, entry) {
+          Some((series_index, data_index, selected)) => {
+            let series_opt = series[series_index]
+            let data = series_opt.data
+            data[data_index] = { ..data[data_index], selected: Some(selected) }
+            series[series_index] = { ..series_opt, data, }
+          }
+          None => ()
+        }
+      }
+      { ..opt, series, }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/component/geo/GeoView.ts
+fn apply_interaction_geo_region_selected(
+  opt : ChartOption,
+  state : Json?,
+) -> ChartOption {
+  let selected_json = state.bind(value => j_field(value, "geoRegionSelected"))
+  match selected_json {
+    Some(Array(entries)) => {
+      let geo = opt.geo
+      for entry in entries {
+        match resolve_interaction_geo_target(geo, entry) {
+          Some((geo_index, region_name, selected)) => {
+            let geo_opt = geo[geo_index]
+            let regions = geo_opt.regions
+            match interaction_geo_region_index(regions, region_name) {
+              Some(index) => {
+                let region = regions[index]
+                regions[index] = { ..region, selected: Some(selected) }
+              }
+              None =>
+                regions.push({
+                  name: region_name,
+                  label: None,
+                  item_style: None,
+                  selected: Some(selected),
+                  silent: None,
+                  states: GeoStatesOption::default(),
+                })
+            }
+            geo[geo_index] = { ..geo_opt, regions, }
+          }
+          None => ()
+        }
+      }
+      { ..opt, geo, }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/component/visualMap/visualMapAction.ts
+fn apply_interaction_visual_map_selected(
+  opt : ChartOption,
+  state : Json?,
+) -> ChartOption {
+  let selected_json = state.bind(value => j_field(value, "visualMapSelected"))
+  match selected_json {
+    Some(Array(entries)) => {
+      let visual_map = opt.visual_map
+      for entry in entries {
+        match resolve_interaction_visual_map_target(visual_map, entry) {
+          Some((visual_map_index, key, selected)) => {
+            let vm = visual_map[visual_map_index]
+            let current = vm.selected
+            visual_map_selection_upsert(current, key, selected)
+            visual_map[visual_map_index] = { ..vm, selected: current }
+          }
+          None => ()
+        }
+      }
+      { ..opt, visual_map, }
+    }
+    _ => opt
+  }
+}
+
+///|
+/// <=> echarts/src/legacy/dataSelectAction.ts
+fn resolve_interaction_series_target(
+  series : Array[SeriesOption],
+  entry : Json,
+) -> (Int, Int, Bool)? {
+  match interaction_series_index(series, entry) {
+    Some(series_index) =>
+      match interaction_data_index(series[series_index].data, entry) {
+        Some(data_index) =>
+          Some(
+            (
+              series_index,
+              data_index,
+              j_bool_opt(entry, "selected").unwrap_or(true),
+            ),
+          )
+        None => None
+      }
+    None => None
+  }
+}
+
+///|
+/// <=> echarts/src/legacy/dataSelectAction.ts
+fn interaction_series_index(series : Array[SeriesOption], entry : Json) -> Int? {
+  match j_number_opt(entry, "seriesIndex") {
+    Some(n) => {
+      let index = n.to_int()
+      if index >= 0 && index < series.length() {
+        Some(index)
+      } else {
+        None
+      }
+    }
+    None =>
+      match j_string_opt(entry, "seriesName") {
+        Some(name) => {
+          let mut i = 0
+          while i < series.length() {
+            if series[i].name == Some(name) {
+              return Some(i)
+            }
+            i += 1
+          }
+          None
+        }
+        None => None
+      }
+  }
+}
+
+///|
+/// <=> echarts/src/legacy/dataSelectAction.ts
+fn interaction_data_index(data : Array[DataItem], entry : Json) -> Int? {
+  match j_number_opt(entry, "dataIndex") {
+    Some(n) => {
+      let index = n.to_int()
+      if index >= 0 && index < data.length() {
+        Some(index)
+      } else {
+        None
+      }
+    }
+    None =>
+      match j_string_opt(entry, "name") {
+        Some(name) => {
+          let mut i = 0
+          while i < data.length() {
+            if data[i].name == Some(name) {
+              return Some(i)
+            }
+            i += 1
+          }
+          None
+        }
+        None => None
+      }
+  }
+}
+
+///|
+/// <=> echarts/src/component/geo/GeoView.ts
+fn resolve_interaction_geo_target(
+  geo : Array[GeoOption],
+  entry : Json,
+) -> (Int, String, Bool)? {
+  let geo_index = match j_number_opt(entry, "geoIndex") {
+    Some(n) => n.to_int()
+    None => 0
+  }
+  if geo_index < 0 || geo_index >= geo.length() {
+    return None
+  }
+  match j_string_opt(entry, "name") {
+    Some(name) =>
+      Some((geo_index, name, j_bool_opt(entry, "selected").unwrap_or(true)))
+    None => None
+  }
+}
+
+///|
+/// <=> echarts/src/component/geo/GeoView.ts
+fn interaction_geo_region_index(
+  regions : Array[GeoRegionOption],
+  name : String,
+) -> Int? {
+  let mut i = 0
+  while i < regions.length() {
+    if regions[i].name == name {
+      return Some(i)
+    }
+    i += 1
+  }
+  None
+}
+
+///|
+/// <=> echarts/src/component/visualMap/visualMapAction.ts
+fn resolve_interaction_visual_map_target(
+  visual_map : Array[VisualMapOption],
+  entry : Json,
+) -> (Int, String, Bool)? {
+  let visual_map_index = match j_number_opt(entry, "visualMapIndex") {
+    Some(n) => n.to_int()
+    None => 0
+  }
+  if visual_map_index < 0 || visual_map_index >= visual_map.length() {
+    return None
+  }
+  match interaction_stringish_opt(entry, "key") {
+    Some(key) =>
+      Some(
+        (visual_map_index, key, j_bool_opt(entry, "selected").unwrap_or(true)),
+      )
+    None => None
+  }
+}
+
+///|
+/// <=> echarts/src/component/legend/legendAction.ts
+fn legend_selection_upsert(
+  selected : Array[LegendSelection],
+  name : String,
+  is_selected : Bool,
+) -> Unit {
+  let mut i = 0
+  while i < selected.length() {
+    if selected[i].name == name {
+      selected[i] = { name, selected: is_selected }
+      return
+    }
+    i += 1
+  }
+  selected.push({ name, selected: is_selected })
+}
+
+///|
+/// <=> echarts/src/component/visualMap/visualMapAction.ts
+fn visual_map_selection_upsert(
+  selected : Array[VisualMapSelection],
+  key : String,
+  is_selected : Bool,
+) -> Unit {
+  let mut i = 0
+  while i < selected.length() {
+    if selected[i].key == key {
+      selected[i] = { key, selected: is_selected }
+      return
+    }
+    i += 1
+  }
+  selected.push({ key, selected: is_selected })
+}
+
+///|
+fn interaction_stringish_opt(j : Json, key : String) -> String? {
+  match j_field(j, key) {
+    Some(String(s)) => Some(s)
+    Some(Number(n, ..)) => Some(n.to_string())
+    _ => None
+  }
 }
 
 ///|
@@ -108,6 +967,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
   let series = parse_series_options_with_dataset(j, dataset_tables)
   let map_registry = j_parse_one_or_many(j, "maps", parse_map_registry_option, [])
   let visual_map = j_parse_one_or_many(j, "visualMap", parse_visual_map, [])
+  let data_zoom = j_parse_one_or_many(j, "dataZoom", parse_data_zoom_option, [])
   trim_large_bar_chart_option({
     width,
     height,
@@ -133,6 +993,7 @@ fn parse_chart_option(j : Json) -> ChartOption {
     background_color,
     aria,
     visual_map,
+    data_zoom,
   })
 }
 
@@ -601,6 +1462,7 @@ fn make_data_item_num_name(value : Double, name : String?) -> DataItem {
     collapsed: None,
     title_offset_center: None,
     detail_offset_center: None,
+    highlighted: None,
   }
 }
 
@@ -2557,6 +3419,7 @@ fn parse_data_item(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     String(s) => {
       let parsed = try? @string.parse_double(s)
@@ -2585,6 +3448,7 @@ fn parse_data_item(j : Json) -> DataItem {
             collapsed: None,
             title_offset_center: None,
             detail_offset_center: None,
+            highlighted: None,
           }
         Err(_) =>
           {
@@ -2610,6 +3474,7 @@ fn parse_data_item(j : Json) -> DataItem {
             collapsed: None,
             title_offset_center: None,
             detail_offset_center: None,
+            highlighted: None,
           }
       }
     }
@@ -2637,6 +3502,7 @@ fn parse_data_item(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     True =>
       {
@@ -2662,6 +3528,7 @@ fn parse_data_item(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     False =>
       {
@@ -2687,6 +3554,7 @@ fn parse_data_item(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     Array(arr) => parse_data_array_item(arr)
     { "value": Number(n, ..), .. } => parse_data_object(j, DataValue::Num(n))
@@ -2721,6 +3589,7 @@ fn parse_data_array_item(arr : Array[Json]) -> DataItem {
     collapsed: None,
     title_offset_center: None,
     detail_offset_center: None,
+    highlighted: None,
   }
 }
 
@@ -2760,6 +3629,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     Array([Number(x, ..), Number(val, ..), String(name)]) => {
       let key = if x.to_int().to_double() == x {
@@ -2790,6 +3660,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     }
     Array([String(date), Number(val, ..)]) =>
@@ -2816,6 +3687,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     Array([Number(x, ..), Number(val, ..)]) => {
       let key = if x.to_int().to_double() == x {
@@ -2846,6 +3718,7 @@ fn parse_data_item_theme_river(j : Json) -> DataItem {
         collapsed: None,
         title_offset_center: None,
         detail_offset_center: None,
+        highlighted: None,
       }
     }
     _ => parse_data_item(j)
@@ -3191,6 +4064,19 @@ fn parse_symbol_offset(j : Json) -> Array[String]? {
 }
 
 ///|
+/// Parse a DataZoomOption from JSON.
+///
+/// <=> echarts/src/component/dataZoom/DataZoomModel.ts DataZoomOption
+fn parse_data_zoom_option(j : Json) -> DataZoomOption {
+  let base = DataZoomOption::default()
+  let start = j_number(j, "start", base.start)
+  let end = j_number(j, "end", base.end)
+  let start_value = interaction_stringish_opt(j, "startValue")
+  let end_value = interaction_stringish_opt(j, "endValue")
+  { start, end, start_value, end_value }
+}
+
+///|
 
 ///|
 fn parse_visual_map(j : Json) -> VisualMapOption {
@@ -3230,6 +4116,19 @@ fn parse_visual_map(j : Json) -> VisualMapOption {
     categories: j_stringish_array(j, "categories", base.categories),
     split_number: j_int(j, "splitNumber", base.split_number),
     selected: parse_visual_map_selected(j),
+    range: match j_field(j, "range") {
+      Some(Array(arr)) => {
+        let r : Array[Double] = []
+        for v in arr {
+          match v {
+            Number(n, ..) => r.push(n)
+            _ => ()
+          }
+        }
+        r
+      }
+      _ => base.range
+    },
     selected_mode: match j_field(j, "selectedMode") {
       Some(True) => "multiple"
       Some(False) => ""
@@ -3536,6 +4435,7 @@ fn empty_data_item_with_coords(coords : Array[Array[Double]]) -> DataItem {
     collapsed: None,
     title_offset_center: None,
     detail_offset_center: None,
+    highlighted: None,
   }
 }
 
@@ -3669,6 +4569,7 @@ fn parse_data_object(j : Json, value : DataValue) -> DataItem {
     collapsed,
     title_offset_center,
     detail_offset_center,
+    highlighted: None,
   }
 }
 
@@ -3814,6 +4715,15 @@ fn j_bool(j : Json, key : String, default_val : Bool) -> Bool {
     Some(True) => true
     Some(False) => false
     _ => default_val
+  }
+}
+
+///|
+fn j_bool_opt(j : Json, key : String) -> Bool? {
+  match j_field(j, key) {
+    Some(True) => Some(true)
+    Some(False) => Some(false)
+    _ => None
   }
 }
 

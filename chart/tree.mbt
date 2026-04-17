@@ -112,6 +112,7 @@ fn tree_build(
     collapsed: None,
     title_offset_center: None,
     detail_offset_center: None,
+    highlighted: None,
   }
   let all_nodes : Array[TreeNode] = []
   let virtual_root = tree_build_hierarchy(wrapper_item, all_nodes)

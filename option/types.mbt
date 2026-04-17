@@ -529,6 +529,9 @@ pub(all) struct DataItem {
   // Corresponds to: echarts/src/chart/gauge/GaugeSeries.ts GaugeDataItemOption
   title_offset_center : Array[String]? // [x%, y%] relative to gauge radius
   detail_offset_center : Array[String]? // [x%, y%] relative to gauge radius
+  // Emphasis state from highlight/downplay dispatchAction.
+  // Corresponds to: echarts/src/util/states.ts HOVER_STATE_EMPHASIS
+  highlighted : Bool?
 }
 
 ///|
@@ -1544,6 +1547,9 @@ pub struct VisualMapOption {
   categories : Array[String]
   split_number : Int
   selected : Array[VisualMapSelection]
+  /// Continuous visualMap selected range [min, max].
+  /// Corresponds to: echarts/src/component/visualMap/ContinuousModel.ts range
+  range : Array[Double]
   selected_mode : String
   show_label : Bool?
   item_gap : Double
@@ -1582,6 +1588,7 @@ pub impl Default for VisualMapOption with default() {
     categories: [],
     split_number: 0,
     selected: [],
+    range: [],
     selected_mode: "multiple",
     show_label: None,
     item_gap: 10.0,
@@ -2037,6 +2044,23 @@ pub impl Default for SingleAxisOption with default() {
 }
 
 ///|
+/// Corresponds to: echarts/src/component/dataZoom/DataZoomModel.ts DataZoomOption
+/// Minimal subset used for range state tracking in static rendering.
+pub(all) struct DataZoomOption {
+  // Percent range 0-100
+  start : Double
+  end : Double
+  // Value-based range (overrides percent when set)
+  start_value : String?
+  end_value : String?
+}
+
+///|
+pub impl Default for DataZoomOption with default() {
+  { start: 0.0, end: 100.0, start_value: None, end_value: None }
+}
+
+///|
 /// Root chart option.
 pub(all) struct ChartOption {
   width : Double
@@ -2063,6 +2087,7 @@ pub(all) struct ChartOption {
   background_color : String?
   aria : AriaOption?
   visual_map : Array[VisualMapOption]
+  data_zoom : Array[DataZoomOption]
 }
 
 ///|
@@ -2094,6 +2119,7 @@ pub impl Default for ChartOption with default() {
     background_color: None,
     aria: None,
     visual_map: [],
+    data_zoom: [],
   }
 }
 

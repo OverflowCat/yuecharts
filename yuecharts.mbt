@@ -343,7 +343,7 @@ pub fn version() -> String {
 
 ///|
 pub fn render(json_str : String) -> String {
-  let opt = try @option.parse(json_str) catch {
+  let opt = try @interaction.parse_render_input(json_str) catch {
     // strip error details for WASM size
     _err => return "ERROR: failed to parse JSON" // : \{err}"
   } noraise {

@@ -2846,3 +2846,29 @@ test "sankey vertical labels and levels styles render" {
   assert_true(svg.contains(">src</text>"))
   assert_true(svg.contains(">mid</text>"))
 }
+
+///|
+/// Pie chart highlight dispatch action: highlighted item gets lifted color,
+/// non-highlighted items get opacity="0.1" (blur effect).
+/// <=> echarts/src/util/states.ts:createEmphasisDefaultState / createBlurDefaultState
+test "pie highlight emphasis lifts color and blurs others" {
+  let json_str =
+    #|{
+    #|  "option": {
+    #|    "series": [{
+    #|      "type": "pie",
+    #|      "data": [
+    #|        {"name": "A", "value": 40},
+    #|        {"name": "B", "value": 30},
+    #|        {"name": "C", "value": 30}
+    #|      ]
+    #|    }]
+    #|  },
+    #|  "dispatchActions": [{"type": "highlight", "seriesIndex": 0, "dataIndex": 0}]
+    #|}
+  let svg = @yuecharts.render(json_str)
+  // Item 0 (A) is highlighted: fill color should be lifted from #5070dd to #587bf3
+  assert_true(svg.contains("fill=\"#587bf3\""))
+  // Items 1 and 2 should be blurred: opacity="0.1"
+  assert_true(svg.contains("opacity=\"0.1\""))
+}
