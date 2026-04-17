@@ -396,6 +396,7 @@ var option = {
   let status = $state('Loading renderers…');
   let statusError = $state(false);
   let svgOutput = $state('');
+  let hasSvgOutput = $state(false);
   let rendering = $state(false);
   let conversionError = $state('');
 
@@ -640,14 +641,53 @@ var option = {
       const svg = await renderer.render(json!);
       if (seq !== renderSeq) return;
       if (svg !== null) svgOutput = svg;
+      hasSvgOutput = Boolean(getCurrentSvgText()?.trim());
       status = `Rendered in ${(performance.now() - t0).toFixed(1)} ms`;
     } catch (e) {
       if (seq !== renderSeq) return;
       status = 'Render error: ' + (e as Error).message; statusError = true;
+      hasSvgOutput = Boolean(getCurrentSvgText()?.trim());
       console.error(e);
     } finally {
       if (seq === renderSeq) rendering = false;
     }
+  }
+
+  function getCurrentSvgText(): string | null {
+    if (backend === 'echarts') {
+      const svgEl = echartsContainer?.querySelector('svg');
+      return svgEl ? svgEl.outerHTML : null;
+    }
+    return svgOutput || null;
+  }
+
+  function buildDownloadFileName(): string {
+    const base = currentExampleId || 'chart';
+    const safeBase = base.replace(/[^a-zA-Z0-9._-]+/g, '_');
+    return `${safeBase}.${backend}.svg`;
+  }
+
+  function onDownloadSvg() {
+    const svg = getCurrentSvgText();
+    if (!svg || !svg.trim()) {
+      status = 'No SVG output to download';
+      statusError = true;
+      return;
+    }
+
+    const content = svg.endsWith('\n') ? svg : `${svg}\n`;
+    const blob = new Blob([content], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = buildDownloadFileName();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    status = `Downloaded ${a.download}`;
+    statusError = false;
   }
 
   function getHashExampleId(): string | null {
@@ -703,6 +743,7 @@ var option = {
       currentExampleId = item.id;
       conversionError = '';
       svgOutput = '';
+      hasSvgOutput = false;
       page = 'editor';
       if (syncHash) setHashExampleId(item.id);
       await new Promise(r => setTimeout(r, 10));
@@ -722,6 +763,7 @@ var option = {
     currentExampleId = '';
     conversionError = '';
     svgOutput = '';
+    hasSvgOutput = false;
     page = 'editor';
     clearHashExampleId();
   }
@@ -1089,6 +1131,7 @@ var option = {
 
       <div class="toolbar">
         <button class="render-btn" onclick={onRender} disabled={rendering}>▶ Render</button>
+        <button class="download-btn" onclick={onDownloadSvg} disabled={rendering || !hasSvgOutput}>Download SVG</button>
         <span class="status" class:error={statusError}>{status}</span>
       </div>
     </section>
