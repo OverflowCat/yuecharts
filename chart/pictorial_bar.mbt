@@ -16,26 +16,6 @@ fn pictorial_symbol_opacity(series : @option.SeriesOption) -> Double {
 }
 
 ///|
-fn pictorial_bar_repeat_times(
-  series : @option.SeriesOption,
-  bar_length : Double,
-  unit_length : Double,
-) -> Int {
-  match series.symbol_repeat_count {
-    Some(count) => count.max(1)
-    None =>
-      match series.symbol_repeat {
-        Some("true") | Some("fixed") => {
-          let unit = if unit_length > 0.0 { unit_length } else { 1.0 }
-          let times = (bar_length / unit).to_int()
-          times.max(1)
-        }
-        _ => 1
-      }
-  }
-}
-
-///|
 fn pictorial_margin_px(series : @option.SeriesOption, unit : Double) -> Double {
   match series.symbol_margin {
     Some(margin) => {
@@ -182,32 +162,6 @@ fn pictorial_bounding_length(
           (coord.bbox.y - zero_y).abs()
         _ => actual_length
       }
-  }
-}
-
-///|
-fn effective_repeat_slot(
-  series : @option.SeriesOption,
-  slot_index : Int,
-  repeat_times : Int,
-) -> Int {
-  match series.symbol_repeat_direction {
-    Some("start") => slot_index
-    _ => repeat_times - 1 - slot_index
-  }
-}
-
-///|
-fn single_symbol_y(
-  series : @option.SeriesOption,
-  zero_y : Double,
-  bounding_length : Double,
-  symbol_h : Double,
-) -> Double {
-  match series.symbol_position {
-    Some("center") => zero_y - bounding_length / 2.0 - symbol_h / 2.0
-    Some("end") => zero_y - bounding_length
-    _ => zero_y - symbol_h
   }
 }
 

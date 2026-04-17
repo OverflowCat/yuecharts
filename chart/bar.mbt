@@ -219,14 +219,6 @@ fn bar_item_value(item : @option.DataItem) -> Double {
 }
 
 ///|
-fn bar_series_cartesian_key(
-  series : @option.SeriesOption,
-  series_order : Int,
-) -> String {
-  bar_series_cartesian_key_for_axis(series, series_order, series.x_axis_index)
-}
-
-///|
 /// <=> echarts/src/layout/barGrid.ts:getSeriesStackId
 fn bar_series_cartesian_key_for_axis(
   series : @option.SeriesOption,
@@ -315,11 +307,9 @@ fn bar_find_category_stack_layout_index(
 ///|
 /// <=> echarts/src/layout/barGrid.ts:doCalBarWidthAndOffset
 fn bar_category_axis_layout_default(
-  axis_index : Int,
   band_width : Double,
 ) -> BarCategoryAxisLayout {
   {
-    axis_index,
     band_width,
     remained_width: band_width,
     auto_width_count: 0,
@@ -475,8 +465,8 @@ fn bar_make_category_layout(
   while xi < coord.x_scales.length() {
     match coord.x_scales[xi] {
       Ordinal(s) =>
-        layouts.push(bar_category_axis_layout_default(xi, s.band_width()))
-      Linear(_) => layouts.push(bar_category_axis_layout_default(xi, 0.0))
+        layouts.push(bar_category_axis_layout_default(s.band_width()))
+      Linear(_) => layouts.push(bar_category_axis_layout_default(0.0))
     }
     xi += 1
   }
@@ -579,9 +569,9 @@ fn bar_make_category_layout_y(
   while yi < coord.y_scales.length() {
     match coord.y_scales[yi] {
       Ordinal(s) =>
-        layouts.push(bar_category_axis_layout_default(yi, s.band_width()))
-      Linear(_) => layouts.push(bar_category_axis_layout_default(yi, 0.0))
-      BreakLinear(_) => layouts.push(bar_category_axis_layout_default(yi, 0.0))
+        layouts.push(bar_category_axis_layout_default(s.band_width()))
+      Linear(_) => layouts.push(bar_category_axis_layout_default(0.0))
+      BreakLinear(_) => layouts.push(bar_category_axis_layout_default(0.0))
     }
     yi += 1
   }
@@ -716,7 +706,6 @@ priv struct BarCategoryStackLayout {
 
 ///|
 priv struct BarCategoryAxisLayout {
-  axis_index : Int
   band_width : Double
   mut remained_width : Double
   mut auto_width_count : Int

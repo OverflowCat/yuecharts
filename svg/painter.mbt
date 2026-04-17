@@ -116,33 +116,6 @@ fn css_join_classes(class_names : Array[String]) -> String {
 }
 
 ///|
-fn css_cached_class_name(
-  scope : Ref[BrushScope],
-  properties : Array[CssProperty],
-  with_hover : Bool,
-) -> String {
-  let style_key = css_style_key(properties, with_hover)
-  for i, _ in scope.val.css_style_cache {
-    let entry = scope.val.css_style_cache[i]
-    if entry.style_key == style_key {
-      return entry.class_name
-    }
-  }
-  let class_name = "\{scope.val.zr_id}-cls-\{scope.val.next_class_id}"
-  scope.val.css_style_cache.push({ style_key, class_name })
-  scope.val.css_nodes.push({
-    selector: if with_hover {
-      ".\{class_name}:hover"
-    } else {
-      ".\{class_name}"
-    },
-    properties,
-  })
-  scope.val = { ..scope.val, next_class_id: scope.val.next_class_id + 1 }
-  class_name
-}
-
-///|
 fn current_state_contains(
   current_states : Array[String],
   target : String,
@@ -382,56 +355,6 @@ fn emphasis_fill_value(
 }
 
 ///|
-fn emphasis_hover_properties(
-  meta : @graphic.DisplayableMeta,
-  normal_fill : String?,
-  scope : Ref[BrushScope],
-) -> Array[CssProperty] {
-  let properties : Array[CssProperty] = []
-  if meta.silent {
-    properties.push({ name: "pointer-events", value: "none" })
-    return properties
-  }
-  properties.push({ name: "cursor", value: "pointer" })
-  match emphasis_fill_value(meta, normal_fill) {
-    Some(fill) =>
-      properties.push({
-        name: "fill",
-        value: match resolve_gradient_spec(scope, fill) {
-          Some(id) => "url(#\{id})"
-          None => fill
-        },
-      })
-    None => ()
-  }
-  match meta.states.emphasis {
-    Some(style) => {
-      match style.stroke {
-        Some(stroke) =>
-          properties.push({
-            name: "stroke",
-            value: match resolve_gradient_spec(scope, stroke) {
-              Some(id) => "url(#\{id})"
-              None => stroke
-            },
-          })
-        None => ()
-      }
-      match style.line_width {
-        Some(line_width) =>
-          properties.push({
-            name: "stroke-width",
-            value: line_width.to_string(),
-          })
-        None => ()
-      }
-    }
-    None => ()
-  }
-  properties
-}
-
-///|
 fn pointer_events_visible_attr(
   fill_value : String?,
   stroke_value : String?,
@@ -444,22 +367,17 @@ fn pointer_events_visible_attr(
 }
 
 ///|
-fn displayable_class_value(
-  meta : @graphic.DisplayableMeta,
-  normal_fill : String?,
-  scope : Ref[BrushScope],
-) -> String? {
+fn displayable_class_value(meta : @graphic.DisplayableMeta) -> String? {
   let class_names : Array[String] = []
   match meta.class_name {
     Some(class_name) => class_names.push(class_name)
     None => ()
   }
-  if scope.val.emphasis {
-    let hover_properties = emphasis_hover_properties(meta, normal_fill, scope)
-    if hover_properties.length() > 0 {
-      class_names.push(css_cached_class_name(scope, hover_properties, true))
-    }
-  }
+  // NOTE: Skip hover CSS generation for SVG rendering.
+  // Line charts (bump chart) currently have no JS interaction support,
+  // so hover CSS styles would be misleading.
+  // This also avoids the issue where all polylines share the same incorrect
+  // hover color (#587bf3) instead of their individual series colors.
   if class_names.length() > 0 {
     Some(css_join_classes(class_names))
   } else {
@@ -471,10 +389,8 @@ fn displayable_class_value(
 fn write_displayable_class_attr(
   buf : StringBuilder,
   meta : @graphic.DisplayableMeta,
-  normal_fill : String?,
-  scope : Ref[BrushScope],
 ) -> Unit {
-  match displayable_class_value(meta, normal_fill, scope) {
+  match displayable_class_value(meta) {
     Some(class_value) => buf.write_string(" class=\"\{class_value}\"")
     None => ()
   }
@@ -730,7 +646,7 @@ fn render_rect(
     None => ()
   }
   write_displayable_ecmeta_attrs(buf, r.meta)
-  write_displayable_class_attr(buf, r.meta, fill_value, scope)
+  write_displayable_class_attr(buf, r.meta)
   buf.write_string("/>\n")
 }
 
@@ -784,7 +700,7 @@ fn render_circle(
     None => ()
   }
   write_displayable_ecmeta_attrs(buf, c.meta)
-  write_displayable_class_attr(buf, c.meta, fill_value, scope)
+  write_displayable_class_attr(buf, c.meta)
   buf.write_string("/>\n")
 }
 
@@ -811,7 +727,7 @@ fn render_line(
   buf.write_string(" fill=\"none\"")
   buf.write_string(opacity_attr(l.opacity))
   write_displayable_ecmeta_attrs(buf, l.meta)
-  write_displayable_class_attr(buf, l.meta, None, scope)
+  write_displayable_class_attr(buf, l.meta)
   buf.write_string("/>\n")
 }
 
@@ -846,7 +762,7 @@ fn render_polyline(
     None => ()
   }
   write_displayable_ecmeta_attrs(buf, pl.meta)
-  write_displayable_class_attr(buf, pl.meta, fill_value, scope)
+  write_displayable_class_attr(buf, pl.meta)
   buf.write_string("/>\n")
 }
 
@@ -900,7 +816,7 @@ fn render_polygon(
     None => ()
   }
   write_displayable_ecmeta_attrs(buf, pg.meta)
-  write_displayable_class_attr(buf, pg.meta, fill_value, scope)
+  write_displayable_class_attr(buf, pg.meta)
   buf.write_string("/>\n")
 }
 
@@ -954,7 +870,7 @@ fn render_path(
     None => ()
   }
   write_displayable_ecmeta_attrs(buf, p.meta)
-  write_displayable_class_attr(buf, p.meta, fill_value, scope)
+  write_displayable_class_attr(buf, p.meta)
   buf.write_string("/>\n")
 }
 
@@ -998,7 +914,7 @@ fn render_text(
   }
   buf.write_string(opacity_attr(t.opacity))
   write_displayable_ecmeta_attrs(buf, t.meta)
-  write_displayable_class_attr(buf, t.meta, Some(fill_value), scope)
+  write_displayable_class_attr(buf, t.meta)
   buf.write_string(">")
   buf.write_string(painter_xml_escape(t.content))
   buf.write_string("</text>\n")
@@ -1254,11 +1170,7 @@ fn build_rect_node(r : @graphic.RectData, scope : Ref[BrushScope]) -> XmlNode {
     None => ()
   }
   push_displayable_ecmeta_attrs(attrs, r.meta)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(r.meta, fill_value, scope),
-  )
+  push_xml_attr_opt(attrs, "class", displayable_class_value(r.meta))
   XmlNode::empty("rect", attrs)
 }
 
@@ -1314,11 +1226,7 @@ fn build_circle_node(
     None => ()
   }
   push_displayable_ecmeta_attrs(attrs, c.meta)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(c.meta, fill_value, scope),
-  )
+  push_xml_attr_opt(attrs, "class", displayable_class_value(c.meta))
   XmlNode::empty("circle", attrs)
 }
 
@@ -1342,11 +1250,7 @@ fn build_line_node(l : @graphic.LineData, scope : Ref[BrushScope]) -> XmlNode {
     push_xml_attr(attrs, "opacity", l.opacity.to_string())
   }
   push_displayable_ecmeta_attrs(attrs, l.meta)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(l.meta, None, scope),
-  )
+  push_xml_attr_opt(attrs, "class", displayable_class_value(l.meta))
   XmlNode::empty("path", attrs)
 }
 
@@ -1381,11 +1285,7 @@ fn build_polyline_node(
     None => ()
   }
   push_displayable_ecmeta_attrs(attrs, pl.meta)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(pl.meta, fill_value, scope),
-  )
+  push_xml_attr_opt(attrs, "class", displayable_class_value(pl.meta))
   XmlNode::empty("polyline", attrs)
 }
 
@@ -1439,11 +1339,7 @@ fn build_polygon_node(
     None => ()
   }
   push_displayable_ecmeta_attrs(attrs, pg.meta)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(pg.meta, fill_value, scope),
-  )
+  push_xml_attr_opt(attrs, "class", displayable_class_value(pg.meta))
   XmlNode::empty("polygon", attrs)
 }
 
@@ -1494,11 +1390,7 @@ fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
     None => ()
   }
   push_displayable_ecmeta_attrs(attrs, p.meta)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(p.meta, fill_value, scope),
-  )
+  push_xml_attr_opt(attrs, "class", displayable_class_value(p.meta))
   XmlNode::empty("path", attrs)
 }
 
@@ -1542,11 +1434,7 @@ fn build_text_node(t : @graphic.TextData, scope : Ref[BrushScope]) -> XmlNode {
     push_xml_attr(attrs, "opacity", t.opacity.to_string())
   }
   push_displayable_ecmeta_attrs(attrs, t.meta)
-  push_xml_attr_opt(
-    attrs,
-    "class",
-    displayable_class_value(t.meta, Some(fill_value), scope),
-  )
+  push_xml_attr_opt(attrs, "class", displayable_class_value(t.meta))
   XmlNode::element("text", attrs, [XmlNode::text_escaped(t.content)])
 }
 
