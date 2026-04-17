@@ -21,6 +21,9 @@ if ($wasmGcFile -and $wasmFile) {
     Write-Host "Warning: WASM files not found" -ForegroundColor Red
 }
 
-Write-Host "`nOpen http://localhost:8960 in your browser" -ForegroundColor Cyan
-python -m http.server 8960 -d .
-exit 0  # python exits with 1 on Ctrl-C; suppress that
+# legacy single page html
+# Write-Host "`nOpen http://localhost:8960 in your browser" -ForegroundColor Cyan
+# python -m http.server 8960 -d .
+# exit 0  # python exits with 1 on Ctrl-C; suppress that
+
+# Now use frontend

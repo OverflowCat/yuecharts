@@ -11,6 +11,7 @@ moon.mod.lock
 *.mi
 *.svg
 examples/*.jsgen.*
+orig-examples/*
 
 # =========================
 # Documentation
@@ -51,3 +52,6 @@ tmp/
 temp/
 _tmp/
 *.tmp
+
+*.json
+examples/*
