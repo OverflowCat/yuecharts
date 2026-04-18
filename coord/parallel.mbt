@@ -148,7 +148,12 @@ pub fn ParallelAxis::data_to_coord(
       }
     Ordinal(scale) => {
       // echarts/src/coord/parallel/Parallel.ts: category axis string lookup
-      let index = parallel_category_index(value, self.dim_index, raw_parts, scale.categories)
+      let index = parallel_category_index(
+        value,
+        self.dim_index,
+        raw_parts,
+        scale.categories,
+      )
       match index {
         Some(index) => {
           let max_index = scale.categories.length() - 1

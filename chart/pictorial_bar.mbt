@@ -146,8 +146,8 @@ fn pictorial_is_vertical(
       Ordinal(_) => true
       Linear(_) | BreakLinear(_) => false
     }
-  } else if
-    series.y_axis_index >= 0 && series.y_axis_index < coord.y_scales.length() {
+  } else if series.y_axis_index >= 0 &&
+    series.y_axis_index < coord.y_scales.length() {
     match coord.y_scales[series.y_axis_index] {
       Ordinal(_) => false
       Linear(_) | BreakLinear(_) => true
@@ -165,7 +165,7 @@ fn pictorial_value_and_category(
 ) -> (Double, Int) {
   match item.value {
     Num(n) => (n, data_index)
-    Vec(arr) => {
+    Vec(arr) =>
       if is_vertical {
         let value = if arr.length() > 1 {
           arr[1]
@@ -181,11 +181,7 @@ fn pictorial_value_and_category(
         }
         (value, category)
       } else {
-        let value = if arr.length() > 0 {
-          arr[0]
-        } else {
-          0.0
-        }
+        let value = if arr.length() > 0 { arr[0] } else { 0.0 }
         let category = if arr.length() > 1 {
           arr[1].to_int()
         } else {
@@ -193,7 +189,6 @@ fn pictorial_value_and_category(
         }
         (value, category)
       }
-    }
     DateValue(_, n) => (n, data_index)
     Null => (0.0, data_index)
   }
@@ -233,7 +228,7 @@ fn pictorial_bounding_length(
     }
     None =>
       match series.symbol_repeat {
-        Some("true") | Some("fixed") | Some("number") => {
+        Some("true") | Some("fixed") | Some("number") =>
           if is_vertical {
             if value_px <= zero_px {
               (coord.bbox.y - zero_px).abs()
@@ -245,7 +240,6 @@ fn pictorial_bounding_length(
           } else {
             (coord.bbox.x - zero_px).abs()
           }
-        }
         _ => actual_length
       }
   }
@@ -467,9 +461,7 @@ fn render_pictorial_bar_series(
     di += 1
     let item_symbol = item.symbol.unwrap_or(symbol)
     let (value, cat_index) = pictorial_value_and_category(
-      item,
-      data_index,
-      is_vertical,
+      item, data_index, is_vertical,
     )
     let zero_px = if is_vertical {
       coord.num_y(y_idx, 0.0)
@@ -488,7 +480,11 @@ fn render_pictorial_bar_series(
     let bounding_length = pictorial_bounding_length(
       series,
       coord,
-      if is_vertical { y_idx } else { x_idx },
+      if is_vertical {
+        y_idx
+      } else {
+        x_idx
+      },
       is_vertical,
       actual_length,
       zero_px,
@@ -499,10 +495,7 @@ fn render_pictorial_bar_series(
       _ => false
     }
     let (base_symbol_w, base_symbol_h0) = pictorial_symbol_size(
-      series,
-      bar_w,
-      bounding_length,
-      symbol_repeat,
+      series, bar_w, bounding_length, symbol_repeat,
     )
     let (symbol_w, base_symbol_h) = if is_vertical {
       (base_symbol_w, base_symbol_h0)
@@ -548,8 +541,10 @@ fn render_pictorial_bar_series(
     let total_path_len = if repeat_times > 1 {
       repeat_times.to_double() * unit -
       (if has_end_gap(series) { 0.0 } else { margin * 2.0 })
+    } else if is_vertical {
+      symbol_h
     } else {
-      if is_vertical { symbol_h } else { symbol_w.max(1.0) }
+      symbol_w.max(1.0)
     }
     let pxSign = if is_vertical { -1.0 } else { 1.0 }
     let size_fix = pxSign * (total_path_len / 2.0)
@@ -614,10 +609,7 @@ fn render_pictorial_bar_series(
           let clip_top = if value_y < zero_y { value_y } else { zero_y }
           let clip_height = actual_length.abs()
           let clip_rect = @graphic.BBox::new(
-            -10000.0,
-            clip_top,
-            20000.0,
-            clip_height,
+            -10000.0, clip_top, 20000.0, clip_height,
           )
           elems.push(@graphic.Element::group_clipped(symbol_buf, clip_rect))
         } else {
@@ -738,10 +730,7 @@ fn render_pictorial_bar_series(
           let clip_left = if value_x < zero_x { value_x } else { zero_x }
           let clip_width = actual_length.abs()
           let clip_rect = @graphic.BBox::new(
-            clip_left,
-            -10000.0,
-            clip_width,
-            20000.0,
+            clip_left, -10000.0, clip_width, 20000.0,
           )
           elems.push(@graphic.Element::group_clipped(symbol_buf, clip_rect))
         } else {

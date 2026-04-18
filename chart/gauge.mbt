@@ -198,6 +198,32 @@ fn gauge_color_for_value(
 }
 
 ///|
+/// Resolve the gauge data color with the same precedence as the upstream
+/// visual/style.ts pipeline: data item itemStyle.color -> series itemStyle.color
+/// -> palette fallback.
+/// <=> echarts/src/visual/style.ts:seriesStyleTask / dataColorPaletteTask
+fn gauge_item_color(
+  series : @option.SeriesOption,
+  item : @option.DataItem,
+  series_index : Int,
+  data_index : Int,
+) -> String {
+  match item.item_style.bind(style => style.color) {
+    Some(c) => c
+    None =>
+      match series.item_style {
+        Some(c) => c
+        None =>
+          if series.color_by == "data" {
+            @visual.palette_color(data_index)
+          } else {
+            @visual.palette_color(series_index)
+          }
+      }
+  }
+}
+
+///|
 /// Approximate bounding box of an SVG path by scanning all numeric tokens.
 /// Returns (min_x, min_y, width, height). Treats alternating token pairs as (x,y).
 /// Corresponds to: zrender getBoundingRect for icons used by createSymbol.
@@ -454,7 +480,7 @@ pub fn render_gauge_series(
           arc_r = r - di.to_double() * prog_width
           arc_r0 = r - (di.to_double() + 1.0) * prog_width
         }
-        let prog_color = @visual.palette_color(di)
+        let prog_color = gauge_item_color(series, item, series_index, di)
         let prog_arc = gauge_sector_path(
           cx, cy, arc_r0, arc_r, start_rad, value_rad,
         )
@@ -528,7 +554,7 @@ pub fn render_gauge_series(
     if pct > 0.0 {
       let item_highlighted = item.highlighted == Some(true)
       let value_rad = start_rad + angle_span * pct
-      let prog_color = @visual.palette_color(0)
+      let prog_color = gauge_item_color(series, item, series_index, 0)
       let prog_arc = gauge_sector_path(
         cx, cy, track_inner_r, r, start_rad, value_rad,
       )
@@ -710,9 +736,14 @@ pub fn render_gauge_series(
       max_v,
       ptr_value,
     )
+    let ptr_base_color = if data_count > 0 {
+      gauge_item_color(series, series.data[0], series_index, 0)
+    } else {
+      @visual.palette_color(series_index)
+    }
     let ptr_color = match series.gauge_pointer_color {
       Some(c) => if c == "auto" { ptr_auto_color } else { c }
-      None => @visual.palette_color(series_index)
+      None => ptr_base_color
     }
     // offsetCenter in pixels relative to cx/cy
     let off_x = if series.gauge_pointer_offset_center.length() >= 1 {
@@ -890,6 +921,7 @@ pub fn render_gauge_series(
       @option.Null => min_v
     }
     let item_color = @visual.palette_color(di)
+    let item_fill_color = gauge_item_color(series, item, series_index, di)
     let item_auto_color = gauge_color_for_value(
       series.gauge_axis_line_colors,
       min_v,
@@ -952,7 +984,16 @@ pub fn render_gauge_series(
       None => val_str
     }
     let detail_color = match series.gauge_detail_color {
-      Some(c) => if c == "inherit" { item_auto_color } else { c }
+      Some(c) =>
+        if c == "inherit" {
+          if series.gauge_progress_show {
+            item_fill_color
+          } else {
+            item_auto_color
+          }
+        } else {
+          c
+        }
       None => "#3c3c41"
     }
     elems.push(

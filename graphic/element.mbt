@@ -349,15 +349,7 @@ pub fn ImageData::new(
   height : Double,
   href : String,
 ) -> ImageData {
-  {
-    x,
-    y,
-    width,
-    height,
-    href,
-    opacity: 1.0,
-    meta: DisplayableMeta::default(),
-  }
+  { x, y, width, height, href, opacity: 1.0, meta: DisplayableMeta::default() }
 }
 
 ///|

@@ -578,7 +578,14 @@ fn render_mark_line_segment(
   // Draw line
   elems.push(
     @graphic.Element::line_colored_dashed(
-      p1.x, p1.y, p2.x, p2.y, line_color, line_width, dash, line_opacity,
+      p1.x,
+      p1.y,
+      p2.x,
+      p2.y,
+      line_color,
+      line_width,
+      dash,
+      line_opacity,
     ),
   )
   // Draw start/end symbols (circle + arrow by default)
@@ -605,8 +612,8 @@ fn render_mark_line_segment(
   let (lx, ly, anchor, baseline) = match position {
     "start" =>
       (
-        p1.x + perp_x * dist_y - (dx / len) * dist_x,
-        p1.y + perp_y * dist_y - (dy / len) * dist_x,
+        p1.x + perp_x * dist_y - dx / len * dist_x,
+        p1.y + perp_y * dist_y - dy / len * dist_x,
         @graphic.TextAnchor::End,
         @graphic.TextBaseline::Middle,
       )
@@ -619,29 +626,29 @@ fn render_mark_line_segment(
       )
     "insideStart" =>
       (
-        p1.x + (dx / len) * dist_x,
-        p1.y + (dy / len) * dist_x - dist_y,
+        p1.x + dx / len * dist_x,
+        p1.y + dy / len * dist_x - dist_y,
         @graphic.TextAnchor::Start,
         @graphic.TextBaseline::Bottom,
       )
     "insideStartTop" =>
       (
-        p1.x + (dx / len) * dist_x,
-        p1.y + (dy / len) * dist_x - dist_y,
+        p1.x + dx / len * dist_x,
+        p1.y + dy / len * dist_x - dist_y,
         @graphic.TextAnchor::Start,
         @graphic.TextBaseline::Bottom,
       )
     "insideStartBottom" =>
       (
-        p1.x + (dx / len) * dist_x,
-        p1.y + (dy / len) * dist_x + dist_y,
+        p1.x + dx / len * dist_x,
+        p1.y + dy / len * dist_x + dist_y,
         @graphic.TextAnchor::Start,
         @graphic.TextBaseline::Hanging,
       )
     "insideMiddle" =>
       (
-        mx + (dx / len) * dist_x,
-        my + (dy / len) * dist_x - dist_y,
+        mx + dx / len * dist_x,
+        my + dy / len * dist_x - dist_y,
         @graphic.TextAnchor::Middle,
         @graphic.TextBaseline::Bottom,
       )
@@ -661,44 +668,36 @@ fn render_mark_line_segment(
       )
     "insideEnd" =>
       (
-        p2.x - (dx / len) * dist_x,
-        p2.y - (dy / len) * dist_x - dist_y,
+        p2.x - dx / len * dist_x,
+        p2.y - dy / len * dist_x - dist_y,
         @graphic.TextAnchor::End,
         @graphic.TextBaseline::Bottom,
       )
     "insideEndTop" =>
       (
-        p2.x - (dx / len) * dist_x,
-        p2.y - (dy / len) * dist_x - dist_y,
+        p2.x - dx / len * dist_x,
+        p2.y - dy / len * dist_x - dist_y,
         @graphic.TextAnchor::End,
         @graphic.TextBaseline::Bottom,
       )
     "insideEndBottom" =>
       (
-        p2.x - (dx / len) * dist_x,
-        p2.y - (dy / len) * dist_x + dist_y,
+        p2.x - dx / len * dist_x,
+        p2.y - dy / len * dist_x + dist_y,
         @graphic.TextAnchor::End,
         @graphic.TextBaseline::Hanging,
       )
     _ => // "end" (default)
       (
-        p2.x + perp_x * dist_y + (dx / len) * dist_x,
-        p2.y + perp_y * dist_y + (dy / len) * dist_x,
+        p2.x + perp_x * dist_y + dx / len * dist_x,
+        p2.y + perp_y * dist_y + dy / len * dist_x,
         @graphic.TextAnchor::Start,
         @graphic.TextBaseline::Middle,
       )
   }
   elems.push(
     @graphic.Element::text_custom(
-      lx,
-      ly,
-      label_text,
-      anchor,
-      baseline,
-      line_color,
-      12.0,
-      "sans-serif",
-      "normal",
+      lx, ly, label_text, anchor, baseline, line_color, 12.0, "sans-serif", "normal",
     ),
   )
 }
@@ -731,7 +730,7 @@ fn render_mark_lines_cartesian(
   let sym_size = mld.symbol_size
   for entry in mld.entries {
     match entry {
-      @option.MarkLineEntry::Single(item) => {
+      @option.MarkLineEntry::Single(item) =>
         match mark_line_item_pixel(item, coord, x_idx, y_idx) {
           Some((p1, p2)) => {
             let fmt = item.label_formatter
@@ -754,7 +753,6 @@ fn render_mark_lines_cartesian(
           }
           None => ()
         }
-      }
       @option.MarkLineEntry::Pair(start_item, end_item) => {
         let p1_opt = mark_line_coord_pixel(start_item, coord, x_idx, y_idx)
         let p2_opt = mark_line_coord_pixel(end_item, coord, x_idx, y_idx)

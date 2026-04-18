@@ -1482,12 +1482,14 @@ pub fn SeriesOption::default_sankey() -> SeriesOption {
 }
 
 ///|
+/// <=> echarts/src/chart/gauge/GaugeSeries.ts:defaultOption
 pub fn SeriesOption::default_gauge() -> SeriesOption {
   {
     ..SeriesOption::default_line(),
     series_type: SeriesType::Gauge,
     radius: ["75%"],
     center: ["50%", "50%"],
+    color_by: "data",
   }
 }
 
