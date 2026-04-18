@@ -253,6 +253,10 @@ pub fn make_symbol(
         transform,
       )
     }
+    _ if symbol.has_prefix("image://") => {
+      let href = symbol[8:].to_string()
+      Element::image(x, y, w, h, href).with_opacity(opacity)
+    }
     _ => {
       let r = if w < h { w / 2.0 } else { h / 2.0 }
       Element::circle_colored_opacity(

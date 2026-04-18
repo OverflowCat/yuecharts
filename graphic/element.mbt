@@ -178,6 +178,8 @@ pub enum Element {
   Polygon(PolygonData)
   /// An SVG path element.
   Path(PathData)
+  /// An SVG image element.
+  Image(ImageData)
   /// A text label.
   Text(TextData)
 }
@@ -329,6 +331,36 @@ pub struct PathData {
 }
 
 ///|
+pub struct ImageData {
+  x : Double
+  y : Double
+  width : Double
+  height : Double
+  href : String
+  opacity : Double
+  meta : DisplayableMeta
+}
+
+///|
+pub fn ImageData::new(
+  x : Double,
+  y : Double,
+  width : Double,
+  height : Double,
+  href : String,
+) -> ImageData {
+  {
+    x,
+    y,
+    width,
+    height,
+    href,
+    opacity: 1.0,
+    meta: DisplayableMeta::default(),
+  }
+}
+
+///|
 pub fn PathData::new(d : String) -> PathData {
   {
     d,
@@ -391,6 +423,7 @@ pub fn Element::with_silent(self : Element, silent : Bool) -> Element {
     Polyline(pl) => Polyline({ ..pl, meta: { ..pl.meta, silent, } })
     Polygon(pg) => Polygon({ ..pg, meta: { ..pg.meta, silent, } })
     Path(p) => Path({ ..p, meta: { ..p.meta, silent, } })
+    Image(i) => Image({ ..i, meta: { ..i.meta, silent, } })
     Text(t) => Text({ ..t, meta: { ..t.meta, silent, } })
   }
 }
@@ -414,6 +447,7 @@ pub fn Element::with_opacity(self : Element, opacity : Double) -> Element {
     Polyline(pl) => Polyline({ ..pl, opacity, })
     Polygon(pg) => Polygon({ ..pg, opacity, })
     Path(p) => Path({ ..p, opacity, })
+    Image(i) => Image({ ..i, opacity, })
     Text(t) => Text({ ..t, opacity, })
   }
 }
@@ -454,6 +488,11 @@ pub fn Element::with_emphasis_style(
       Path({
         ..p,
         meta: { ..p.meta, states: { ..p.meta.states, emphasis: Some(style) } },
+      })
+    Image(i) =>
+      Image({
+        ..i,
+        meta: { ..i.meta, states: { ..i.meta.states, emphasis: Some(style) } },
       })
     Text(t) =>
       Text({
@@ -500,6 +539,11 @@ pub fn Element::with_select_style(
         ..p,
         meta: { ..p.meta, states: { ..p.meta.states, select: Some(style) } },
       })
+    Image(i) =>
+      Image({
+        ..i,
+        meta: { ..i.meta, states: { ..i.meta.states, select: Some(style) } },
+      })
     Text(t) =>
       Text({
         ..t,
@@ -545,6 +589,11 @@ pub fn Element::with_blur_style(
         ..p,
         meta: { ..p.meta, states: { ..p.meta.states, blur: Some(style) } },
       })
+    Image(i) =>
+      Image({
+        ..i,
+        meta: { ..i.meta, states: { ..i.meta.states, blur: Some(style) } },
+      })
     Text(t) =>
       Text({
         ..t,
@@ -566,6 +615,7 @@ pub fn Element::with_current_states(
     Polyline(pl) => Polyline({ ..pl, meta: { ..pl.meta, current_states, } })
     Polygon(pg) => Polygon({ ..pg, meta: { ..pg.meta, current_states, } })
     Path(p) => Path({ ..p, meta: { ..p.meta, current_states, } })
+    Image(i) => Image({ ..i, meta: { ..i.meta, current_states, } })
     Text(t) => Text({ ..t, meta: { ..t.meta, current_states, } })
   }
 }
@@ -613,6 +663,8 @@ pub fn Element::with_ecmeta_attr(
       })
     Path(p) =>
       Path({ ..p, meta: displayable_meta_with_ecmeta_attr(p.meta, key, value) })
+    Image(i) =>
+      Image({ ..i, meta: displayable_meta_with_ecmeta_attr(i.meta, key, value) })
     Text(t) =>
       Text({ ..t, meta: displayable_meta_with_ecmeta_attr(t.meta, key, value) })
   }
@@ -794,6 +846,17 @@ pub fn Element::polygon(points : Array[Point]) -> Element {
 ///|
 pub fn Element::path(d : String) -> Element {
   Path(PathData::new(d))
+}
+
+///|
+pub fn Element::image(
+  x : Double,
+  y : Double,
+  width : Double,
+  height : Double,
+  href : String,
+) -> Element {
+  Image(ImageData::new(x, y, width, height, href))
 }
 
 ///|

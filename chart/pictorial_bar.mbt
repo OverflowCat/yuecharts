@@ -137,29 +137,115 @@ fn pictorial_symbol_offset(
 }
 
 ///|
-fn value_axis_zero_y(coord : @coord.Cartesian2D, y_idx : Int) -> Double {
-  coord.num_y(y_idx, 0.0)
+fn pictorial_is_vertical(
+  series : @option.SeriesOption,
+  coord : @coord.Cartesian2D,
+) -> Bool {
+  if series.x_axis_index >= 0 && series.x_axis_index < coord.x_scales.length() {
+    match coord.x_scales[series.x_axis_index] {
+      Ordinal(_) => true
+      Linear(_) | BreakLinear(_) => false
+    }
+  } else if
+    series.y_axis_index >= 0 && series.y_axis_index < coord.y_scales.length() {
+    match coord.y_scales[series.y_axis_index] {
+      Ordinal(_) => false
+      Linear(_) | BreakLinear(_) => true
+    }
+  } else {
+    true
+  }
+}
+
+///|
+fn pictorial_value_and_category(
+  item : @option.DataItem,
+  data_index : Int,
+  is_vertical : Bool,
+) -> (Double, Int) {
+  match item.value {
+    Num(n) => (n, data_index)
+    Vec(arr) => {
+      if is_vertical {
+        let value = if arr.length() > 1 {
+          arr[1]
+        } else if arr.length() > 0 {
+          arr[0]
+        } else {
+          0.0
+        }
+        let category = if arr.length() > 0 {
+          arr[0].to_int()
+        } else {
+          data_index
+        }
+        (value, category)
+      } else {
+        let value = if arr.length() > 0 {
+          arr[0]
+        } else {
+          0.0
+        }
+        let category = if arr.length() > 1 {
+          arr[1].to_int()
+        } else {
+          data_index
+        }
+        (value, category)
+      }
+    }
+    DateValue(_, n) => (n, data_index)
+    Null => (0.0, data_index)
+  }
 }
 
 ///|
 fn pictorial_bounding_length(
   series : @option.SeriesOption,
   coord : @coord.Cartesian2D,
-  y_idx : Int,
+  axis_idx : Int,
+  is_vertical : Bool,
   actual_length : Double,
-  zero_y : Double,
+  zero_px : Double,
+  value_px : Double,
 ) -> Double {
   match series.symbol_bounding_data {
-    Some(@option.Single(value)) => (coord.num_y(y_idx, value) - zero_y).abs()
+    Some(@option.Single(value)) => {
+      let p = if is_vertical {
+        coord.num_y(axis_idx, value)
+      } else {
+        coord.num_x(axis_idx, value)
+      }
+      (p - zero_px).abs()
+    }
     Some(@option.Pair(a, b)) => {
-      let da = (coord.num_y(y_idx, a) - zero_y).abs()
-      let db = (coord.num_y(y_idx, b) - zero_y).abs()
-      da.max(db)
+      let pa = if is_vertical {
+        coord.num_y(axis_idx, a)
+      } else {
+        coord.num_x(axis_idx, a)
+      }
+      let pb = if is_vertical {
+        coord.num_y(axis_idx, b)
+      } else {
+        coord.num_x(axis_idx, b)
+      }
+      (pa - zero_px).abs().max((pb - zero_px).abs())
     }
     None =>
       match series.symbol_repeat {
-        Some("true") | Some("fixed") | Some("number") =>
-          (coord.bbox.y - zero_y).abs()
+        Some("true") | Some("fixed") | Some("number") => {
+          if is_vertical {
+            if value_px <= zero_px {
+              (coord.bbox.y - zero_px).abs()
+            } else {
+              (coord.bbox.bottom() - zero_px).abs()
+            }
+          } else if value_px >= zero_px {
+            (coord.bbox.right() - zero_px).abs()
+          } else {
+            (coord.bbox.x - zero_px).abs()
+          }
+        }
         _ => actual_length
       }
   }
@@ -186,7 +272,7 @@ fn render_pictorial_bar_series(
   let elems : Array[@graphic.Element] = []
   let x_idx = series.x_axis_index
   let y_idx = series.y_axis_index
-  let zero_y = value_axis_zero_y(coord, y_idx)
+  let is_vertical = pictorial_is_vertical(series, coord)
   let symbol = series.symbol.unwrap_or("circle")
   let any_highlighted = @visual.has_any_highlighted(series.data)
   let emphasis_style : @graphic.DisplayStateStyle = {
@@ -203,11 +289,23 @@ fn render_pictorial_bar_series(
     line_width: None,
     stroke_no_scale: false,
   }
-  if x_idx >= coord.x_scales.length() {
-    return elems
+  let band_step = if is_vertical {
+    if x_idx >= coord.x_scales.length() {
+      return elems
+    }
+    match coord.x_scales[x_idx] {
+      Ordinal(sx) => sx.band_step()
+      Linear(_) | BreakLinear(_) => return elems
+    }
+  } else {
+    if y_idx >= coord.y_scales.length() {
+      return elems
+    }
+    match coord.y_scales[y_idx] {
+      Ordinal(sy) => sy.band_step()
+      Linear(_) | BreakLinear(_) => return elems
+    }
   }
-  guard coord.x_scales[x_idx] is Ordinal(s) else { elems }
-  let band_step = s.band_step()
   let n = if total_bars > 0 { total_bars } else { 1 }
   let default_category_gap_pct = if 35 - n * 4 > 15 { 35 - n * 4 } else { 15 }
   let category_gap_str = match series.bar_category_gap {
@@ -234,63 +332,71 @@ fn render_pictorial_bar_series(
     let data_index = di
     di += 1
     let item_symbol = item.symbol.unwrap_or(symbol)
-    let cat_px = if data_index < s.categories.length() {
-      s.band_center(data_index)
+    let (value, cat_index) = pictorial_value_and_category(
+      item,
+      data_index,
+      is_vertical,
+    )
+    let zero_px = if is_vertical {
+      coord.num_y(y_idx, 0.0)
     } else {
-      coord.bbox.x
+      coord.num_x(x_idx, 0.0)
     }
-    let bar_x = cat_px +
-      offset_base +
-      bar_index.to_double() * bar_w * (1.0 + bar_gap_percent)
-    let value = match item.value {
-      Num(n) => n
-      Vec(arr) => if arr.length() > 1 { arr[1] } else { 0.0 }
-      DateValue(_, n) => n
-      Null => 0.0
+    let value_px = if is_vertical {
+      coord.num_y(y_idx, value)
+    } else {
+      coord.num_x(x_idx, value)
     }
-    let value_y = coord.num_y(y_idx, value)
-    let actual_length = (zero_y - value_y).abs()
+    let actual_length = (value_px - zero_px).abs()
     if actual_length <= 0.0 {
       continue
     }
     let bounding_length = pictorial_bounding_length(
-      series, coord, y_idx, actual_length, zero_y,
+      series,
+      coord,
+      if is_vertical { y_idx } else { x_idx },
+      is_vertical,
+      actual_length,
+      zero_px,
+      value_px,
     )
     let symbol_repeat = match series.symbol_repeat {
       Some("true") | Some("fixed") | Some("number") => true
       _ => false
     }
-    let (symbol_w, base_symbol_h) = pictorial_symbol_size(
-      series, bar_w, bounding_length, symbol_repeat,
+    let (base_symbol_w, base_symbol_h0) = pictorial_symbol_size(
+      series,
+      bar_w,
+      bounding_length,
+      symbol_repeat,
     )
+    let (symbol_w, base_symbol_h) = if is_vertical {
+      (base_symbol_w, base_symbol_h0)
+    } else {
+      (base_symbol_h0, base_symbol_w)
+    }
     let mut repeat_times = 1
     let mut symbol_h = if base_symbol_h > 1.0 { base_symbol_h } else { 1.0 }
-    let mut margin = pictorial_margin_px(series, symbol_h)
-    let mut unit = symbol_h + margin * 2.0
+    let unit_base = if is_vertical { symbol_h } else { symbol_w.max(1.0) }
+    let mut margin = pictorial_margin_px(series, unit_base)
+    let mut unit = unit_base + margin * 2.0
     if symbol_repeat {
       let end_gap = has_end_gap(series)
-      // Step 1: Compute initial repeatTimes from bounding_length.
-      // ECharts uses ceil((absBounding + endFix0) / uLen0), where endFix0 and
-      // uLen0 are computed with the INITIAL (unadjusted) margin.
       let end_fix0 = if end_gap { 0.0 } else { margin * 2.0 }
       let init_times = match series.symbol_repeat_count {
         Some(count) => count.max(1)
         None => to_int_times((bounding_length.abs() + end_fix0) / unit.max(1.0))
       }
       repeat_times = init_times
-      // Step 2: Adjust margin so all init_times symbols fit within bounding_length.
-      let m_diff = bounding_length.abs() - repeat_times.to_double() * symbol_h
+      let m_diff = bounding_length.abs() - repeat_times.to_double() * unit_base
       let denom = if end_gap {
         repeat_times.max(1)
       } else {
         (repeat_times - 1).max(1)
       }
       margin = m_diff / 2.0 / denom.to_double()
-      unit = symbol_h + margin * 2.0
-      // Update endFix AFTER margin adjustment (ECharts does this before cut).
+      unit = unit_base + margin * 2.0
       let end_fix = if end_gap { 0.0 } else { margin * 2.0 }
-      // Step 3: Reduce repeat_times to only fill actual bar length (repeatCutLength).
-      // Do NOT recompute margin after this step (ECharts keeps the Step-2 margin).
       if series.symbol_repeat != Some("fixed") &&
         series.symbol_repeat_count is None {
         let cut_times = to_int_times(
@@ -299,99 +405,160 @@ fn render_pictorial_bar_series(
         repeat_times = cut_times.max(0)
       }
     } else {
-      symbol_h = bounding_length.abs()
+      if is_vertical {
+        symbol_h = bounding_length.abs()
+      }
       margin = 0.0
-      unit = symbol_h
+      unit = if is_vertical { symbol_h } else { symbol_w.max(1.0) }
     }
-    // ECharts positions pictorial symbol bundles at the zero baseline.
-    // bundlePosition[valueDim] = layout[valueDim.xy], which for vertical bars
-    // is the y-coordinate where the bar starts (the zero line for positive values).
-    let bundle_y = zero_y
-
-    // Calculate pathPosition based on symbolPosition and the symbol bundle extent.
-    // sizeFix = pxSign * (pathLen / 2), where pathLen is total symbol extent
-    // and pxSign is -1 for vertical bars (values grow upward, y decreases).
     let total_path_len = if repeat_times > 1 {
       repeat_times.to_double() * unit -
       (if has_end_gap(series) { 0.0 } else { margin * 2.0 })
     } else {
-      symbol_h
+      if is_vertical { symbol_h } else { symbol_w.max(1.0) }
     }
-    let pxSign = -1.0 // vertical bars grow upward (y decreases)
+    let pxSign = if is_vertical { -1.0 } else { 1.0 }
     let size_fix = pxSign * (total_path_len / 2.0)
-
-    // pathPosition[valueDim] relative to bundle_y, based on symbolPosition.
-    // ECharts: 'start' -> sizeFix, 'end' -> boundingLength - sizeFix, 'center' -> boundingLength/2
-    // Our bounding_length is positive; ECharts' boundingLength is negative (-bounding_length).
-    let path_pos_y = match series.symbol_position {
-      Some("center") => -bounding_length / 2.0
-      Some("end") => -bounding_length - size_fix
-      _ => size_fix // "start" is default
-    }
-
-    // Apply symbolOffset to pathPosition (not individual symbols!)
     let (offset_x, offset_y) = pictorial_symbol_offset(
       series, symbol_w, symbol_h,
     )
-    let final_path_y = path_pos_y + offset_y
-
-    // When symbolClip is true, collect symbols into a sub-array and wrap
-    // with an SVG clipPath that clips to [bundle_y, bundle_y + actual_length].
-    // Note: for vertical bars, actual_length is negative, so the clip rect
-    // extends from value_y upward to zero_y.
     let symbol_buf : Array[@graphic.Element] = []
-    let mut ri = 0
-    while ri < repeat_times {
-      // Position each symbol relative to the path center.
-      // In JS: position[valueDim] = unit * (i - repeatTimes/2 + 0.5) + pathPosition[valueDim]
-      // The reversal logic in JS is:
-      // if (symbolRepeatDirection === 'start' ? pxSign > 0 : pxSign < 0)
-      //   i = repeatTimes - 1 - index
-      // For vertical bars, pxSign = -1, so:
-      // - if direction='start': check pxSign > 0 => false => i = index
-      // - if direction='end' (default): check pxSign < 0 => true => i = repeatTimes - 1 - index
-      let i = if series.symbol_repeat_direction == Some("start") {
-        ri
-      } else if pxSign < 0.0 {
-        repeat_times - 1 - ri
+    if is_vertical {
+      let cat_px = if cat_index < 0 {
+        coord.bbox.x
+      } else if x_idx < coord.x_scales.length() {
+        match coord.x_scales[x_idx] {
+          Ordinal(sx) => sx.band_center(cat_index)
+          Linear(_) | BreakLinear(_) => coord.bbox.x
+        }
       } else {
-        ri
+        coord.bbox.x
       }
-      let symbol_rel_y = unit *
-        (i.to_double() - repeat_times.to_double() / 2.0 + 0.5)
-      let raw_symbol_y = bundle_y + final_path_y + symbol_rel_y
-
-      let sym = @graphic.make_symbol(
-        item_symbol,
-        bar_x + offset_x,
-        raw_symbol_y - symbol_h / 2.0,
-        symbol_w,
-        symbol_h,
-        pictorial_symbol_color(series, series_index),
-        series |> pictorial_symbol_opacity,
-      )
-      let final_sym = if any_highlighted {
-        sym.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
-      } else {
-        sym
+      let bar_x = cat_px +
+        offset_base +
+        bar_index.to_double() * bar_w * (1.0 + bar_gap_percent)
+      let zero_y = coord.num_y(y_idx, 0.0)
+      let value_y = coord.num_y(y_idx, value)
+      let bundle_y = zero_y
+      let path_pos_y = match series.symbol_position {
+        Some("center") => -bounding_length / 2.0
+        Some("end") => -bounding_length - size_fix
+        _ => size_fix
       }
-      symbol_buf.push(final_sym)
-      ri += 1
-    }
-    if symbol_buf.length() > 0 {
-      if series.symbol_clip {
-        // Clip to the actual data value extent.
-        // For vertical bars: clip from value_y (top) to zero_y (bottom).
-        // The clip rect y is the min of the two, and height is the absolute difference.
-        let clip_top = if value_y < zero_y { value_y } else { zero_y }
-        let clip_height = actual_length.abs()
-        let clip_rect = @graphic.BBox::new(
-          -10000.0, clip_top, 20000.0, clip_height,
+      let final_path_y = path_pos_y + offset_y
+      let mut ri = 0
+      while ri < repeat_times {
+        let i = if series.symbol_repeat_direction == Some("start") {
+          ri
+        } else if pxSign < 0.0 {
+          repeat_times - 1 - ri
+        } else {
+          ri
+        }
+        let symbol_rel_y = unit *
+          (i.to_double() - repeat_times.to_double() / 2.0 + 0.5)
+        let raw_symbol_y = bundle_y + final_path_y + symbol_rel_y
+        let sym = @graphic.make_symbol(
+          item_symbol,
+          bar_x + offset_x,
+          raw_symbol_y - symbol_h / 2.0,
+          symbol_w,
+          symbol_h,
+          pictorial_symbol_color(series, series_index),
+          series |> pictorial_symbol_opacity,
         )
-        elems.push(@graphic.Element::group_clipped(symbol_buf, clip_rect))
+        let final_sym = if any_highlighted {
+          sym.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+        } else {
+          sym
+        }
+        symbol_buf.push(final_sym)
+        ri += 1
+      }
+      if symbol_buf.length() > 0 {
+        if series.symbol_clip {
+          let clip_top = if value_y < zero_y { value_y } else { zero_y }
+          let clip_height = actual_length.abs()
+          let clip_rect = @graphic.BBox::new(
+            -10000.0,
+            clip_top,
+            20000.0,
+            clip_height,
+          )
+          elems.push(@graphic.Element::group_clipped(symbol_buf, clip_rect))
+        } else {
+          for sym in symbol_buf {
+            elems.push(sym)
+          }
+        }
+      }
+    } else {
+      let cat_px = if cat_index < 0 {
+        coord.bbox.y
+      } else if y_idx < coord.y_scales.length() {
+        match coord.y_scales[y_idx] {
+          Ordinal(sy) => sy.band_center(cat_index)
+          Linear(_) | BreakLinear(_) => coord.bbox.y
+        }
       } else {
-        for sym in symbol_buf {
-          elems.push(sym)
+        coord.bbox.y
+      }
+      let bar_y = cat_px +
+        offset_base +
+        bar_index.to_double() * bar_w * (1.0 + bar_gap_percent)
+      let zero_x = coord.num_x(x_idx, 0.0)
+      let value_x = coord.num_x(x_idx, value)
+      let bundle_x = zero_x
+      let path_pos_x = match series.symbol_position {
+        Some("center") => bounding_length / 2.0
+        Some("end") => bounding_length - size_fix
+        _ => size_fix
+      }
+      let final_path_x = path_pos_x + offset_x
+      let mut ri = 0
+      while ri < repeat_times {
+        let i = if series.symbol_repeat_direction == Some("start") {
+          ri
+        } else if pxSign < 0.0 {
+          repeat_times - 1 - ri
+        } else {
+          ri
+        }
+        let symbol_rel_x = unit *
+          (i.to_double() - repeat_times.to_double() / 2.0 + 0.5)
+        let raw_symbol_x = bundle_x + final_path_x + symbol_rel_x
+        let sym = @graphic.make_symbol(
+          item_symbol,
+          raw_symbol_x - symbol_w / 2.0,
+          bar_y + offset_y - symbol_h / 2.0,
+          symbol_w,
+          symbol_h,
+          pictorial_symbol_color(series, series_index),
+          series |> pictorial_symbol_opacity,
+        )
+        let final_sym = if any_highlighted {
+          sym.with_emphasis_style(emphasis_style).with_blur_style(blur_style)
+        } else {
+          sym
+        }
+        symbol_buf.push(final_sym)
+        ri += 1
+      }
+      if symbol_buf.length() > 0 {
+        if series.symbol_clip {
+          let clip_left = if value_x < zero_x { value_x } else { zero_x }
+          let clip_width = actual_length.abs()
+          let clip_rect = @graphic.BBox::new(
+            clip_left,
+            -10000.0,
+            clip_width,
+            20000.0,
+          )
+          elems.push(@graphic.Element::group_clipped(symbol_buf, clip_rect))
+        } else {
+          for sym in symbol_buf {
+            elems.push(sym)
+          }
         }
       }
     }
@@ -408,13 +575,15 @@ pub fn render_pictorial_bars(
   let elems : Array[@graphic.Element] = []
   let mut color_idx = 0
   let max_xi = opt.x_axis.length()
+  let max_yi = opt.y_axis.length()
+  let key_cap = max_xi + max_yi + 2
   let pictorial_counts : Array[Int] = []
   let pictorial_rank_cursor : Array[Int] = []
-  let mut xi_init = 0
-  while xi_init <= max_xi {
+  let mut key_init = 0
+  while key_init < key_cap {
     pictorial_counts.push(0)
     pictorial_rank_cursor.push(0)
-    xi_init = xi_init + 1
+    key_init = key_init + 1
   }
   let mut count_i = 0
   while count_i < opt.series.length() {
@@ -422,8 +591,21 @@ pub fn render_pictorial_bars(
     count_i = count_i + 1
     match s.series_type {
       PictorialBar => {
-        let xi = if s.x_axis_index < max_xi { s.x_axis_index } else { 0 }
-        pictorial_counts[xi] = pictorial_counts[xi] + 1
+        let key = if pictorial_is_vertical(s, coord) {
+          if s.x_axis_index >= 0 && s.x_axis_index < max_xi {
+            s.x_axis_index
+          } else {
+            0
+          }
+        } else {
+          let yi = if s.y_axis_index >= 0 && s.y_axis_index < max_yi {
+            s.y_axis_index
+          } else {
+            0
+          }
+          max_xi + yi
+        }
+        pictorial_counts[key] = pictorial_counts[key] + 1
       }
       _ => ()
     }
@@ -440,10 +622,23 @@ pub fn render_pictorial_bars(
         continue
       }
     }
-    let xi = if series.x_axis_index < max_xi { series.x_axis_index } else { 0 }
-    let total = pictorial_counts[xi]
-    let rank = pictorial_rank_cursor[xi]
-    pictorial_rank_cursor[xi] = rank + 1
+    let key = if pictorial_is_vertical(series, coord) {
+      if series.x_axis_index >= 0 && series.x_axis_index < max_xi {
+        series.x_axis_index
+      } else {
+        0
+      }
+    } else {
+      let yi = if series.y_axis_index >= 0 && series.y_axis_index < max_yi {
+        series.y_axis_index
+      } else {
+        0
+      }
+      max_xi + yi
+    }
+    let total = pictorial_counts[key]
+    let rank = pictorial_rank_cursor[key]
+    pictorial_rank_cursor[key] = rank + 1
     let series_elems = render_pictorial_bar_series(
       series, color_idx, coord, rank, total,
     )

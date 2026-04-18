@@ -507,6 +507,7 @@ fn render_element(
     Polyline(pl) => render_polyline(buf, pl, indent, scope)
     Polygon(pg) => render_polygon(buf, pg, indent, scope)
     Path(p) => render_path(buf, p, indent, scope)
+    Image(i) => render_image(buf, i, indent)
     Text(t) => render_text(buf, t, indent, scope)
   }
 }
@@ -875,6 +876,23 @@ fn render_path(
 }
 
 ///|
+fn render_image(
+  buf : StringBuilder,
+  i : @graphic.ImageData,
+  indent : String,
+) -> Unit {
+  buf.write_string(indent)
+  buf.write_string(
+    "<image href=\"\{i.href}\" x=\"\{i.x}\" y=\"\{i.y}\" width=\"\{i.width}\" height=\"\{i.height}\"",
+  )
+  buf.write_string(opacity_attr(i.opacity))
+  buf.write_string(" pointer-events=\"visible\"")
+  write_displayable_ecmeta_attrs(buf, i.meta)
+  write_displayable_class_attr(buf, i.meta)
+  buf.write_string("/>\n")
+}
+
+///|
 fn render_text(
   buf : StringBuilder,
   t : @graphic.TextData,
@@ -1047,6 +1065,7 @@ fn build_element_nodes(
     Polyline(pl) => [build_polyline_node(pl, scope)]
     Polygon(pg) => [build_polygon_node(pg, scope)]
     Path(p) => [build_path_node(p, scope)]
+    Image(i) => [build_image_node(i)]
     Text(t) => [build_text_node(t, scope)]
   }
 }
@@ -1396,6 +1415,23 @@ fn build_path_node(p : @graphic.PathData, scope : Ref[BrushScope]) -> XmlNode {
   push_displayable_ecmeta_attrs(attrs, p.meta)
   push_xml_attr_opt(attrs, "class", displayable_class_value(p.meta))
   XmlNode::empty("path", attrs)
+}
+
+///|
+fn build_image_node(i : @graphic.ImageData) -> XmlNode {
+  let attrs : Array[XmlAttr] = []
+  push_xml_attr(attrs, "href", i.href)
+  push_xml_attr(attrs, "x", i.x.to_string())
+  push_xml_attr(attrs, "y", i.y.to_string())
+  push_xml_attr(attrs, "width", i.width.to_string())
+  push_xml_attr(attrs, "height", i.height.to_string())
+  if i.opacity < 1.0 {
+    push_xml_attr(attrs, "opacity", i.opacity.to_string())
+  }
+  push_xml_attr(attrs, "pointer-events", "visible")
+  push_displayable_ecmeta_attrs(attrs, i.meta)
+  push_xml_attr_opt(attrs, "class", displayable_class_value(i.meta))
+  XmlNode::empty("image", attrs)
 }
 
 ///|
