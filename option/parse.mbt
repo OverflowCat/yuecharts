@@ -2393,6 +2393,15 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     Some(label_obj) => j_string_opt(label_obj, "formatter")
     None => None
   }
+  // echarts/src/component/axis/AxisBuilder.ts: axisLabel.color / fontSize
+  let axis_label_color = match j_field(j, "axisLabel") {
+    Some(label_obj) => j_color_opt(label_obj, "color")
+    None => None
+  }
+  let axis_label_font_size = match j_field(j, "axisLabel") {
+    Some(label_obj) => j_number_opt(label_obj, "fontSize")
+    None => None
+  }
   // echarts/src/util/types.ts AxisBreakOption — parse the breaks array
   let breaks = parse_axis_breaks(j)
   // echarts/src/coord/axisCommonTypes.ts BreakAreaOption
@@ -2416,6 +2425,8 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     clockwise,
     inverse,
     label_formatter,
+    axis_label_color,
+    axis_label_font_size,
     breaks,
     break_area,
     jitter,
@@ -2783,6 +2794,20 @@ fn parse_geo_label_option_with_base(
     Some(value) => Some(value)
     None => j_string_or_number_as_string_opt(j, "margin", base.edge_distance)
   }
+  // echarts/src/util/types.ts: LabelOption.offset [x, y]
+  let offset = match j_field(j, "offset") {
+    Some(Array(arr)) => {
+      let result : Array[Double] = []
+      for item in arr {
+        match item {
+          Number(v, ..) => result.push(v)
+          _ => ()
+        }
+      }
+      result
+    }
+    _ => base.offset
+  }
   {
     show: j_bool(j, "show", base.show),
     color: j_string(j, "color", base.color),
@@ -2791,6 +2816,7 @@ fn parse_geo_label_option_with_base(
       Some(v) => Some(v)
       None => base.distance
     },
+    offset,
     font_weight: match j_string_opt(j, "fontWeight") {
       Some(v) => Some(v)
       None => base.font_weight

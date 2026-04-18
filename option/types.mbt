@@ -96,6 +96,10 @@ pub(all) struct AxisOption {
   inverse : Bool
   // echarts/src/coord/axisHelper.ts:makeLabelFormatter
   label_formatter : String?
+  // echarts/src/component/axis/AxisBuilder.ts: axisLabel.color
+  axis_label_color : String?
+  // echarts/src/component/axis/AxisBuilder.ts: axisLabel.fontSize
+  axis_label_font_size : Double?
   // echarts/src/util/types.ts: AxisBreakOption — axis break segments
   breaks : Array[AxisBreakOption]
   // echarts/src/coord/axisCommonTypes.ts: BreakAreaOption — break visual style
@@ -152,6 +156,8 @@ pub fn AxisOption::default_x() -> AxisOption {
     clockwise: None,
     inverse: false,
     label_formatter: None,
+    axis_label_color: None,
+    axis_label_font_size: None,
     breaks: [],
     break_area: None,
     jitter: None,
@@ -177,6 +183,8 @@ pub fn AxisOption::default_y() -> AxisOption {
     clockwise: None,
     inverse: false,
     label_formatter: None,
+    axis_label_color: None,
+    axis_label_font_size: None,
     breaks: [],
     break_area: None,
     jitter: None,
@@ -203,6 +211,8 @@ pub(all) struct GeoLabelOption {
   color : String
   position : String?
   distance : Double?
+  // echarts/src/util/types.ts: LabelOption offset [x, y]
+  offset : Array[Double]
   font_weight : StringView?
   rotate : Double?
   /// Pie-only rotate modes from echarts/src/chart/pie/PieSeries.ts:
@@ -229,6 +239,7 @@ pub impl Default for GeoLabelOption with default() {
     color: "#54555a",
     position: None,
     distance: None,
+    offset: [],
     font_weight: None,
     rotate: None,
     rotate_mode: None,

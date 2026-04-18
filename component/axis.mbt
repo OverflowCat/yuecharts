@@ -170,6 +170,9 @@ fn render_x_axis(
   global_font_family : StringView?,
 ) -> Unit {
   let bbox = coord.bbox
+  // echarts/src/component/axis/AxisBuilder.ts: axisLabel.color / fontSize
+  let lbl_color = ax.axis_label_color.unwrap_or(axis_line_color)
+  let lbl_size = ax.axis_label_font_size.unwrap_or(12.0)
   let pos = match ax.position {
     Some(Top) => bbox.y
     _ => bbox.y + bbox.height
@@ -215,8 +218,8 @@ fn render_x_axis(
             apply_axis_label_fmt(ax.label_formatter, tick.label),
             @graphic.TextAnchor::Middle,
             baseline,
-            axis_line_color,
-            12.0,
+            lbl_color,
+            lbl_size,
             global_font_family |> axis_font_family,
             "normal",
           ),
@@ -250,8 +253,8 @@ fn render_x_axis(
             axis_tick_label(ax, tick.label, tick.value),
             @graphic.TextAnchor::Middle,
             baseline,
-            axis_line_color,
-            12.0,
+            lbl_color,
+            lbl_size,
             axis_font_family(global_font_family),
             "normal",
           ),
@@ -286,8 +289,8 @@ fn render_x_axis(
             axis_tick_label(ax, tick.label, tick.value),
             @graphic.TextAnchor::Middle,
             baseline,
-            axis_line_color,
-            12.0,
+            lbl_color,
+            lbl_size,
             axis_font_family(global_font_family),
             "normal",
           ),
@@ -306,6 +309,9 @@ fn render_y_axis(
   global_font_family : StringView?,
 ) -> Unit {
   let bbox = coord.bbox
+  // echarts/src/component/axis/AxisBuilder.ts: axisLabel.color / fontSize
+  let lbl_color = ax.axis_label_color.unwrap_or(axis_line_color)
+  let lbl_size = ax.axis_label_font_size.unwrap_or(12.0)
   let pos = match ax.position {
     Some(Right) => bbox.x + bbox.width
     _ => bbox.x
@@ -351,8 +357,8 @@ fn render_y_axis(
             apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
             @graphic.TextBaseline::Middle,
-            axis_line_color,
-            12.0,
+            lbl_color,
+            lbl_size,
             axis_font_family(global_font_family),
             "normal",
           ),
@@ -386,8 +392,8 @@ fn render_y_axis(
             apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
             @graphic.TextBaseline::Middle,
-            axis_line_color,
-            12.0,
+            lbl_color,
+            lbl_size,
             axis_font_family(global_font_family),
             "normal",
           ),
@@ -423,8 +429,8 @@ fn render_y_axis(
             apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
             @graphic.TextBaseline::Middle,
-            axis_line_color,
-            12.0,
+            lbl_color,
+            lbl_size,
             axis_font_family(global_font_family),
             "normal",
           ),

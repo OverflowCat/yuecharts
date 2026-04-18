@@ -626,6 +626,61 @@ fn render_pictorial_bar_series(
           }
         }
       }
+      // <=> echarts/src/chart/bar/PictorialBarView.ts label (vertical)
+      match series.label {
+        Some(lbl) if lbl.show => {
+          let position = lbl.position.unwrap_or("top")
+          let distance = lbl.distance.unwrap_or(5.0)
+          let lbl_offset_x = if lbl.offset.length() > 0 {
+            lbl.offset[0]
+          } else {
+            0.0
+          }
+          let lbl_offset_y = if lbl.offset.length() > 1 {
+            lbl.offset[1]
+          } else {
+            0.0
+          }
+          let value_str = if value.to_int().to_double() == value {
+            value.to_int().to_string()
+          } else {
+            value.to_string()
+          }
+          let label_text = value_str
+          let bnd_top = zero_y + bounding_length
+          let (label_x, label_y, anchor, baseline) = match position {
+            "bottom" =>
+              (
+                cat_px + lbl_offset_x,
+                zero_y + distance + lbl_offset_y,
+                @graphic.TextAnchor::Middle,
+                @graphic.TextBaseline::Hanging,
+              )
+            _ =>
+              (
+                cat_px + lbl_offset_x,
+                bnd_top - distance + lbl_offset_y,
+                @graphic.TextAnchor::Middle,
+                @graphic.TextBaseline::Bottom,
+              )
+          }
+          let item_opacity = series.item_opacity.unwrap_or(1.0)
+          elems.push(
+            @graphic.Element::text_custom(
+              label_x,
+              label_y,
+              label_text,
+              anchor,
+              baseline,
+              lbl.color,
+              lbl.font_size,
+              lbl.font_family,
+              lbl.font_weight.unwrap_or("normal"),
+            ).with_opacity(item_opacity),
+          )
+        }
+        _ => ()
+      }
     } else {
       let cat_px = if cat_index < 0 {
         coord.bbox.y
@@ -694,6 +749,61 @@ fn render_pictorial_bar_series(
             elems.push(sym)
           }
         }
+      }
+      // <=> echarts/src/chart/bar/PictorialBarView.ts label (horizontal)
+      match series.label {
+        Some(lbl) if lbl.show => {
+          let position = lbl.position.unwrap_or("right")
+          let distance = lbl.distance.unwrap_or(5.0)
+          let lbl_offset_x = if lbl.offset.length() > 0 {
+            lbl.offset[0]
+          } else {
+            0.0
+          }
+          let lbl_offset_y = if lbl.offset.length() > 1 {
+            lbl.offset[1]
+          } else {
+            0.0
+          }
+          let value_str = if value.to_int().to_double() == value {
+            value.to_int().to_string()
+          } else {
+            value.to_string()
+          }
+          let label_text = value_str
+          let bnd_right = zero_x + bounding_length
+          let (label_x, label_y, anchor, baseline) = match position {
+            "left" =>
+              (
+                zero_x - distance + lbl_offset_x,
+                cat_px + lbl_offset_y,
+                @graphic.TextAnchor::End,
+                @graphic.TextBaseline::Middle,
+              )
+            _ =>
+              (
+                bnd_right + distance + lbl_offset_x,
+                cat_px + lbl_offset_y,
+                @graphic.TextAnchor::Start,
+                @graphic.TextBaseline::Middle,
+              )
+          }
+          let item_opacity = series.item_opacity.unwrap_or(1.0)
+          elems.push(
+            @graphic.Element::text_custom(
+              label_x,
+              label_y,
+              label_text,
+              anchor,
+              baseline,
+              lbl.color,
+              lbl.font_size,
+              lbl.font_family,
+              lbl.font_weight.unwrap_or("normal"),
+            ).with_opacity(item_opacity),
+          )
+        }
+        _ => ()
       }
     }
   }

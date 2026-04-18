@@ -758,6 +758,7 @@ fn pie_resolve_label_option(
         color,
         position,
         distance,
+        offset: base.offset,
         font_weight,
         rotate,
         rotate_mode,
