@@ -219,7 +219,8 @@
       }
       var $ = {
         get: function (url, success) {
-          var data = __readSync(url, false);
+          var asJson = String(url || '').toLowerCase().endsWith('.json');
+          var data = __readSync(url, asJson);
           if (typeof success === 'function') success(data);
           return __deferred(data, false);
         },
@@ -346,7 +347,7 @@
         regression: function (_type, data) { return { points: data || [], parameter: {}, expression: '' }; },
         histogram: function () { return { bins: [], data: [], customData: [] }; }
       };
-      var ROOT_PATH = '${import.meta.env.BASE_URL}examples/data/asset/';
+      var ROOT_PATH = '${import.meta.env.BASE_URL}examples';
       var CDN_PATH = 'https://fastly.jsdelivr.net/npm/';
       window.myChart = myChart;
       window.$ = $;
