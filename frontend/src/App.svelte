@@ -621,6 +621,7 @@ var option = {
   // ── render ────────────────────────────────────────────────────────────────
   async function onRender() {
     const seq = ++renderSeq;
+    clearRenderedOutput();
     const renderer = renderers[backend];
     if (!renderer) { status = 'Backend not available'; statusError = true; return; }
 
@@ -651,6 +652,13 @@ var option = {
     } finally {
       if (seq === renderSeq) rendering = false;
     }
+  }
+
+  // Clear the visible preview so stale SVG does not survive a failed render.
+  function clearRenderedOutput() {
+    svgOutput = '';
+    hasSvgOutput = false;
+    echartsInst?.clear?.();
   }
 
   function getCurrentSvgText(): string | null {
@@ -742,8 +750,7 @@ var option = {
       tab = 'js';
       currentExampleId = item.id;
       conversionError = '';
-      svgOutput = '';
-      hasSvgOutput = false;
+      clearRenderedOutput();
       page = 'editor';
       if (syncHash) setHashExampleId(item.id);
       await new Promise(r => setTimeout(r, 10));
@@ -762,8 +769,7 @@ var option = {
     tab = 'json';
     currentExampleId = '';
     conversionError = '';
-    svgOutput = '';
-    hasSvgOutput = false;
+    clearRenderedOutput();
     page = 'editor';
     clearHashExampleId();
   }
