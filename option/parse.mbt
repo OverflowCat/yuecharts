@@ -2360,6 +2360,16 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
   let name = j_string_opt(j, "name")
   let min = j_number_opt(j, "min")
   let max = j_number_opt(j, "max")
+  let min_ref = match j_field(j, "min") {
+    Some(String("dataMin")) => AxisBoundRef::DataMin
+    Some(String("dataMax")) => AxisBoundRef::DataMax
+    _ => AxisBoundRef::Auto
+  }
+  let max_ref = match j_field(j, "max") {
+    Some(String("dataMin")) => AxisBoundRef::DataMin
+    Some(String("dataMax")) => AxisBoundRef::DataMax
+    _ => AxisBoundRef::Auto
+  }
   // "scale": true means axis does not force-include 0 (fits to data range)
   let scale = j_bool(j, "scale", base.scale)
   let grid_index = Some(j_int(j, "gridIndex", base.grid_index.unwrap_or(0)))
@@ -2396,6 +2406,8 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     data,
     min,
     max,
+    min_ref,
+    max_ref,
     scale,
     grid_index,
     polar_index,

@@ -19,6 +19,41 @@ fn apply_axis_label_fmt(formatter : String?, label : String) -> String {
 }
 
 ///|
+/// <=> echarts/src/scale/Time.ts:getFormattedLabel
+fn axis_pad2(v : Int) -> String {
+  if v < 10 {
+    "0\{v}"
+  } else {
+    v.to_string()
+  }
+}
+
+///|
+/// <=> echarts/src/scale/Time.ts:getFormattedLabel
+fn axis_format_time_hhmm_utc(ms : Double) -> String {
+  let total_minutes = (ms / 60000.0).floor().to_int()
+  let mins_of_day = (total_minutes % 1440 + 1440) % 1440
+  let hh = mins_of_day / 60
+  let mm = mins_of_day % 60
+  "\{axis_pad2(hh)}:\{axis_pad2(mm)}"
+}
+
+///|
+/// <=> echarts/src/coord/axisHelper.ts:makeLabelFormatter
+fn axis_tick_label(
+  ax : @option.AxisOption,
+  raw_label : String,
+  tick_value : Double,
+) -> String {
+  let label = if ax.axis_type == Time {
+    axis_format_time_hhmm_utc(tick_value)
+  } else {
+    raw_label
+  }
+  apply_axis_label_fmt(ax.label_formatter, label)
+}
+
+///|
 let polar_axis_split_line_color : String = "#dbdee4"
 
 ///|
@@ -212,7 +247,43 @@ fn render_x_axis(
           @graphic.Element::text_custom(
             px,
             label_y,
-            apply_axis_label_fmt(ax.label_formatter, tick.label),
+            axis_tick_label(ax, tick.label, tick.value),
+            @graphic.TextAnchor::Middle,
+            baseline,
+            axis_line_color,
+            12.0,
+            axis_font_family(global_font_family),
+            "normal",
+          ),
+        )
+      }
+    }
+    BreakLinear(s) => {
+      // <=> echarts/src/component/axis/AxisBuilder.ts (break tick rendering)
+      let ticks = s.ticks(5)
+      let mut ti = 0
+      while ti < ticks.length() {
+        let tick = ticks[ti]
+        ti += 1
+        let px = s.data_to_pixel(tick.value)
+        let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
+        let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
+        elems.push(
+          @graphic.Element::line_colored(
+            px, tick_y1, px, tick_y2, axis_line_color, 1.0,
+          ),
+        )
+        let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
+        let baseline : @graphic.TextBaseline = if pos == bbox.y {
+          @graphic.TextBaseline::Bottom
+        } else {
+          @graphic.TextBaseline::Hanging
+        }
+        elems.push(
+          @graphic.Element::text_custom(
+            px,
+            label_y,
+            axis_tick_label(ax, tick.label, tick.value),
             @graphic.TextAnchor::Middle,
             baseline,
             axis_line_color,

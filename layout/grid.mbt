@@ -674,18 +674,52 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
           dmin = if stack_min < dmin { stack_min } else { dmin }
           dmax = if stack_max > dmax { stack_max } else { dmax }
         }
-        // ECharts default: scale=false includes 0 in extent, scale=true keeps pure data extent.
-        let lo = ax.min.unwrap_or(
-          if ax.scale {
-            dmin
-          } else if dmin > 0.0 {
-            0.0
-          } else {
-            dmin
-          },
-        )
-        let hi = ax.max.unwrap_or(dmax)
-        @coord.XScale::make_linear(make_linear_x_scale(lo, hi, axis_bbox))
+        // <=> echarts/src/coord/axisHelper.ts:getScaleExtent
+        // Time axis should fit data extent by default; value/log may include 0 when scale=false.
+        let lo = match ax.min {
+          Some(v) => v
+          None =>
+            match ax.min_ref {
+              DataMin => dmin
+              DataMax => dmax
+              Auto =>
+                if ax.axis_type == Time {
+                  dmin
+                } else if ax.scale {
+                  dmin
+                } else if dmin > 0.0 {
+                  0.0
+                } else {
+                  dmin
+                }
+            }
+        }
+        let hi = match ax.max {
+          Some(v) => v
+          None =>
+            match ax.max_ref {
+              DataMin => dmin
+              DataMax => dmax
+              Auto => dmax
+            }
+        }
+        if ax.breaks.length() > 0 {
+          // <=> echarts/src/scale/breakImpl.ts parseAxisBreakOption + update
+          let inner = make_linear_x_scale(lo, hi, axis_bbox)
+          let parsed_breaks : Array[@scale.ParsedBreak] = []
+          for brk in ax.breaks {
+            if brk.start < brk.end {
+              parsed_breaks.push(
+                @scale.ParsedBreak::from_option(brk.start, brk.end, brk.gap),
+              )
+            }
+          }
+          @coord.XScale::make_break_linear(
+            @scale.BreakLinearScale::new(inner, parsed_breaks),
+          )
+        } else {
+          @coord.XScale::make_linear(make_linear_x_scale(lo, hi, axis_bbox))
+        }
       }
     }
     x_scales.push(xs)
@@ -714,16 +748,31 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
         }
         // ECharts default: scale=false means include 0 in the extent.
         // scale=true: fit axis to actual data range (do not force include 0).
-        let lo = ax.min.unwrap_or(
-          if ax.scale {
-            dmin
-          } else if dmin > 0.0 {
-            0.0
-          } else {
-            dmin
-          },
-        )
-        let hi = ax.max.unwrap_or(dmax)
+        let lo = match ax.min {
+          Some(v) => v
+          None =>
+            match ax.min_ref {
+              DataMin => dmin
+              DataMax => dmax
+              Auto =>
+                if ax.scale {
+                  dmin
+                } else if dmin > 0.0 {
+                  0.0
+                } else {
+                  dmin
+                }
+            }
+        }
+        let hi = match ax.max {
+          Some(v) => v
+          None =>
+            match ax.max_ref {
+              DataMin => dmin
+              DataMax => dmax
+              Auto => dmax
+            }
+        }
         if ax.breaks.length() > 0 {
           // Build a break-aware scale.
           // <=> echarts/src/scale/breakImpl.ts parseAxisBreakOption + update

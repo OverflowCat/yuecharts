@@ -27,7 +27,7 @@ pub fn render_candlestick_series(
   let candle_w = if x_idx < coord.x_scales.length() {
     match coord.x_scales[x_idx] {
       Ordinal(s) => s.band_width() * 0.7
-      Linear(_) => 8.0
+      Linear(_) | BreakLinear(_) => 8.0
     }
   } else {
     8.0
@@ -49,6 +49,7 @@ pub fn render_candlestick_series(
           match coord.x_scales[x_idx] {
             Ordinal(s) => s.band_center(di - 1)
             Linear(s) => s.data_to_pixel((di - 1).to_double())
+            BreakLinear(s) => s.data_to_pixel((di - 1).to_double())
           }
         } else {
           coord.bbox.x + (di - 1).to_double() * candle_w * 2.0

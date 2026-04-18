@@ -332,6 +332,7 @@ fn lines_chart_coord_to_point(
         match coord.x_scales[x_idx] {
           Ordinal(s) => s.band_center(coord_pair[0].to_int())
           Linear(s) => s.data_to_pixel(coord_pair[0])
+          BreakLinear(s) => s.data_to_pixel(coord_pair[0])
         }
       } else {
         coord.bbox.x

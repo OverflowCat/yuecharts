@@ -31,6 +31,24 @@ pub fn render_grid_lines(coord : @coord.Cartesian2D) -> Array[@graphic.Element] 
           )
         }
       }
+      BreakLinear(s) => {
+        let ticks = s.ticks(5)
+
+        for ti, _ in ticks {
+          let tick = ticks[ti]
+          let px = s.data_to_pixel(tick.value)
+          elems.push(
+            @graphic.Element::line_colored(
+              px,
+              bbox.y,
+              px,
+              bbox.y + bbox.height,
+              split_line_color,
+              1.0,
+            ),
+          )
+        }
+      }
       Ordinal(s) => {
         let ticks = s.ticks()
 

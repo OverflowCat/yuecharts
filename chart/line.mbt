@@ -159,6 +159,7 @@ fn line_point_for_cartesian(
     match coord.x_scales[x_idx] {
       Ordinal(s) => s.band_center(data_index)
       Linear(s) => s.data_to_pixel(value_x)
+      BreakLinear(s) => s.data_to_pixel(value_x)
     }
   } else {
     coord.bbox.x

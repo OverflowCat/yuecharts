@@ -27,6 +27,7 @@ pub fn Cartesian2D::new(
 pub enum XScale {
   Ordinal(@scale.OrdinalScale)
   Linear(@scale.LinearScale)
+  BreakLinear(@scale.BreakLinearScale)
 }
 
 ///|
@@ -45,6 +46,11 @@ pub fn XScale::make_ordinal(s : @scale.OrdinalScale) -> XScale {
 ///|
 pub fn XScale::make_linear(s : @scale.LinearScale) -> XScale {
   Linear(s)
+}
+
+///|
+pub fn XScale::make_break_linear(s : @scale.BreakLinearScale) -> XScale {
+  BreakLinear(s)
 }
 
 ///|
@@ -79,6 +85,7 @@ pub fn Cartesian2D::cat_x(
         None => self.bbox.x
       }
     Linear(_) => self.bbox.x
+    BreakLinear(_) => self.bbox.x
   }
 }
 
@@ -94,6 +101,7 @@ pub fn Cartesian2D::num_x(
   }
   match self.x_scales[index] {
     Linear(s) => s.data_to_pixel(v)
+    BreakLinear(s) => s.data_to_pixel(v)
     Ordinal(_) => self.bbox.x
   }
 }

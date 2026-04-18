@@ -59,6 +59,9 @@ fn boxplot_base_band_width(
       Ordinal(s) => s.band_width()
       Linear(s) =>
         (s.range_max - s.range_min).abs() / max_data_count.to_double()
+      BreakLinear(s) =>
+        (s.inner.range_max - s.inner.range_min).abs() /
+        max_data_count.to_double()
     }
   } else {
     8.0
@@ -144,6 +147,7 @@ fn boxplot_base_center(
     match coord.x_scales[base_axis_index] {
       Ordinal(s) => s.band_center(data_index)
       Linear(s) => s.data_to_pixel(data_index.to_double())
+      BreakLinear(s) => s.data_to_pixel(data_index.to_double())
     }
   } else {
     coord.bbox.x

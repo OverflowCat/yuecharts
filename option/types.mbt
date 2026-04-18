@@ -12,6 +12,14 @@ pub(all) enum AxisType {
 } derive(Eq)
 
 ///|
+/// Reference form for axis min/max bounds (e.g. "dataMin" / "dataMax").
+pub(all) enum AxisBoundRef {
+  Auto
+  DataMin
+  DataMax
+} derive(Eq)
+
+///|
 /// Position of an axis.
 pub enum AxisPosition {
   Bottom
@@ -75,6 +83,8 @@ pub(all) struct AxisOption {
   data : Array[String] // category labels
   min : Double?
   max : Double?
+  min_ref : AxisBoundRef
+  max_ref : AxisBoundRef
   // echarts/src/coord/axisCommonTypes.ts: scale
   // When true, axis does not force include 0; fits to data range.
   scale : Bool
@@ -132,6 +142,8 @@ pub fn AxisOption::default_x() -> AxisOption {
     data: [],
     min: None,
     max: None,
+    min_ref: AxisBoundRef::Auto,
+    max_ref: AxisBoundRef::Auto,
     scale: false,
     grid_index: None,
     polar_index: None,
@@ -155,6 +167,8 @@ pub fn AxisOption::default_y() -> AxisOption {
     data: [],
     min: None,
     max: None,
+    min_ref: AxisBoundRef::Auto,
+    max_ref: AxisBoundRef::Auto,
     scale: false,
     grid_index: None,
     polar_index: None,

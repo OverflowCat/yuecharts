@@ -252,6 +252,11 @@ fn scatter_point(
               Linear(s) =>
                 s.range_min +
                 data_index.to_double() * (s.range_max - s.range_min) / nd_f
+              BreakLinear(s) =>
+                s.inner.range_min +
+                data_index.to_double() *
+                (s.inner.range_max - s.inner.range_min) /
+                nd_f
             }
           } else {
             coord.bbox.x
@@ -273,6 +278,7 @@ fn scatter_point(
                   }
                 }
                 Linear(s) => s.data_to_pixel(arr[0])
+                BreakLinear(s) => s.data_to_pixel(arr[0])
               }
             } else {
               coord.bbox.x
@@ -286,6 +292,11 @@ fn scatter_point(
                 Linear(s) =>
                   s.range_min +
                   data_index.to_double() * (s.range_max - s.range_min) / nd_f
+                BreakLinear(s) =>
+                  s.inner.range_min +
+                  data_index.to_double() *
+                  (s.inner.range_max - s.inner.range_min) /
+                  nd_f
               }
             } else {
               coord.bbox.x
@@ -302,6 +313,11 @@ fn scatter_point(
               Linear(s) =>
                 s.range_min +
                 data_index.to_double() * (s.range_max - s.range_min) / nd_f
+              BreakLinear(s) =>
+                s.inner.range_min +
+                data_index.to_double() *
+                (s.inner.range_max - s.inner.range_min) /
+                nd_f
             }
           } else {
             coord.bbox.x
