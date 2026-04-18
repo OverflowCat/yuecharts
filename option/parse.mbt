@@ -2358,6 +2358,27 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     _ => if data.length() > 0 { AxisType::Category } else { base.axis_type }
   }
   let name = j_string_opt(j, "name")
+  let name_location = match j_field(j, "nameLocation") {
+    Some(String(s)) => Some(s)
+    _ => base.name_location
+  }
+  let name_gap = match j_field(j, "nameGap") {
+    Some(Number(n, ..)) => Some(n)
+    _ => base.name_gap
+  }
+  let name_rotate = match j_field(j, "nameRotate") {
+    Some(Number(n, ..)) => Some(n)
+    _ => base.name_rotate
+  }
+  let name_text_style = j_field(j, "nameTextStyle")
+  let name_text_color = match name_text_style {
+    Some(style) => j_color_opt(style, "color")
+    None => base.name_text_color
+  }
+  let name_text_font_size = match name_text_style {
+    Some(style) => j_number_opt(style, "fontSize")
+    None => base.name_text_font_size
+  }
   let min = j_number_opt(j, "min")
   let max = j_number_opt(j, "max")
   let min_ref = match j_field(j, "min") {
@@ -2388,6 +2409,24 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     _ => base.clockwise
   }
   let inverse = j_bool(j, "inverse", base.inverse)
+  let axis_line_obj = j_field(j, "axisLine")
+  let offset = j_number(j, "offset", base.offset)
+  let axis_line_show = match axis_line_obj {
+    Some(line_obj) => j_bool(line_obj, "show", base.axis_line_show)
+    None => base.axis_line_show
+  }
+  let axis_line_style = match axis_line_obj {
+    Some(line_obj) => j_field(line_obj, "lineStyle")
+    None => None
+  }
+  let axis_line_color = match axis_line_style {
+    Some(style) => j_color_opt(style, "color")
+    None => base.axis_line_color
+  }
+  let axis_line_width = match axis_line_style {
+    Some(style) => j_number_opt(style, "width")
+    None => base.axis_line_width
+  }
   // echarts/src/coord/axisHelper.ts:makeLabelFormatter - string template {value}
   let label_formatter = match j_field(j, "axisLabel") {
     Some(label_obj) => j_string_opt(label_obj, "formatter")
@@ -2417,6 +2456,11 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     axis_type,
     position,
     name,
+    name_location,
+    name_gap,
+    name_rotate,
+    name_text_color,
+    name_text_font_size,
     data,
     min,
     max,
@@ -2430,6 +2474,10 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     clockwise,
     inverse,
     label_formatter,
+    offset,
+    axis_line_show,
+    axis_line_color,
+    axis_line_width,
     axis_label_color,
     axis_label_font_size,
     breaks,
@@ -3616,10 +3664,7 @@ fn parse_series_option(j : Json) -> SeriesOption {
           let mut i = 0
           while i < arr.length() && !has_max {
             match arr[i] {
-              { "type": String(t), .. } =>
-                if t == "max" {
-                  has_max = true
-                }
+              { "type": String(t), .. } => if t == "max" { has_max = true }
               _ => ()
             }
             i = i + 1
@@ -4491,7 +4536,8 @@ fn parse_mark_line_data(j : Json) -> MarkLineData? {
                 entries.push(MarkLineEntry::Pair(start, end_item))
               }
               // Single: object with yAxis/xAxis or type
-              Object(_) => entries.push(MarkLineEntry::Single(parse_mark_line_item(item)))
+              Object(_) =>
+                entries.push(MarkLineEntry::Single(parse_mark_line_item(item)))
               _ => ()
             }
           }

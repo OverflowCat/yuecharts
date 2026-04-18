@@ -133,6 +133,27 @@ fn axis_font_family(global_font_family : StringView?) -> StringView {
 }
 
 ///|
+/// <=> echarts/src/component/axis/AxisBuilder.ts:axisName
+fn axis_name_text_color(ax : @option.AxisOption) -> String {
+  ax.name_text_color.unwrap_or(ax.axis_line_color.unwrap_or(axis_line_color))
+}
+
+///|
+fn axis_name_font_size(ax : @option.AxisOption) -> Double {
+  ax.name_text_font_size.unwrap_or(12.0)
+}
+
+///|
+fn axis_name_gap(ax : @option.AxisOption) -> Double {
+  ax.name_gap.unwrap_or(15.0)
+}
+
+///|
+fn axis_name_location(ax : @option.AxisOption) -> String {
+  ax.name_location.unwrap_or("end")
+}
+
+///|
 pub fn render_axes(
   opt : @option.ChartOption,
   coord : @coord.Cartesian2D,
@@ -173,9 +194,15 @@ fn render_x_axis(
   // echarts/src/component/axis/AxisBuilder.ts: axisLabel.color / fontSize
   let lbl_color = ax.axis_label_color.unwrap_or(axis_line_color)
   let lbl_size = ax.axis_label_font_size.unwrap_or(12.0)
+  let line_color = ax.axis_line_color.unwrap_or(axis_line_color)
+  let line_width = ax.axis_line_width.unwrap_or(1.0)
+  let is_top = match ax.position {
+    Some(Top) => true
+    _ => false
+  }
   let pos = match ax.position {
-    Some(Top) => bbox.y
-    _ => bbox.y + bbox.height
+    Some(Top) => bbox.y - ax.offset
+    _ => bbox.y + bbox.height + ax.offset
   }
   // echarts/src/component/axis/SplitAreaView.ts — alternating background bands
   if ax.split_area_show && axis_index < coord.x_scales.length() {
@@ -203,16 +230,18 @@ fn render_x_axis(
       _ => ()
     }
   }
-  elems.push(
-    @graphic.Element::line_colored(
-      bbox.x,
-      pos,
-      bbox.x + bbox.width,
-      pos,
-      axis_line_color,
-      1.0,
-    ),
-  )
+  if ax.axis_line_show {
+    elems.push(
+      @graphic.Element::line_colored(
+        bbox.x,
+        pos,
+        bbox.x + bbox.width,
+        pos,
+        line_color,
+        line_width,
+      ),
+    )
+  }
   if axis_index >= coord.x_scales.length() {
     return
   }
@@ -224,15 +253,15 @@ fn render_x_axis(
         let tick = ticks[ti]
         ti += 1
         let px = tick.value
-        let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
-        let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
+        let tick_y1 = if is_top { pos - 4.0 } else { pos }
+        let tick_y2 = if is_top { pos } else { pos + 4.0 }
         elems.push(
           @graphic.Element::line_colored(
-            px, tick_y1, px, tick_y2, axis_line_color, 1.0,
+            px, tick_y1, px, tick_y2, line_color, 1.0,
           ),
         )
-        let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
-        let baseline = if pos == bbox.y {
+        let label_y = if is_top { pos - 8.0 } else { pos + 14.0 }
+        let baseline = if is_top {
           @graphic.TextBaseline::Bottom
         } else {
           @graphic.TextBaseline::Hanging
@@ -259,15 +288,15 @@ fn render_x_axis(
         let tick = ticks[ti]
         ti += 1
         let px = s.data_to_pixel(tick.value)
-        let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
-        let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
+        let tick_y1 = if is_top { pos - 4.0 } else { pos }
+        let tick_y2 = if is_top { pos } else { pos + 4.0 }
         elems.push(
           @graphic.Element::line_colored(
-            px, tick_y1, px, tick_y2, axis_line_color, 1.0,
+            px, tick_y1, px, tick_y2, line_color, 1.0,
           ),
         )
-        let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
-        let baseline : @graphic.TextBaseline = if pos == bbox.y {
+        let label_y = if is_top { pos - 8.0 } else { pos + 14.0 }
+        let baseline : @graphic.TextBaseline = if is_top {
           @graphic.TextBaseline::Bottom
         } else {
           @graphic.TextBaseline::Hanging
@@ -295,15 +324,15 @@ fn render_x_axis(
         let tick = ticks[ti]
         ti += 1
         let px = s.data_to_pixel(tick.value)
-        let tick_y1 = if pos == bbox.y { pos - 4.0 } else { pos }
-        let tick_y2 = if pos == bbox.y { pos } else { pos + 4.0 }
+        let tick_y1 = if is_top { pos - 4.0 } else { pos }
+        let tick_y2 = if is_top { pos } else { pos + 4.0 }
         elems.push(
           @graphic.Element::line_colored(
-            px, tick_y1, px, tick_y2, axis_line_color, 1.0,
+            px, tick_y1, px, tick_y2, line_color, 1.0,
           ),
         )
-        let label_y = if pos == bbox.y { pos - 8.0 } else { pos + 14.0 }
-        let baseline : @graphic.TextBaseline = if pos == bbox.y {
+        let label_y = if is_top { pos - 8.0 } else { pos + 14.0 }
+        let baseline : @graphic.TextBaseline = if is_top {
           @graphic.TextBaseline::Bottom
         } else {
           @graphic.TextBaseline::Hanging
@@ -338,21 +367,30 @@ fn render_y_axis(
   // echarts/src/component/axis/AxisBuilder.ts: axisLabel.color / fontSize
   let lbl_color = ax.axis_label_color.unwrap_or(axis_line_color)
   let lbl_size = ax.axis_label_font_size.unwrap_or(12.0)
-  let pos = match ax.position {
-    Some(Right) => bbox.x + bbox.width
-    _ => bbox.x
+  let line_color = ax.axis_line_color.unwrap_or(axis_line_color)
+  let line_width = ax.axis_line_width.unwrap_or(1.0)
+  let is_right = match ax.position {
+    Some(Right) => true
+    _ => false
   }
-  elems.push(
-    @graphic.Element::line_colored(
-      pos,
-      bbox.y,
-      pos,
-      bbox.y + bbox.height,
-      axis_line_color,
-      1.0,
-    ),
-  )
+  let pos = match ax.position {
+    Some(Right) => bbox.x + bbox.width + ax.offset
+    _ => bbox.x - ax.offset
+  }
+  if ax.axis_line_show {
+    elems.push(
+      @graphic.Element::line_colored(
+        pos,
+        bbox.y,
+        pos,
+        bbox.y + bbox.height,
+        line_color,
+        line_width,
+      ),
+    )
+  }
   if axis_index >= coord.y_scales.length() {
+    render_y_axis_name(ax, bbox, pos, elems, global_font_family)
     return
   }
   match coord.y_scales[axis_index] {
@@ -363,18 +401,18 @@ fn render_y_axis(
         let tick = ticks[ti]
         ti += 1
         let py = tick.value
-        let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
-        let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
+        let tick_x1 = if is_right { pos } else { pos - 4.0 }
+        let tick_x2 = if is_right { pos + 4.0 } else { pos }
         elems.push(
           @graphic.Element::line_colored(
-            tick_x1, py, tick_x2, py, axis_line_color, 1.0,
+            tick_x1, py, tick_x2, py, line_color, 1.0,
           ),
         )
-        let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
-        let anchor = if pos == bbox.x {
-          @graphic.TextAnchor::End
-        } else {
+        let label_x = if is_right { pos + 8.0 } else { pos - 8.0 }
+        let anchor = if is_right {
           @graphic.TextAnchor::Start
+        } else {
+          @graphic.TextAnchor::End
         }
         elems.push(
           @graphic.Element::text_custom(
@@ -382,7 +420,7 @@ fn render_y_axis(
             py,
             apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
-            @graphic.TextBaseline::Middle,
+            @graphic.TextBaseline::Central,
             lbl_color,
             lbl_size,
             axis_font_family(global_font_family),
@@ -398,18 +436,18 @@ fn render_y_axis(
         let tick = ticks[ti]
         ti += 1
         let py = s.data_to_pixel(tick.value)
-        let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
-        let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
+        let tick_x1 = if is_right { pos } else { pos - 4.0 }
+        let tick_x2 = if is_right { pos + 4.0 } else { pos }
         elems.push(
           @graphic.Element::line_colored(
-            tick_x1, py, tick_x2, py, axis_line_color, 1.0,
+            tick_x1, py, tick_x2, py, line_color, 1.0,
           ),
         )
-        let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
-        let anchor : @graphic.TextAnchor = if pos == bbox.x {
-          @graphic.TextAnchor::End
-        } else {
+        let label_x = if is_right { pos + 8.0 } else { pos - 8.0 }
+        let anchor : @graphic.TextAnchor = if is_right {
           @graphic.TextAnchor::Start
+        } else {
+          @graphic.TextAnchor::End
         }
         elems.push(
           @graphic.Element::text_custom(
@@ -417,7 +455,7 @@ fn render_y_axis(
             py,
             apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
-            @graphic.TextBaseline::Middle,
+            @graphic.TextBaseline::Central,
             lbl_color,
             lbl_size,
             axis_font_family(global_font_family),
@@ -435,18 +473,18 @@ fn render_y_axis(
         let tick = ticks[ti]
         ti += 1
         let py = s.data_to_pixel(tick.value)
-        let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
-        let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
+        let tick_x1 = if is_right { pos } else { pos - 4.0 }
+        let tick_x2 = if is_right { pos + 4.0 } else { pos }
         elems.push(
           @graphic.Element::line_colored(
-            tick_x1, py, tick_x2, py, axis_line_color, 1.0,
+            tick_x1, py, tick_x2, py, line_color, 1.0,
           ),
         )
-        let label_x = if pos == bbox.x { pos - 8.0 } else { pos + 8.0 }
-        let anchor : @graphic.TextAnchor = if pos == bbox.x {
-          @graphic.TextAnchor::End
-        } else {
+        let label_x = if is_right { pos + 8.0 } else { pos - 8.0 }
+        let anchor : @graphic.TextAnchor = if is_right {
           @graphic.TextAnchor::Start
+        } else {
+          @graphic.TextAnchor::End
         }
         elems.push(
           @graphic.Element::text_custom(
@@ -454,7 +492,7 @@ fn render_y_axis(
             py,
             apply_axis_label_fmt(ax.label_formatter, tick.label),
             anchor,
-            @graphic.TextBaseline::Middle,
+            @graphic.TextBaseline::Central,
             lbl_color,
             lbl_size,
             axis_font_family(global_font_family),
@@ -479,6 +517,60 @@ fn render_y_axis(
       }
     }
   }
+  render_y_axis_name(ax, bbox, pos, elems, global_font_family)
+}
+
+///|
+/// <=> echarts/src/component/axis/AxisBuilder.ts:axisName
+fn render_y_axis_name(
+  ax : @option.AxisOption,
+  bbox : @graphic.BBox,
+  pos : Double,
+  elems : Array[@graphic.Element],
+  global_font_family : StringView?,
+) -> Unit {
+  match ax.name {
+    Some(name) if name != "" => {
+      let name_color = axis_name_text_color(ax)
+      let name_size = axis_name_font_size(ax)
+      let gap = axis_name_gap(ax)
+      let location = axis_name_location(ax)
+      let is_right = match ax.position {
+        Some(Right) => true
+        _ => false
+      }
+      let (name_x, name_y) = match location {
+        "start" => (pos, bbox.y + bbox.height + gap)
+        "middle" | "center" =>
+          (
+            if is_right {
+              pos + gap
+            } else {
+              pos - gap
+            },
+            bbox.y + bbox.height / 2.0,
+          )
+        _ => (pos, bbox.y - gap)
+      }
+      let mut name_el = @graphic.Element::text_custom(
+        name_x,
+        name_y,
+        name,
+        @graphic.TextAnchor::Middle,
+        @graphic.TextBaseline::Central,
+        name_color,
+        name_size,
+        axis_font_family(global_font_family),
+        "normal",
+      )
+      match ax.name_rotate {
+        Some(angle) => name_el = name_el.with_rotation(angle * @math.PI / 180.0)
+        None => ()
+      }
+      elems.push(name_el)
+    }
+    _ => ()
+  }
 }
 
 ///|
@@ -501,16 +593,21 @@ fn render_y_axis_break(
   // NOTE: polygon fill + zigzag polylines are rendered in the Foreground pass
   // (render_break_polygon_overlay) so they paint OVER bars.
   // Here we only emit break-boundary tick marks.
-  let tick_x1 = if pos == bbox.x { pos - 4.0 } else { pos }
-  let tick_x2 = if pos == bbox.x { pos } else { pos + 4.0 }
+  let line_color = ax.axis_line_color.unwrap_or(axis_line_color)
+  let is_right = match ax.position {
+    Some(Right) => true
+    _ => false
+  }
+  let tick_x1 = if is_right { pos } else { pos - 4.0 }
+  let tick_x2 = if is_right { pos + 4.0 } else { pos }
   elems.push(
     @graphic.Element::line_colored(
-      tick_x1, y_top, tick_x2, y_top, axis_line_color, 1.0,
+      tick_x1, y_top, tick_x2, y_top, line_color, 1.0,
     ),
   )
   elems.push(
     @graphic.Element::line_colored(
-      tick_x1, y_bot, tick_x2, y_bot, axis_line_color, 1.0,
+      tick_x1, y_bot, tick_x2, y_bot, line_color, 1.0,
     ),
   )
   // Labels for break boundaries (show the vmin/vmax values)

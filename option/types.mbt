@@ -76,10 +76,18 @@ pub impl Default for BreakAreaOption with default() {
 
 ///|
 /// X or Y axis configuration.
+/// Corresponds to: echarts/src/coord/axisCommonTypes.ts
+///                echarts/src/component/axis/AxisBuilder.ts
 pub(all) struct AxisOption {
   axis_type : AxisType
   position : AxisPosition?
   name : String?
+  // echarts/src/coord/axisCommonTypes.ts AxisBaseOptionCommon
+  name_location : String?
+  name_gap : Double?
+  name_rotate : Double?
+  name_text_color : String?
+  name_text_font_size : Double?
   data : Array[String] // category labels
   min : Double?
   max : Double?
@@ -96,6 +104,12 @@ pub(all) struct AxisOption {
   inverse : Bool
   // echarts/src/coord/axisHelper.ts:makeLabelFormatter
   label_formatter : String?
+  // echarts/src/coord/cartesian/cartesianAxisHelper.ts: offset
+  offset : Double
+  // echarts/src/component/axis/AxisBuilder.ts: axisLine.show / lineStyle.color / lineStyle.width
+  axis_line_show : Bool
+  axis_line_color : String?
+  axis_line_width : Double?
   // echarts/src/component/axis/AxisBuilder.ts: axisLabel.color
   axis_label_color : String?
   // echarts/src/component/axis/AxisBuilder.ts: axisLabel.fontSize
@@ -145,6 +159,11 @@ pub fn AxisOption::default_x() -> AxisOption {
     axis_type: AxisType::Category,
     position: Some(AxisPosition::Bottom),
     name: None,
+    name_location: Some("end"),
+    name_gap: Some(15.0),
+    name_rotate: None,
+    name_text_color: None,
+    name_text_font_size: None,
     data: [],
     min: None,
     max: None,
@@ -158,6 +177,10 @@ pub fn AxisOption::default_x() -> AxisOption {
     clockwise: None,
     inverse: false,
     label_formatter: None,
+    offset: 0.0,
+    axis_line_show: true,
+    axis_line_color: None,
+    axis_line_width: None,
     axis_label_color: None,
     axis_label_font_size: None,
     breaks: [],
@@ -173,6 +196,11 @@ pub fn AxisOption::default_y() -> AxisOption {
     axis_type: AxisType::Value,
     position: Some(AxisPosition::Left),
     name: None,
+    name_location: Some("end"),
+    name_gap: Some(15.0),
+    name_rotate: None,
+    name_text_color: None,
+    name_text_font_size: None,
     data: [],
     min: None,
     max: None,
@@ -186,6 +214,10 @@ pub fn AxisOption::default_y() -> AxisOption {
     clockwise: None,
     inverse: false,
     label_formatter: None,
+    offset: 0.0,
+    axis_line_show: true,
+    axis_line_color: None,
+    axis_line_width: None,
     axis_label_color: None,
     axis_label_font_size: None,
     breaks: [],
