@@ -272,6 +272,135 @@ fn has_stacked_bar_for_y_axis(opt : @option.ChartOption, y_idx : Int) -> Bool {
 }
 
 ///|
+fn line_stack_item_value_for_y(item : @option.DataItem) -> Double {
+  match item.value {
+    Num(n) => n
+    Vec(arr) =>
+      if arr.length() >= 2 {
+        arr[1]
+      } else if arr.length() == 1 {
+        arr[0]
+      } else {
+        0.0
+      }
+    DateValue(_, n) => n
+    Null => 0.0
+  }
+}
+
+///|
+fn line_stack_item_value_for_x(item : @option.DataItem) -> Double {
+  match item.value {
+    Num(n) => n
+    Vec(arr) => if arr.length() >= 1 { arr[0] } else { 0.0 }
+    DateValue(_, n) => n
+    Null => 0.0
+  }
+}
+
+///|
+fn line_stack_range_for_y_axis(
+  opt : @option.ChartOption,
+  y_idx : Int,
+) -> (Double, Double) {
+  let mut lo = 0.0
+  let mut hi = 1.0
+  let mut first = true
+  let states : Array[BarStackRangeState] = []
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    si += 1
+    if series.series_type != Line || series.y_axis_index != y_idx {
+      continue
+    }
+    if series.coordinate_system == Some("polar") || series.stack == None {
+      continue
+    }
+    let stack_name = match series.stack {
+      Some(stack) => stack
+      None => ""
+    }
+    let stack_key = "\{series.x_axis_index}::\{stack_name}"
+    let mut state_index = -1
+    let mut i = 0
+    while i < states.length() {
+      if states[i].key == stack_key {
+        state_index = i
+        break
+      }
+      i += 1
+    }
+    if state_index < 0 {
+      states.push({ key: stack_key, pos: [], neg: [] })
+      state_index = states.length() - 1
+    }
+
+    let mut di = 0
+    while di < series.data.length() {
+      let value = line_stack_item_value_for_y(series.data[di])
+      while states[state_index].pos.length() <= di {
+        states[state_index].pos.push(0.0)
+        states[state_index].neg.push(0.0)
+      }
+      if value >= 0.0 {
+        let sum = states[state_index].pos[di] + value
+        states[state_index].pos[di] = sum
+        if first {
+          lo = sum
+          hi = sum
+          first = false
+        } else {
+          if sum < lo {
+            lo = sum
+          }
+          if sum > hi {
+            hi = sum
+          }
+        }
+      } else {
+        let sum = states[state_index].neg[di] + value
+        states[state_index].neg[di] = sum
+        if first {
+          lo = sum
+          hi = sum
+          first = false
+        } else {
+          if sum < lo {
+            lo = sum
+          }
+          if sum > hi {
+            hi = sum
+          }
+        }
+      }
+      di += 1
+    }
+  }
+  if first {
+    (0.0, 1.0)
+  } else {
+    (lo, hi)
+  }
+}
+
+///|
+fn has_stacked_line_for_y_axis(opt : @option.ChartOption, y_idx : Int) -> Bool {
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    si += 1
+    if series.series_type == Line &&
+      series.y_axis_index == y_idx &&
+      series.coordinate_system != Some("polar") &&
+      series.stack != None {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn bar_stack_range_for_x_axis(
   opt : @option.ChartOption,
   x_idx : Int,
@@ -373,6 +502,108 @@ fn has_stacked_bar_for_x_axis(opt : @option.ChartOption, x_idx : Int) -> Bool {
 }
 
 ///|
+fn line_stack_range_for_x_axis(
+  opt : @option.ChartOption,
+  x_idx : Int,
+) -> (Double, Double) {
+  let mut lo = 0.0
+  let mut hi = 1.0
+  let mut first = true
+  let states : Array[BarStackRangeState] = []
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    si += 1
+    if series.series_type != Line || series.x_axis_index != x_idx {
+      continue
+    }
+    if series.coordinate_system == Some("polar") || series.stack == None {
+      continue
+    }
+    let stack_name = match series.stack {
+      Some(stack) => stack
+      None => ""
+    }
+    let stack_key = "\{series.y_axis_index}::\{stack_name}"
+    let mut state_index = -1
+    let mut i = 0
+    while i < states.length() {
+      if states[i].key == stack_key {
+        state_index = i
+        break
+      }
+      i += 1
+    }
+    if state_index < 0 {
+      states.push({ key: stack_key, pos: [], neg: [] })
+      state_index = states.length() - 1
+    }
+
+    let mut di = 0
+    while di < series.data.length() {
+      let value = line_stack_item_value_for_x(series.data[di])
+      while states[state_index].pos.length() <= di {
+        states[state_index].pos.push(0.0)
+        states[state_index].neg.push(0.0)
+      }
+      if value >= 0.0 {
+        let sum = states[state_index].pos[di] + value
+        states[state_index].pos[di] = sum
+        if first {
+          lo = sum
+          hi = sum
+          first = false
+        } else {
+          if sum < lo {
+            lo = sum
+          }
+          if sum > hi {
+            hi = sum
+          }
+        }
+      } else {
+        let sum = states[state_index].neg[di] + value
+        states[state_index].neg[di] = sum
+        if first {
+          lo = sum
+          hi = sum
+          first = false
+        } else {
+          if sum < lo {
+            lo = sum
+          }
+          if sum > hi {
+            hi = sum
+          }
+        }
+      }
+      di += 1
+    }
+  }
+  if first {
+    (0.0, 1.0)
+  } else {
+    (lo, hi)
+  }
+}
+
+///|
+fn has_stacked_line_for_x_axis(opt : @option.ChartOption, x_idx : Int) -> Bool {
+  let mut si = 0
+  while si < opt.series.length() {
+    let series = opt.series[si]
+    si += 1
+    if series.series_type == Line &&
+      series.x_axis_index == x_idx &&
+      series.coordinate_system != Some("polar") &&
+      series.stack != None {
+      return true
+    }
+  }
+  false
+}
+
+///|
 /// Build a Cartesian2D from the parsed chart option.
 /// Each axis is resolved against its own `gridIndex`, with grid 0 as fallback.
 pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
@@ -394,6 +625,11 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
         let mut dmax = dmax
         if has_stacked_bar_for_x_axis(opt, xi - 1) {
           let (stack_min, stack_max) = bar_stack_range_for_x_axis(opt, xi - 1)
+          dmin = if stack_min < dmin { stack_min } else { dmin }
+          dmax = if stack_max > dmax { stack_max } else { dmax }
+        }
+        if has_stacked_line_for_x_axis(opt, xi - 1) {
+          let (stack_min, stack_max) = line_stack_range_for_x_axis(opt, xi - 1)
           dmin = if stack_min < dmin { stack_min } else { dmin }
           dmax = if stack_max > dmax { stack_max } else { dmax }
         }
@@ -427,6 +663,11 @@ pub fn build_cartesian(opt : @option.ChartOption) -> @coord.Cartesian2D {
         let mut dmax = dmax
         if has_stacked_bar_for_y_axis(opt, yi) {
           let (stack_min, stack_max) = bar_stack_range_for_y_axis(opt, yi)
+          dmin = if stack_min < dmin { stack_min } else { dmin }
+          dmax = if stack_max > dmax { stack_max } else { dmax }
+        }
+        if has_stacked_line_for_y_axis(opt, yi) {
+          let (stack_min, stack_max) = line_stack_range_for_y_axis(opt, yi)
           dmin = if stack_min < dmin { stack_min } else { dmin }
           dmax = if stack_max > dmax { stack_max } else { dmax }
         }

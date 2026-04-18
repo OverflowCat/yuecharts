@@ -148,13 +148,13 @@ fn line_point_value(item : @option.DataItem) -> (Double, Double) {
 
 ///|
 fn line_point_for_cartesian(
-  item : @option.DataItem,
+  value_x : Double,
+  value_y : Double,
   data_index : Int,
   coord : @coord.Cartesian2D,
   x_idx : Int,
   y_idx : Int,
 ) -> @graphic.Point {
-  let (value_x, value_y) = line_point_value(item)
   let px = if x_idx < coord.x_scales.length() {
     match coord.x_scales[x_idx] {
       Ordinal(s) => s.band_center(data_index)
@@ -245,6 +245,7 @@ pub fn render_line_series(
   series_index : Int,
   coord : @coord.Cartesian2D,
   baseline_values? : Array[Double]? = None,
+  stacked_values? : Array[Double]? = None,
   polar? : @coord.Polar? = None,
 ) -> Array[@graphic.Element] {
   let elems : Array[@graphic.Element] = []
@@ -259,9 +260,17 @@ pub fn render_line_series(
   let mut di = 0
   while di < nd {
     let item = series.data[di]
+    let (value_x, raw_y) = line_point_value(item)
+    let value_y = match stacked_values {
+      Some(values) => if di < values.length() { values[di] } else { raw_y }
+      None => raw_y
+    }
     match (series.coordinate_system, polar) {
       (Some("polar"), Some(p)) => points.push(polar_line_point(item, di, p))
-      _ => points.push(line_point_for_cartesian(item, di, coord, x_idx, y_idx))
+      _ =>
+        points.push(
+          line_point_for_cartesian(value_x, value_y, di, coord, x_idx, y_idx),
+        )
     }
     di += 1
   }
@@ -286,7 +295,11 @@ pub fn render_line_series(
           Some(values) => {
             let mut bi = 0
             while bi < points.length() {
-              let baseline_val = if bi < values.length() { values[bi] } else { 0.0 }
+              let baseline_val = if bi < values.length() {
+                values[bi]
+              } else {
+                0.0
+              }
               base_points.push(
                 line_baseline_point_for_cartesian(
                   points[bi].x,
@@ -309,7 +322,10 @@ pub fn render_line_series(
         let top_path = line_path(points, series.smooth, series.step)
         let bottom_reversed = line_reverse_points(base_points)
         let bottom_path = line_path(bottom_reversed, series.smooth, series.step)
-        let area_path = top_path + " " + line_path_line_segment(bottom_path) + " Z"
+        let area_path = top_path +
+          " " +
+          line_path_line_segment(bottom_path) +
+          " Z"
         elems.push(
           @graphic.Element::path_filled(area_path, area_color, area_opacity),
         )
@@ -394,7 +410,10 @@ fn line_stack_group_key(series : @option.SeriesOption) -> String? {
 }
 
 ///|
-fn line_find_stack_state_index(states : Array[LineStackState], key : String) -> Int {
+fn line_find_stack_state_index(
+  states : Array[LineStackState],
+  key : String,
+) -> Int {
   let mut i = 0
   while i < states.length() {
     if states[i].key == key {
@@ -446,9 +465,11 @@ pub fn render_lines(
       None
     }
 
-    let baseline_values : Array[Double]? = match line_stack_group_key(series) {
+    let (baseline_values, stacked_values) = match line_stack_group_key(series) {
       Some(stack_key) => {
-        let mut stack_index = line_find_stack_state_index(stack_states, stack_key)
+        let mut stack_index = line_find_stack_state_index(
+          stack_states, stack_key,
+        )
         if stack_index < 0 {
           let initial : Array[Double] = []
           let mut init_i = 0
@@ -469,20 +490,31 @@ pub fn render_lines(
         let mut ui = 0
         while ui < values.length() {
           if ui < stack_states[stack_index].sums.length() {
-            stack_states[stack_index].sums[ui] =
-              stack_states[stack_index].sums[ui] + values[ui]
+            stack_states[stack_index].sums[ui] = stack_states[stack_index].sums[ui] +
+              values[ui]
           } else {
             stack_states[stack_index].sums.push(values[ui])
           }
           ui += 1
         }
-        Some(base_vals)
+        let top_vals : Array[Double] = []
+        for sum in stack_states[stack_index].sums {
+          top_vals.push(sum)
+        }
+        (Some(base_vals), Some(top_vals))
       }
-      None => None
+      None => (None, None)
     }
 
     elems.append(
-      render_line_series(series, color_idx, coord, baseline_values~, polar~),
+      render_line_series(
+        series,
+        color_idx,
+        coord,
+        baseline_values~,
+        stacked_values~,
+        polar~,
+      ),
     )
     color_idx += 1
   }

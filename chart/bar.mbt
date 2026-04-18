@@ -932,6 +932,219 @@ fn bar_render_polar_middle_label(
 }
 
 ///|
+/// <=> echarts/src/chart/bar/BarView.ts:getDefaultLabel
+fn bar_label_value_text(value : Double) -> String {
+  if value.to_int().to_double() == value {
+    value.to_int().to_string()
+  } else {
+    value.to_string()
+  }
+}
+
+///|
+/// <=> echarts/src/chart/bar/BarView.ts:updateStyle
+/// <=> echarts/src/label/labelStyle.ts:setLabelStyle
+fn bar_label_text(
+  series : @option.SeriesOption,
+  item : @option.DataItem,
+  item_name : String,
+  value : Double,
+) -> String {
+  let series_label = series.label.unwrap_or(@option.GeoLabelOption::default())
+  let formatter = match item.label.bind(l => l.formatter) {
+    Some(value) => Some(value)
+    None => series_label.formatter
+  }
+  let value_str = bar_label_value_text(value)
+  match formatter {
+    Some(formatter) =>
+      @option.apply_label_formatter(
+        Some({ ..series_label, formatter: Some(formatter) }),
+        series.name.unwrap_or(""),
+        item_name,
+        value_str,
+        None,
+      )
+    None => value_str
+  }
+}
+
+///|
+/// <=> echarts/src/label/labelStyle.ts:labelInner
+fn bar_label_position_is_inside(position : String) -> Bool {
+  match position {
+    "inside" | "insideTop" | "insideBottom" | "insideLeft" | "insideRight" =>
+      true
+    _ => false
+  }
+}
+
+///|
+/// <=> echarts/src/chart/bar/BarView.ts:updateStyle
+/// <=> echarts/src/chart/bar/BarView.ts:getLabelPositionForHorizontal
+/// <=> echarts/src/chart/bar/BarView.ts:getLabelPositionForVertical
+fn bar_render_cartesian_label(
+  series : @option.SeriesOption,
+  item : @option.DataItem,
+  item_name : String,
+  value : Double,
+  is_horizontal_bar : Bool,
+  bar_left : Double,
+  bar_right : Double,
+  bar_top : Double,
+  bar_bottom : Double,
+) -> @graphic.Element? {
+  let series_label = series.label.unwrap_or(@option.GeoLabelOption::default())
+  let item_label = item.label
+  let show = item_label.bind(l => l.show).unwrap_or(series_label.show)
+  if !show {
+    return None
+  }
+
+  let item_position = item_label.bind(l => l.position)
+  let series_position = series_label.position
+  let mut position = item_position.unwrap_or(
+    series_position.unwrap_or("inside"),
+  )
+  if position == "outside" {
+    position = if is_horizontal_bar {
+      if value >= 0.0 {
+        "right"
+      } else {
+        "left"
+      }
+    } else if value >= 0.0 {
+      "top"
+    } else {
+      "bottom"
+    }
+  }
+
+  let text = bar_label_text(series, item, item_name, value)
+  if text == "" {
+    return None
+  }
+
+  let distance = item_label
+    .bind(l => l.distance)
+    .unwrap_or(series_label.distance.unwrap_or(5.0))
+
+  let mut x = (bar_left + bar_right) / 2.0
+  let mut y = (bar_top + bar_bottom) / 2.0
+  let mut anchor = @graphic.TextAnchor::Middle
+  let mut baseline = @graphic.TextBaseline::Central
+
+  match position {
+    "left" => {
+      x = bar_left - distance
+      y = (bar_top + bar_bottom) / 2.0
+      anchor = @graphic.TextAnchor::End
+      baseline = @graphic.TextBaseline::Central
+    }
+    "right" => {
+      x = bar_right + distance
+      y = (bar_top + bar_bottom) / 2.0
+      anchor = @graphic.TextAnchor::Start
+      baseline = @graphic.TextBaseline::Central
+    }
+    "top" => {
+      x = (bar_left + bar_right) / 2.0
+      y = bar_top - distance
+      anchor = @graphic.TextAnchor::Middle
+      baseline = @graphic.TextBaseline::Bottom
+    }
+    "bottom" => {
+      x = (bar_left + bar_right) / 2.0
+      y = bar_bottom + distance
+      anchor = @graphic.TextAnchor::Middle
+      baseline = @graphic.TextBaseline::Top
+    }
+    "insideLeft" => {
+      x = bar_left + distance
+      y = (bar_top + bar_bottom) / 2.0
+      anchor = @graphic.TextAnchor::Start
+      baseline = @graphic.TextBaseline::Central
+    }
+    "insideRight" => {
+      x = bar_right - distance
+      y = (bar_top + bar_bottom) / 2.0
+      anchor = @graphic.TextAnchor::End
+      baseline = @graphic.TextBaseline::Central
+    }
+    "insideTop" => {
+      x = (bar_left + bar_right) / 2.0
+      y = bar_top + distance
+      anchor = @graphic.TextAnchor::Middle
+      baseline = @graphic.TextBaseline::Top
+    }
+    "insideBottom" => {
+      x = (bar_left + bar_right) / 2.0
+      y = bar_bottom - distance
+      anchor = @graphic.TextAnchor::Middle
+      baseline = @graphic.TextBaseline::Bottom
+    }
+    "inside" => {
+      x = (bar_left + bar_right) / 2.0
+      y = (bar_top + bar_bottom) / 2.0
+      anchor = @graphic.TextAnchor::Middle
+      baseline = @graphic.TextBaseline::Central
+    }
+    _ => {
+      x = (bar_left + bar_right) / 2.0
+      y = (bar_top + bar_bottom) / 2.0
+      anchor = @graphic.TextAnchor::Middle
+      baseline = @graphic.TextBaseline::Central
+    }
+  }
+
+  let explicit_inside = item_position.bind(p => {
+      if bar_label_position_is_inside(p) {
+        Some(())
+      } else {
+        None
+      }
+    }) !=
+    None ||
+    series_position.bind(p => {
+      if bar_label_position_is_inside(p) {
+        Some(())
+      } else {
+        None
+      }
+    }) !=
+    None
+
+  let color = match item_label.bind(l => l.color) {
+    Some(c) => c
+    None =>
+      if series_label.color == "#54555a" {
+        if explicit_inside {
+          "#eee"
+        } else {
+          "#333"
+        }
+      } else {
+        series_label.color
+      }
+  }
+  let font_size = item_label
+    .bind(l => l.font_size)
+    .unwrap_or(series_label.font_size)
+  let font_family = item_label
+    .bind(l => l.font_family)
+    .unwrap_or(series_label.font_family)
+  let font_weight = item_label
+    .bind(l => l.font_weight)
+    .unwrap_or(series_label.font_weight.unwrap_or("normal"))
+
+  Some(
+    @graphic.Element::text_custom(
+      x, y, text, anchor, baseline, color, font_size, font_family, font_weight,
+    ),
+  )
+}
+
+///|
 fn bar_rect_path(x : Double, y : Double, w : Double, h : Double) -> String {
   "M\{bar_r1(x)} \{bar_r1(y)}l\{bar_r1(w)} 0l0 \{bar_r1(h)}l\{bar_r1(-w)} 0Z"
 }
@@ -2008,6 +2221,23 @@ fn bar_render_series_cartesian_impl(
           .with_ecmeta_attr("data_index", (di - 1).to_string())
           .with_ecmeta_attr("ssr_type", "chart"),
         )
+        let item_name = if di - 1 < s.categories.length() {
+          s.categories[di - 1]
+        } else {
+          ""
+        }
+        let bar_left = bar_x
+        let bar_right = bar_x + render_bar_w
+        let bar_top = if top_y < base_coord { top_y } else { base_coord }
+        let bar_bottom = if top_y < base_coord { base_coord } else { top_y }
+        match
+          bar_render_cartesian_label(
+            series, item, item_name, value, false, bar_left, bar_right, bar_top,
+            bar_bottom,
+          ) {
+          Some(label_elem) => elems.push(label_elem)
+          None => ()
+        }
       }
     }
     Linear(s) =>
@@ -2165,6 +2395,27 @@ fn bar_render_series_cartesian_impl(
                 .with_ecmeta_attr("data_index", (di - 1).to_string())
                 .with_ecmeta_attr("ssr_type", "chart"),
               )
+              let item_name = if di - 1 < sy.categories.length() {
+                sy.categories[di - 1]
+              } else {
+                ""
+              }
+              let bar_left = if top_x < base_coord { top_x } else { base_coord }
+              let bar_right = if top_x < base_coord {
+                base_coord
+              } else {
+                top_x
+              }
+              let bar_top = bar_y
+              let bar_bottom = bar_y + render_bar_h
+              match
+                bar_render_cartesian_label(
+                  series, item, item_name, value, true, bar_left, bar_right, bar_top,
+                  bar_bottom,
+                ) {
+                Some(label_elem) => elems.push(label_elem)
+                None => ()
+              }
             }
           }
           _ => ()

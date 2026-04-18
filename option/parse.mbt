@@ -1380,6 +1380,19 @@ fn parse_series_options_with_dataset(
           )
           { ..parsed, data, }
         }
+        Boxplot => {
+          let data = dataset_table_to_boxplot_data(
+            dataset_tables[dataset_index],
+          )
+          { ..parsed, data, }
+        }
+        Scatter | EffectScatter => {
+          let data = dataset_table_to_scatter_data(
+            dataset_tables[dataset_index],
+            series_j,
+          )
+          { ..parsed, data, }
+        }
         _ => parsed
       }
     } else {
@@ -1395,31 +1408,251 @@ fn parse_series_options_with_dataset(
 /// <=> echarts/src/data/Source.ts
 fn parse_dataset_tables(j : Json) -> Array[DatasetTable] {
   let tables : Array[DatasetTable] = []
+  let transform_results : Array[Array[DatasetTable]] = []
   match j_field(j, "dataset") {
     Some(Array(dataset_arr)) =>
       for i, _ in dataset_arr {
         let dataset = dataset_arr[i]
         match parse_dataset_source_table(dataset) {
-          Some(table) => tables.push(table)
+          Some(table) => {
+            tables.push(table)
+            transform_results.push([])
+          }
           None =>
             match parse_dataset_filter_transform_table(dataset, tables) {
-              Some(table) => tables.push(table)
-              None => tables.push({ dimensions: [], rows: [] })
+              Some(table) => {
+                tables.push(table)
+                transform_results.push([])
+              }
+              None =>
+                match parse_dataset_boxplot_transform_tables(dataset, tables) {
+                  Some((primary, results)) => {
+                    tables.push(primary)
+                    transform_results.push(results)
+                  }
+                  None =>
+                    match
+                      parse_dataset_transform_result_table(
+                        dataset, tables, transform_results,
+                      ) {
+                      Some(table) => {
+                        tables.push(table)
+                        transform_results.push([])
+                      }
+                      None => {
+                        tables.push({ dimensions: [], rows: [] })
+                        transform_results.push([])
+                      }
+                    }
+                }
             }
         }
       }
     Some(one) =>
       match parse_dataset_source_table(one) {
-        Some(table) => tables.push(table)
+        Some(table) => {
+          tables.push(table)
+          transform_results.push([])
+        }
         None =>
           match parse_dataset_filter_transform_table(one, tables) {
-            Some(table) => tables.push(table)
-            None => ()
+            Some(table) => {
+              tables.push(table)
+              transform_results.push([])
+            }
+            None =>
+              match parse_dataset_boxplot_transform_tables(one, tables) {
+                Some((primary, results)) => {
+                  tables.push(primary)
+                  transform_results.push(results)
+                }
+                None =>
+                  match
+                    parse_dataset_transform_result_table(
+                      one, tables, transform_results,
+                    ) {
+                    Some(table) => {
+                      tables.push(table)
+                      transform_results.push([])
+                    }
+                    None => ()
+                  }
+              }
           }
       }
     None => ()
   }
   tables
+}
+
+///|
+/// <=> echarts/src/chart/boxplot/boxplotTransform.ts
+/// <=> echarts/src/chart/boxplot/prepareBoxplotData.ts
+fn parse_dataset_boxplot_transform_tables(
+  dataset : Json,
+  tables : Array[DatasetTable],
+) -> (DatasetTable, Array[DatasetTable])? {
+  let transform = j_field(dataset, "transform")
+  match transform {
+    Some(transform_json) => {
+      if j_string(transform_json, "type", "") != "boxplot" {
+        return None
+      }
+      let source_idx = j_int(dataset, "fromDatasetIndex", 0)
+      if source_idx < 0 || source_idx >= tables.length() {
+        return None
+      }
+      let source_table = tables[source_idx]
+      let config = j_field(transform_json, "config")
+      let bound_iqr = dataset_boxplot_bound_iqr(config)
+      let item_name_formatter = config.bind(cfg => {
+        j_string_opt(cfg, "itemNameFormatter")
+      })
+      let box_rows : Array[Array[Json]] = []
+      let outlier_rows : Array[Array[Json]] = []
+      for i, _ in source_table.rows {
+        let row = source_table.rows[i]
+        let asc = dataset_row_sorted_numeric(row)
+        if asc.is_empty() {
+          continue
+        }
+        let q1 = dataset_quantile(asc, 0.25)
+        let q2 = dataset_quantile(asc, 0.5)
+        let q3 = dataset_quantile(asc, 0.75)
+        let min = asc[0]
+        let max = asc[asc.length() - 1]
+        let use_extreme = bound_iqr == Some(0.0)
+        let bound = bound_iqr.unwrap_or(1.5) * (q3 - q1)
+        let low = if use_extreme { min } else { dataset_max(min, q1 - bound) }
+        let high = if use_extreme { max } else { dataset_min(max, q3 + bound) }
+        let item_name = dataset_boxplot_item_name(item_name_formatter, i)
+        let item_name_json = dataset_json_escape(item_name)
+        let box_row_json = "[\"\{item_name_json}\",\{low},\{q1},\{q2},\{q3},\{high}]"
+        let box_row_parsed = try? @json.parse(box_row_json)
+        match box_row_parsed {
+          Ok(Array(arr)) => box_rows.push(arr)
+          _ => ()
+        }
+        for v in asc {
+          if v < low || v > high {
+            let outlier_row_json = "[\"\{item_name_json}\",\{v}]"
+            let outlier_row_parsed = try? @json.parse(outlier_row_json)
+            match outlier_row_parsed {
+              Ok(Array(arr)) => outlier_rows.push(arr)
+              _ => ()
+            }
+          }
+        }
+      }
+      let primary : DatasetTable = {
+        dimensions: ["ItemName", "Low", "Q1", "Q2", "Q3", "High"],
+        rows: box_rows,
+      }
+      let secondary : DatasetTable = {
+        dimensions: ["ItemName", "Value"],
+        rows: outlier_rows,
+      }
+      Some((primary, [primary, secondary]))
+    }
+    None => None
+  }
+}
+
+///|
+/// <=> echarts/src/data/helper/transform.ts
+fn parse_dataset_transform_result_table(
+  dataset : Json,
+  tables : Array[DatasetTable],
+  transform_results : Array[Array[DatasetTable]],
+) -> DatasetTable? {
+  let source_idx = j_int(dataset, "fromDatasetIndex", -1)
+  let result_idx = j_int(dataset, "fromTransformResult", -1)
+  if source_idx < 0 || result_idx < 0 {
+    return None
+  }
+  if source_idx >= transform_results.length() {
+    return None
+  }
+  let results = transform_results[source_idx]
+  if result_idx >= 0 && result_idx < results.length() {
+    Some(results[result_idx])
+  } else if source_idx >= 0 && source_idx < tables.length() && result_idx == 0 {
+    Some(tables[source_idx])
+  } else {
+    None
+  }
+}
+
+///|
+/// <=> echarts/src/chart/boxplot/prepareBoxplotData.ts
+fn dataset_boxplot_bound_iqr(config : Json?) -> Double? {
+  match config.bind(cfg => j_field(cfg, "boundIQR")) {
+    Some(Number(n, ..)) => Some(n)
+    Some(String("none")) => Some(0.0)
+    _ => None
+  }
+}
+
+///|
+/// <=> echarts/src/chart/boxplot/prepareBoxplotData.ts
+fn dataset_boxplot_item_name(formatter : String?, index : Int) -> String {
+  let idx = index.to_string()
+  match formatter {
+    Some(fmt) => fmt.replace(old="{value}", new=idx)
+    None => idx
+  }
+}
+
+///|
+/// <=> echarts/src/chart/boxplot/prepareBoxplotData.ts
+fn dataset_row_sorted_numeric(row : Array[Json]) -> Array[Double] {
+  let numbers : Array[Double] = []
+  for cell in row {
+    if dataset_cell_is_numeric(cell) {
+      numbers.push(dataset_cell_to_number(cell))
+    }
+  }
+  numbers.sort_by(fn(a, b) { Double::compare(a, b) })
+  numbers
+}
+
+///|
+/// <=> echarts/src/util/number.ts:quantile
+fn dataset_quantile(asc_arr : Array[Double], p : Double) -> Double {
+  if asc_arr.is_empty() {
+    return 0.0
+  }
+  let h = ((asc_arr.length() - 1).to_double() * p + 1.0).floor().to_int()
+  let v = asc_arr[h - 1]
+  let e = (asc_arr.length() - 1).to_double() * p + 1.0 - h.to_double()
+  if e != 0.0 && h < asc_arr.length() {
+    v + e * (asc_arr[h] - v)
+  } else {
+    v
+  }
+}
+
+///|
+fn dataset_min(a : Double, b : Double) -> Double {
+  if a < b {
+    a
+  } else {
+    b
+  }
+}
+
+///|
+fn dataset_max(a : Double, b : Double) -> Double {
+  if a > b {
+    a
+  } else {
+    b
+  }
+}
+
+///|
+fn dataset_json_escape(raw : String) -> String {
+  raw.replace(old="\\", new="\\\\").replace(old="\"", new="\\\"")
 }
 
 ///|
@@ -1615,6 +1848,112 @@ fn dataset_table_to_pie_data(
 }
 
 ///|
+/// <=> echarts/src/chart/boxplot/BoxplotSeries.ts
+/// <=> echarts/src/chart/boxplot/boxplotTransform.ts
+fn dataset_table_to_boxplot_data(table : DatasetTable) -> Array[DataItem] {
+  let data : Array[DataItem] = []
+  for i, _ in table.rows {
+    let row = table.rows[i]
+    if row.length() >= 6 {
+      let name = Some(dataset_cell_to_string(row[0]))
+      let value = [
+        dataset_cell_to_number(row[1]),
+        dataset_cell_to_number(row[2]),
+        dataset_cell_to_number(row[3]),
+        dataset_cell_to_number(row[4]),
+        dataset_cell_to_number(row[5]),
+      ]
+      data.push(make_data_item_vec_name(value, name, Some(row)))
+    } else if row.length() >= 5 {
+      let value = [
+        dataset_cell_to_number(row[0]),
+        dataset_cell_to_number(row[1]),
+        dataset_cell_to_number(row[2]),
+        dataset_cell_to_number(row[3]),
+        dataset_cell_to_number(row[4]),
+      ]
+      data.push(make_data_item_vec_name(value, None, Some(row)))
+    }
+  }
+  data
+}
+
+///|
+/// <=> echarts/src/chart/scatter/ScatterSeries.ts
+/// Encode subset used by dataset-driven scatter cases like boxplot outliers.
+fn dataset_table_to_scatter_data(
+  table : DatasetTable,
+  series_j : Json,
+) -> Array[DataItem] {
+  if table.rows.is_empty() {
+    return []
+  }
+  let x_dim_idx = dataset_resolve_encode_dimension(
+    series_j,
+    table.dimensions,
+    "x",
+    0,
+  )
+  let y_dim_idx = dataset_resolve_encode_dimension(
+    series_j,
+    table.dimensions,
+    "y",
+    if table.rows[0].length() >= 2 {
+      1
+    } else {
+      0
+    },
+  )
+  let x_categories : Array[String] = []
+  let y_categories : Array[String] = []
+  let data : Array[DataItem] = []
+  for i, _ in table.rows {
+    let row = table.rows[i]
+    if x_dim_idx < 0 ||
+      y_dim_idx < 0 ||
+      x_dim_idx >= row.length() ||
+      y_dim_idx >= row.length() {
+      continue
+    }
+    let x = dataset_cell_to_coord_number(row[x_dim_idx], x_categories)
+    let y = dataset_cell_to_coord_number(row[y_dim_idx], y_categories)
+    data.push(make_data_item_vec_name([x, y], None, Some(row)))
+  }
+  data
+}
+
+///|
+fn dataset_cell_to_coord_number(
+  cell : Json,
+  categories : Array[String],
+) -> Double {
+  match cell {
+    Number(n, ..) => n
+    String(s) => {
+      let parsed = try? @string.parse_double(s)
+      match parsed {
+        Ok(v) => v
+        Err(_) => dataset_category_index(categories, s).to_double()
+      }
+    }
+    True => 1.0
+    False => 0.0
+    _ => 0.0
+  }
+}
+
+///|
+fn dataset_category_index(categories : Array[String], value : String) -> Int {
+  for i, _ in categories {
+    if categories[i] == value {
+      return i
+    }
+  }
+  categories.push(value)
+  categories.length() - 1
+}
+
+///|
 /// <=> echarts/src/chart/pie/PieSeries.ts
 fn dataset_resolve_encode_value_dimension(
   series_j : Json,
@@ -1765,6 +2104,41 @@ fn make_data_item_num_name(value : Double, name : String?) -> DataItem {
   {
     value: DataValue::Num(value),
     raw_value_parts: None,
+    raw_item: None,
+    id: None,
+    name,
+    depth: None,
+    source: None,
+    target: None,
+    symbol: None,
+    coords: None,
+    from_name: None,
+    to_name: None,
+    cursor: None,
+    selected: None,
+    silent: None,
+    label: None,
+    item_style: None,
+    states: GeoStatesOption::default(),
+    children: [],
+    collapsed: None,
+    title_offset_center: None,
+    detail_offset_center: None,
+    highlighted: None,
+    local_x: None,
+    local_y: None,
+  }
+}
+
+///|
+fn make_data_item_vec_name(
+  value : Array[Double],
+  name : String?,
+  raw_value_parts : Array[Json]?,
+) -> DataItem {
+  {
+    value: DataValue::Vec(value),
+    raw_value_parts,
     raw_item: None,
     id: None,
     name,

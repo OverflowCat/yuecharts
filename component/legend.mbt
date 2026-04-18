@@ -45,7 +45,11 @@ fn legend_has_name(
 /// advance across all radar data items in chart order.
 /// <=> echarts/src/chart/radar/RadarSeries.ts:defaultOption
 /// <=> echarts/src/visual/style.ts:dataColorPaletteTask
-fn legend_radar_palette_index(opt : @option.ChartOption, series_index : Int, data_index : Int) -> Int {
+fn legend_radar_palette_index(
+  opt : @option.ChartOption,
+  series_index : Int,
+  data_index : Int,
+) -> Int {
   let mut ordinal = 0
   let mut si = 0
   while si < opt.series.length() {

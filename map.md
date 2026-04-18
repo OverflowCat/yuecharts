@@ -797,7 +797,7 @@ E:\recharts\echarts\src
 │   │
 │   ├── bar
 │   │   ├── BarSeries.ts => chart/bar.mbt [partial] Feature: bar series model
-│   │   ├── BarView.ts => chart/bar.mbt [translated] Feature: bar renderer
+│   │   ├── BarView.ts => chart/bar.mbt [translated] Feature: bar renderer (cartesian label subset: inside/insideLeft/insideRight/insideTop/insideBottom/left/right/top/bottom/outside with value default text)
 │   │   ├── BaseBarSeries.ts => chart/bar.mbt [partial] Feature: base bar model
 │   │   ├── install.ts => chart/bar.mbt [partial] Feature: bar install
 │   │   ├── installPictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar install

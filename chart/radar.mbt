@@ -294,7 +294,11 @@ fn render_radar_background(
 /// radar data items in chart order rather than restarting per series.
 /// <=> echarts/src/chart/radar/RadarSeries.ts:defaultOption
 /// <=> echarts/src/visual/style.ts:dataColorPaletteTask
-fn radar_palette_data_index(opt : @option.ChartOption, series_index : Int, data_index : Int) -> Int {
+fn radar_palette_data_index(
+  opt : @option.ChartOption,
+  series_index : Int,
+  data_index : Int,
+) -> Int {
   let mut ordinal = 0
   let mut si = 0
   while si < opt.series.length() {
