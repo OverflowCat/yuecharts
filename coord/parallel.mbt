@@ -40,10 +40,15 @@ pub(all) struct Parallel {
 
 ///|
 pub fn Parallel::build(opt : @option.ChartOption) -> Parallel? {
-  if opt.parallel.length() == 0 || opt.parallel_axis.length() == 0 {
+  if opt.parallel_axis.length() == 0 {
     return None
   }
-  let parallel_opt = opt.parallel[0]
+  // echarts/src/component/parallel/ParallelModel.ts: default parallel component
+  let parallel_opt = if opt.parallel.length() > 0 {
+    opt.parallel[0]
+  } else {
+    @option.ParallelOption::default()
+  }
   let bbox = parallel_compute_bbox(parallel_opt, opt.width, opt.height)
   let axis_opts = parallel_collect_axis_options(opt, 0)
   if axis_opts.length() == 0 {
@@ -104,7 +109,7 @@ pub fn Parallel::get_axis_layout(
 ///|
 pub fn Parallel::data_to_point(
   self : Parallel,
-  value : @option.DataValue,
+  item : @option.DataItem,
   dim : String,
 ) -> @graphic.Point? {
   let mut i = 0
@@ -112,7 +117,7 @@ pub fn Parallel::data_to_point(
     let axis = self.axes[i]
     if axis.dim_name == dim {
       let layout = self.axis_layouts[i]
-      match axis.data_to_coord(value) {
+      match axis.data_to_coord(item.value, item.raw_value_parts) {
         Some(coord) =>
           return Some(
             if self.layout == "vertical" {
@@ -133,6 +138,7 @@ pub fn Parallel::data_to_point(
 pub fn ParallelAxis::data_to_coord(
   self : ParallelAxis,
   value : @option.DataValue,
+  raw_parts : Array[Json]?,
 ) -> Double? {
   match self.scale {
     Linear(scale) =>
@@ -140,8 +146,10 @@ pub fn ParallelAxis::data_to_coord(
         Some(numeric) => Some(scale.data_to_pixel(numeric))
         None => None
       }
-    Ordinal(scale) =>
-      match parallel_value_to_category_index(value, self.dim_index) {
+    Ordinal(scale) => {
+      // echarts/src/coord/parallel/Parallel.ts: category axis string lookup
+      let index = parallel_category_index(value, self.dim_index, raw_parts, scale.categories)
+      match index {
         Some(index) => {
           let max_index = scale.categories.length() - 1
           let normalized = if max_index < 0 {
@@ -157,6 +165,7 @@ pub fn ParallelAxis::data_to_coord(
         }
         None => None
       }
+    }
   }
 }
 
@@ -389,13 +398,41 @@ fn parallel_value_to_double(
 }
 
 ///|
-fn parallel_value_to_category_index(
+// echarts/src/coord/parallel/Parallel.ts: category axis — try string name lookup
+// from raw_parts first, then fall back to numeric index
+fn parallel_category_index(
   value : @option.DataValue,
   dim_index : Int,
+  raw_parts : Array[Json]?,
+  categories : Array[String],
 ) -> Int? {
-  match parallel_value_to_double(value, dim_index) {
-    Some(numeric) => Some(numeric.to_int())
-    None => None
+  // Step 1: try to get string from raw_parts
+  let str_val : String? = match raw_parts {
+    Some(arr) if dim_index < arr.length() =>
+      match arr[dim_index] {
+        String(s) => Some(s)
+        _ => None
+      }
+    _ => None
+  }
+  // Step 2: if we have a string, look it up in categories
+  match str_val {
+    Some(s) => {
+      let mut k = 0
+      while k < categories.length() {
+        if categories[k] == s {
+          return Some(k)
+        }
+        k += 1
+      }
+      None
+    }
+    // Step 3: fall back to numeric index in value
+    None =>
+      match parallel_value_to_double(value, dim_index) {
+        Some(numeric) => Some(numeric.to_int())
+        None => None
+      }
   }
 }
 

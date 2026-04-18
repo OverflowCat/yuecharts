@@ -28,8 +28,7 @@ pub fn render_parallel_series(
     stroke_no_scale: false,
   }
   for i, _ in series.data {
-    let item = series.data[i]
-    let points = parallel_series_line_points(item, parallel)
+    let points = parallel_series_line_points(series.data[i], parallel)
     if points.length() < 2 {
       continue
     }
@@ -78,7 +77,7 @@ fn parallel_series_line_points(
 
   for i, _ in parallel.dimensions {
     let dim = parallel.dimensions[i]
-    match parallel.data_to_point(item.value, dim) {
+    match parallel.data_to_point(item, dim) {
       Some(point) => points.push(point)
       None => ()
     }
