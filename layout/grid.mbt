@@ -97,19 +97,60 @@ pub fn grid_bbox_for_index(
   opt : @option.ChartOption,
   grid_index : Int,
 ) -> @graphic.BBox {
-  if opt.grid.length() == 0 {
-    return compute_grid_bbox(
-      @option.GridOption::default(),
-      opt.width,
-      opt.height,
-    )
-  }
-  let index = if grid_index >= 0 && grid_index < opt.grid.length() {
+  let effective_grid_index = if opt.grid.length() == 0 {
+    0
+  } else if grid_index >= 0 && grid_index < opt.grid.length() {
     grid_index
   } else {
     0
   }
-  compute_grid_bbox(opt.grid[index], opt.width, opt.height)
+  let grid = if opt.grid.length() == 0 {
+    @option.GridOption::default()
+  } else {
+    opt.grid[effective_grid_index]
+  }
+  let bbox = compute_grid_bbox(grid, opt.width, opt.height)
+  if !grid.contain_label {
+    return bbox
+  }
+
+  /// <=> echarts/src/coord/cartesian/Grid.ts:resize
+  /// <=> echarts/src/coord/cartesian/cartesianAxisHelper.ts:layout
+  let mut has_top_x = false
+  let mut has_bottom_x = false
+  for i, _ in opt.x_axis {
+    let ax = opt.x_axis[i]
+    if ax.grid_index.unwrap_or(0) != effective_grid_index {
+      continue
+    }
+    match ax.position {
+      Some(Top) => has_top_x = true
+      _ => has_bottom_x = true
+    }
+  }
+
+  let mut has_left_y = false
+  let mut has_right_y = false
+  for i, _ in opt.y_axis {
+    let ax = opt.y_axis[i]
+    if ax.grid_index.unwrap_or(0) != effective_grid_index {
+      continue
+    }
+    match ax.position {
+      Some(Right) => has_right_y = true
+      _ => has_left_y = true
+    }
+  }
+
+  // Static renderer approximation of ECharts containLabel axis reservation.
+  let pad_top = if has_top_x { 20.0 } else { 0.0 }
+  let pad_bottom = if has_bottom_x { 20.0 } else { 0.0 }
+  let pad_left = if has_left_y { 28.0 } else { 0.0 }
+  let pad_right = if has_right_y { 20.0 } else { 0.0 }
+
+  let width = (bbox.width - pad_left - pad_right).max(0.0)
+  let height = (bbox.height - pad_top - pad_bottom).max(0.0)
+  @graphic.BBox::new(bbox.x + pad_left, bbox.y + pad_top, width, height)
 }
 
 ///|
