@@ -3575,6 +3575,109 @@ fn parse_series_option(j : Json) -> SeriesOption {
     None => base.line_style_opacity
   }
   let line_style_curveness = j_number_opt(line_style, "curveness")
+  let mark_line = j_field(j, "markLine")
+  let mark_line_has_max = match mark_line {
+    Some(ml) =>
+      match j_field(ml, "data") {
+        Some(Array(arr)) => {
+          let mut has_max = false
+          let mut i = 0
+          while i < arr.length() && !has_max {
+            match arr[i] {
+              { "type": String(t), .. } =>
+                if t == "max" {
+                  has_max = true
+                }
+              _ => ()
+            }
+            i = i + 1
+          }
+          has_max
+        }
+        _ => base.mark_line_has_max
+      }
+    None => base.mark_line_has_max
+  }
+  let mark_line_symbol = match mark_line {
+    Some(ml) =>
+      match j_string_opt(ml, "symbol") {
+        Some(v) => Some(v)
+        None => base.mark_line_symbol
+      }
+    None => base.mark_line_symbol
+  }
+  let mark_line_label_formatter = match mark_line {
+    Some(ml) =>
+      match j_field(ml, "label") {
+        Some(label) =>
+          match j_string_opt(label, "formatter") {
+            Some(v) => Some(v)
+            None => base.mark_line_label_formatter
+          }
+        None => base.mark_line_label_formatter
+      }
+    None => base.mark_line_label_formatter
+  }
+  let mark_line_label_position = match mark_line {
+    Some(ml) =>
+      match j_field(ml, "label") {
+        Some(label) =>
+          match j_string_opt(label, "position") {
+            Some(v) => Some(v)
+            None => base.mark_line_label_position
+          }
+        None => base.mark_line_label_position
+      }
+    None => base.mark_line_label_position
+  }
+  let mark_line_line_color = match mark_line {
+    Some(ml) =>
+      match j_field(ml, "lineStyle") {
+        Some(style) =>
+          match j_color_opt(style, "color") {
+            Some(v) => Some(v)
+            None => base.mark_line_line_color
+          }
+        None => base.mark_line_line_color
+      }
+    None => base.mark_line_line_color
+  }
+  let mark_line_line_type = match mark_line {
+    Some(ml) =>
+      match j_field(ml, "lineStyle") {
+        Some(style) =>
+          match j_string_opt(style, "type") {
+            Some(v) => Some(v)
+            None => base.mark_line_line_type
+          }
+        None => base.mark_line_line_type
+      }
+    None => base.mark_line_line_type
+  }
+  let mark_line_line_opacity = match mark_line {
+    Some(ml) =>
+      match j_field(ml, "lineStyle") {
+        Some(style) =>
+          match j_number_opt(style, "opacity") {
+            Some(v) => Some(v)
+            None => base.mark_line_line_opacity
+          }
+        None => base.mark_line_line_opacity
+      }
+    None => base.mark_line_line_opacity
+  }
+  let mark_line_line_width = match mark_line {
+    Some(ml) =>
+      match j_field(ml, "lineStyle") {
+        Some(style) =>
+          match j_number_opt(style, "width") {
+            Some(v) => Some(v)
+            None => base.mark_line_line_width
+          }
+        None => base.mark_line_line_width
+      }
+    None => base.mark_line_line_width
+  }
   let radius = j_stringish_array(j, "radius", base.radius)
   let center = j_stringish_array(j, "center", base.center)
   let min_angle = j_number(j, "minAngle", base.min_angle)
@@ -4294,6 +4397,14 @@ fn parse_series_option(j : Json) -> SeriesOption {
       Some(v) => j_bool(v, "show", base.label_line_show)
       None => base.label_line_show
     },
+    mark_line_has_max,
+    mark_line_symbol,
+    mark_line_label_formatter,
+    mark_line_label_position,
+    mark_line_line_color,
+    mark_line_line_type,
+    mark_line_line_opacity,
+    mark_line_line_width,
     // colorBy: "series" (default) | "data" — per-data-item palette coloring
     // Corresponds to: echarts/src/visual/style.ts dataColorPaletteTask
     color_by: j_string(j, "colorBy", base.color_by),

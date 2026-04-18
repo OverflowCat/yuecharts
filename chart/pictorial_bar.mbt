@@ -262,6 +262,137 @@ fn to_int_times(times : Double) -> Int {
 }
 
 ///|
+fn pictorial_mark_line_dash(line_type : String?) -> Array[Double] {
+  match line_type.unwrap_or("solid") {
+    "dashed" => [4.0, 2.0]
+    "dotted" => [2.0]
+    _ => []
+  }
+}
+
+///|
+fn pictorial_format_mark_value(value : Double) -> String {
+  let rounded = value.round()
+  if (value - rounded).abs() < 0.000001 {
+    rounded.to_int().to_string()
+  } else {
+    value.to_string()
+  }
+}
+
+///|
+/// <=> echarts/src/component/marker/MarkLineView.ts
+/// <=> echarts/src/chart/bar/PictorialBarView.ts
+fn render_pictorial_mark_line_max(
+  series : @option.SeriesOption,
+  coord : @coord.Cartesian2D,
+  is_vertical : Bool,
+  x_idx : Int,
+  y_idx : Int,
+) -> Array[@graphic.Element] {
+  let out : Array[@graphic.Element] = []
+  if !series.mark_line_has_max {
+    return out
+  }
+  let mut has_value = false
+  let mut max_value = 0.0
+  let mut data_index = 0
+  while data_index < series.data.length() {
+    let (value, _) = pictorial_value_and_category(
+      series.data[data_index],
+      data_index,
+      is_vertical,
+    )
+    if !has_value || value > max_value {
+      has_value = true
+      max_value = value
+    }
+    data_index = data_index + 1
+  }
+  if !has_value {
+    return out
+  }
+
+  let line_color = series.mark_line_line_color.unwrap_or("#333")
+  let line_width = series.mark_line_line_width.unwrap_or(1.0)
+  let line_opacity = series.mark_line_line_opacity.unwrap_or(1.0)
+  let dash = pictorial_mark_line_dash(series.mark_line_line_type)
+  let value_text = pictorial_format_mark_value(max_value)
+  let label_text = series.mark_line_label_formatter
+    .unwrap_or("{c}")
+    .replace(old="{c}", new=value_text)
+
+  if is_vertical {
+    let value_px = coord.num_y(y_idx, max_value)
+    out.push(
+      @graphic.Element::line_colored_dashed(
+        coord.bbox.x,
+        value_px,
+        coord.bbox.right(),
+        value_px,
+        line_color,
+        line_width,
+        dash,
+        line_opacity,
+      ),
+    )
+    let label_position = series.mark_line_label_position.unwrap_or("end")
+    let label_x = if label_position == "start" {
+      coord.bbox.x + 4.0
+    } else {
+      coord.bbox.right() - 4.0
+    }
+    let label_anchor = if label_position == "start" {
+      @graphic.TextAnchor::Start
+    } else {
+      @graphic.TextAnchor::End
+    }
+    out.push(
+      @graphic.Element::text_colored(
+        label_x,
+        value_px - 6.0,
+        label_text,
+        label_anchor,
+        @graphic.TextBaseline::Middle,
+        "#333",
+      ).with_opacity(line_opacity),
+    )
+  } else {
+    let value_px = coord.num_x(x_idx, max_value)
+    out.push(
+      @graphic.Element::line_colored_dashed(
+        value_px,
+        coord.bbox.y,
+        value_px,
+        coord.bbox.bottom(),
+        line_color,
+        line_width,
+        dash,
+        line_opacity,
+      ),
+    )
+    let label_position = series.mark_line_label_position.unwrap_or("end")
+    let label_y = if label_position == "start" {
+      coord.bbox.y - 6.0
+    } else {
+      coord.bbox.bottom() + 6.0
+    }
+    out.push(
+      @graphic.Element::text_colored(
+        value_px,
+        label_y,
+        label_text,
+        @graphic.TextAnchor::Middle,
+        @graphic.TextBaseline::Middle,
+        "#333",
+      ).with_opacity(line_opacity),
+    )
+  }
+
+  out
+}
+
+///|
 fn render_pictorial_bar_series(
   series : @option.SeriesOption,
   series_index : Int,
@@ -289,6 +420,9 @@ fn render_pictorial_bar_series(
     line_width: None,
     stroke_no_scale: false,
   }
+  elems.append(
+    render_pictorial_mark_line_max(series, coord, is_vertical, x_idx, y_idx),
+  )
   let band_step = if is_vertical {
     if x_idx >= coord.x_scales.length() {
       return elems

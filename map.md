@@ -636,8 +636,8 @@ E:\recharts\echarts\src
 │   │   ├── markerHelper.ts =>  [missing] Feature: marker helper
 │   │   ├── MarkerModel.ts =>  [missing] Feature: marker base model
 │   │   ├── MarkerView.ts =>  [missing] Feature: marker base view
-│   │   ├── MarkLineModel.ts =>  [missing] Feature: markLine model
-│   │   ├── MarkLineView.ts =>  [missing] Feature: markLine view
+│   │   ├── MarkLineModel.ts => chart/pictorial_bar.mbt, option/types.mbt, option/parse.mbt [partial] Feature: markLine model (max type only for pictorialBar)
+│   │   ├── MarkLineView.ts => chart/pictorial_bar.mbt [partial] Feature: markLine view (max type rendering for pictorialBar)
 │   │   ├── MarkPointModel.ts =>  [missing] Feature: markPoint model
 │   │   └── MarkPointView.ts =>  [missing] Feature: markPoint view
 │   │
@@ -802,7 +802,7 @@ E:\recharts\echarts\src
 │   │   ├── install.ts => chart/bar.mbt [partial] Feature: bar install
 │   │   ├── installPictorialBar.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar install
 │   │   ├── PictorialBarSeries.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar series
-│   │   └── PictorialBarView.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar view
+│   │   └── PictorialBarView.ts => chart/pictorial_bar.mbt [partial] Feature: pictorial bar view; includes markLine(max) rendering with dashed lines, labels, and coordinate-aware positioning
 │   │
 │   ├── scatter
 │   │   ├── install.ts => chart/scatter.mbt [partial] Feature: scatter install

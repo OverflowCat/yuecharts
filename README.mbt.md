@@ -73,8 +73,8 @@ moon build --target wasm --strip --release
 ```
 
 Build sizes:
-- wasm-gc: 0.56 MB
-- wasm:    1.25 MB
+- wasm-gc: 0.57 MB
+- wasm:    1.29 MB
 
 ## Test
 

@@ -903,6 +903,15 @@ pub(all) struct SeriesOption {
   // the connector line between the segment and the outer label.
   // Corresponds to: FunnelSeries.ts labelLine.show, default true
   label_line_show : Bool
+  // markLine minimal support used by pictorialBar (data: [{type:"max"}]).
+  mark_line_has_max : Bool
+  mark_line_symbol : String?
+  mark_line_label_formatter : String?
+  mark_line_label_position : String?
+  mark_line_line_color : String?
+  mark_line_line_type : String?
+  mark_line_line_opacity : Double?
+  mark_line_line_width : Double?
 }
 
 ///|
@@ -1122,6 +1131,14 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     pie_animation_duration_update: None,
     pie_animation_easing_update: None,
     label_line_show: true,
+    mark_line_has_max: false,
+    mark_line_symbol: None,
+    mark_line_label_formatter: None,
+    mark_line_label_position: None,
+    mark_line_line_color: None,
+    mark_line_line_type: None,
+    mark_line_line_opacity: None,
+    mark_line_line_width: None,
     color_by: "series",
   }
 }
