@@ -106,6 +106,8 @@ pub(all) struct AxisOption {
   break_area : BreakAreaOption?
   // scatter jitter: pixel width of the jitter area (jitterLayout.ts)
   jitter : Double?
+  // echarts/src/component/axis/SplitAreaView.ts
+  split_area_show : Bool
 }
 
 ///|
@@ -161,6 +163,7 @@ pub fn AxisOption::default_x() -> AxisOption {
     breaks: [],
     break_area: None,
     jitter: None,
+    split_area_show: false,
   }
 }
 
@@ -188,6 +191,7 @@ pub fn AxisOption::default_y() -> AxisOption {
     breaks: [],
     break_area: None,
     jitter: None,
+    split_area_show: false,
   }
 }
 
@@ -202,6 +206,46 @@ pub(all) struct PolarOption {
 ///|
 pub impl Default for PolarOption with default() {
   { center: ["50%", "50%"], radius: ["0", "80%"] }
+}
+
+///|
+/// A single markLine endpoint or threshold specification.
+/// <=> echarts/src/component/marker/MarkLineModel.ts MarkLine1DDataItemOption / MarkLine2DDataItemDimOption
+pub(all) struct MarkLineItem {
+  name : String
+  // Threshold value on y-axis (horizontal line) or x-axis (vertical line)
+  x_axis : Double?
+  y_axis : Double?
+  // Coordinate-based point: [category_index_or_x_value, y_value]
+  coord : Array[Double]
+  // Per-item label overrides
+  label_formatter : String?
+  label_position : String?
+}
+
+///|
+/// A markLine entry is either a threshold line (Single) or a two-point line (Pair).
+/// <=> echarts/src/component/marker/MarkLineModel.ts MarkLineOption.data element
+pub(all) enum MarkLineEntry {
+  Single(MarkLineItem)
+  Pair(MarkLineItem, MarkLineItem)
+}
+
+///|
+/// Parsed markLine option for general use (line, bar, scatter, etc.)
+/// <=> echarts/src/component/marker/MarkLineModel.ts MarkLineOption
+pub(all) struct MarkLineData {
+  entries : Array[MarkLineEntry]
+  line_color : String?
+  line_type : String?
+  line_width : Double?
+  line_opacity : Double?
+  // Global label distance offset [horizontal, vertical]
+  label_distance : Array[Double]
+  // Symbol at [start, end] of each markLine: default ["circle", "arrow"]
+  symbol : Array[String]
+  // Symbol sizes at [start, end]: default [8.0, 16.0]
+  symbol_size : Array[Double]
 }
 
 ///|
@@ -923,6 +967,8 @@ pub(all) struct SeriesOption {
   mark_line_line_type : String?
   mark_line_line_opacity : Double?
   mark_line_line_width : Double?
+  // General markLine support (line, bar, scatter, etc.)
+  mark_line_data : MarkLineData?
 }
 
 ///|
@@ -1150,6 +1196,7 @@ pub fn SeriesOption::default_line() -> SeriesOption {
     mark_line_line_type: None,
     mark_line_line_opacity: None,
     mark_line_line_width: None,
+    mark_line_data: None,
     color_by: "series",
   }
 }

@@ -177,6 +177,32 @@ fn render_x_axis(
     Some(Top) => bbox.y
     _ => bbox.y + bbox.height
   }
+  // echarts/src/component/axis/SplitAreaView.ts — alternating background bands
+  if ax.split_area_show && axis_index < coord.x_scales.length() {
+    match coord.x_scales[axis_index] {
+      Ordinal(s) => {
+        let n = s.categories.length()
+        let step = s.band_step()
+        let mut bi = 0
+        while bi < n {
+          if bi % 2 == 0 {
+            elems.push(
+              @graphic.Element::rect_colored_opacity(
+                bbox.x + bi.to_double() * step,
+                bbox.y,
+                step,
+                bbox.height,
+                "rgb(234,237,245)",
+                0.5,
+              ),
+            )
+          }
+          bi += 1
+        }
+      }
+      _ => ()
+    }
+  }
   elems.push(
     @graphic.Element::line_colored(
       bbox.x,

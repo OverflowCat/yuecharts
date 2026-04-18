@@ -2408,6 +2408,11 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
   let break_area = j_parse_optional(j, "breakArea", parse_break_area_option)
   // scatter jitter: pixel width (jitterLayout.ts)
   let jitter = j_number_opt(j, "jitter")
+  // echarts/src/component/axis/SplitAreaView.ts
+  let split_area_show = match j_field(j, "splitArea") {
+    Some(sa) => j_bool(sa, "show", false)
+    None => false
+  }
   {
     axis_type,
     position,
@@ -2430,6 +2435,7 @@ fn parse_axis_option(j : Json, base : AxisOption) -> AxisOption {
     breaks,
     break_area,
     jitter,
+    split_area_show,
   }
 }
 
@@ -4431,9 +4437,140 @@ fn parse_series_option(j : Json) -> SeriesOption {
     mark_line_line_type,
     mark_line_line_opacity,
     mark_line_line_width,
+    mark_line_data: parse_mark_line_data(j),
     // colorBy: "series" (default) | "data" — per-data-item palette coloring
     // Corresponds to: echarts/src/visual/style.ts dataColorPaletteTask
     color_by: j_string(j, "colorBy", base.color_by),
+  }
+}
+
+///|
+/// Parse a single markLine endpoint.
+/// <=> echarts/src/component/marker/MarkLineModel.ts MarkLine1DDataItemOption / MarkLine2DDataItemDimOption
+fn parse_mark_line_item(j : Json) -> MarkLineItem {
+  let name = j_string(j, "name", "")
+  let x_axis = j_number_opt(j, "xAxis")
+  let y_axis = j_number_opt(j, "yAxis")
+  let coord = match j_field(j, "coord") {
+    Some(Array(arr)) => {
+      let result : Array[Double] = []
+      for item in arr {
+        match item {
+          Number(v, ..) => result.push(v)
+          _ => ()
+        }
+      }
+      result
+    }
+    _ => []
+  }
+  let (label_formatter, label_position) = match j_field(j, "label") {
+    Some(lbl) => (j_string_opt(lbl, "formatter"), j_string_opt(lbl, "position"))
+    None => (None, None)
+  }
+  { name, x_axis, y_axis, coord, label_formatter, label_position }
+}
+
+///|
+/// Parse the markLine option for a series.
+/// <=> echarts/src/component/marker/MarkLineModel.ts MarkLineOption
+fn parse_mark_line_data(j : Json) -> MarkLineData? {
+  let ml_json = j_field(j, "markLine")
+  match ml_json {
+    None => None
+    Some(ml) => {
+      let entries : Array[MarkLineEntry] = []
+      match j_field(ml, "data") {
+        Some(Array(arr)) =>
+          for item in arr {
+            match item {
+              // Pair: array of two endpoint objects
+              Array(pair) if pair.length() >= 2 => {
+                let start = parse_mark_line_item(pair[0])
+                let end_item = parse_mark_line_item(pair[1])
+                entries.push(MarkLineEntry::Pair(start, end_item))
+              }
+              // Single: object with yAxis/xAxis or type
+              Object(_) => entries.push(MarkLineEntry::Single(parse_mark_line_item(item)))
+              _ => ()
+            }
+          }
+        _ => ()
+      }
+      let line_style = j_field(ml, "lineStyle")
+      let line_color = match line_style {
+        Some(ls) => j_color_opt(ls, "color")
+        None => None
+      }
+      let line_type = match line_style {
+        Some(ls) => j_string_opt(ls, "type")
+        None => None
+      }
+      let line_width = match line_style {
+        Some(ls) => j_number_opt(ls, "width")
+        None => None
+      }
+      let line_opacity = match line_style {
+        Some(ls) => j_number_opt(ls, "opacity")
+        None => None
+      }
+      let label_distance = match j_field(ml, "label") {
+        Some(lbl) =>
+          match j_field(lbl, "distance") {
+            Some(Array(arr)) => {
+              let result : Array[Double] = []
+              for item in arr {
+                match item {
+                  Number(v, ..) => result.push(v)
+                  _ => ()
+                }
+              }
+              result
+            }
+            Some(Number(v, ..)) => [v, 0.0]
+            _ => []
+          }
+        None => []
+      }
+      let symbol : Array[String] = match j_field(ml, "symbol") {
+        Some(Array(arr)) => {
+          let result : Array[String] = []
+          for item in arr {
+            match item {
+              String(s) => result.push(s)
+              _ => ()
+            }
+          }
+          result
+        }
+        Some(String(s)) => [s, s]
+        _ => []
+      }
+      let symbol_size : Array[Double] = match j_field(ml, "symbolSize") {
+        Some(Array(arr)) => {
+          let result : Array[Double] = []
+          for item in arr {
+            match item {
+              Number(v, ..) => result.push(v)
+              _ => ()
+            }
+          }
+          result
+        }
+        Some(Number(v, ..)) => [v, v]
+        _ => []
+      }
+      Some({
+        entries,
+        line_color,
+        line_type,
+        line_width,
+        line_opacity,
+        label_distance,
+        symbol,
+        symbol_size,
+      })
+    }
   }
 }
 
